@@ -6,8 +6,6 @@ Autonomous subsystem for the IITB Mars Rover Team, 2026-27 season. Successor to
 This repository is a colcon workspace: cloning it gives you the workspace directly, with all
 packages under [`src/`](src/).
 
-> **Assumption:** ROS2 Humble. Nothing in the repo pins the distro yet — this is set once
-> [`docker/`](docker/) has a Dockerfile, which is the authority for the environment.
 
 ## Packages
 
@@ -30,13 +28,6 @@ and owner. Build files are added by each owner in their first implementation PR.
 
 The architecture diagram shows Gazebo and Unity as one node; they are split into two packages here
 because they have different owners and very different dependency trees.
-
-### Sensor integration
-
-Responsibilities that sit above the repo, per the architecture diagram:
-
-- **Zed2 + sbg** — Apratim
-- **4D Lidar** — Ram
 
 ## Quickstart
 
