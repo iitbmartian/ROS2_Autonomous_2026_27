@@ -1,6 +1,8 @@
 devel/
 logs/
 build/
+log/
+install/
 bin/
 lib/
 msg_gen/
@@ -50,26 +52,47 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
-# ---------------------------------------------------------------------------
-# ROS2 / colcon
-# ---------------------------------------------------------------------------
-build/
-install/
-log/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-*.egg-info/
+# C++ objects and libs
 
-# colcon markers
-COLCON_IGNORE
-AMENT_IGNORE
+*.slo
+*.lo
+*.o
+*.a
+*.la
+*.lai
+*.so
+*.dll
+*.dylib
 
-# Editors / IDEs
-.vscode/
-.idea/
-*.swp
+# Qt-es
 
-# macOS
-.DS_Store
-*.bag
+/.qmake.cache
+/.qmake.stash
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+Makefile*
+*build-*
+
+# QtCreator
+
+*.autosave
+
+# QtCtreator Qml
+*.qmlproject.user
+*.qmlproject.user.*
+
+# QtCtreator CMake
+CMakeLists.txt.user*
+
+# VSCode
+.vscode
+
+# TMP folders
+docker/tmp_sources
