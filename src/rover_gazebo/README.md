@@ -1,7 +1,7 @@
 # rover_gazebo
 
 **Owner(s):** Pradyun  
-**Status:** placeholder — no implementation yet
+**Status:** in progress — URDF, meshes, and Gazebo bringup added; `ament_cmake` build type
 
 ## Scope
 
@@ -16,8 +16,14 @@ and very different dependency trees, so they are split into two packages. Unity 
 
 ## Getting started
 
-Build files (`package.xml`, and `CMakeLists.txt` or `setup.py`) are to be added by the
-owner in the first implementation PR — the build type (`ament_cmake` vs `ament_python`)
-is the owner's call.
+```bash
+colcon build --packages-select rover_gazebo --symlink-install
+source install/setup.bash
+./src/rover_gazebo/run_sim.sh
+```
+
+`run_sim.sh` launches Gazebo with the rover URDF spawned in `worlds/khali.sdf`, bridged to ROS 2
+topics via `config/ros_gz_bridge.yaml`. For a lighter RViz-only view of the URDF, use
+`ros2 launch rover_gazebo display.launch.py` instead.
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the branch and PR workflow.
