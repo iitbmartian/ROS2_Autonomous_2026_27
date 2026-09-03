@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Copyright 2025 Husarion. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="create_components"
+              params="components_config_path
+                      namespace:=''
+                      use_sim:=False
+                      use_tf_prefix:=True">
+
+    <xacro:unless value="${components_config_path == ''}">
+      <xacro:property name="components_config" value="${xacro.load_yaml(components_config_path)}" />
+      <xacro:load_component
+        config="${components_config}"
+        counter="${len(components_config['components'])}"
+        robot_namespace="${namespace}"
+        use_sim="${use_sim}"
+        use_tf_prefix="${use_tf_prefix}" />
+    </xacro:unless>
+  </xacro:macro>
+
+  <xacro:macro name="load_component"
+    params="config counter robot_namespace use_sim:=False use_tf_prefix:=True">
+    <xacro:if value="${counter}">
+      <xacro:property name="index" value="${counter - 1}" scope="parent" />
+      <xacro:property name="component" value="${config['components'][index]}" scope="parent" />
+
+      <xacro:property name="type" value="${component['type']}" scope="parent" />
+
+      <!-- `type` may be the canonical (intuitive) component name, a short alias, or -->
+      <!-- the historical SKU code - all are accepted. This single table maps every -->
+      <!-- alias/code to its canonical name; canonical names pass through unchanged, -->
+      <!-- and the dispatch below keys on the canonical name. Codes are optional: a -->
+      <!-- component without one (e.g. rplidar_c1) is selected by name only. -->
+      <xacro:property name="aliases"
+        value="${dict ([
+        ('DEV01', 'cover_access_panel'),
+        ('DEV02', 'carrying_handles'),
+        ('DEV03', 'mounting_plate'),
+        ('wooden_plate', 'mounting_plate'),
+        ('DEV04H', 'frame_370'),
+        ('DEV04L', 'frame_170'),
+        ('DEV05', 'pillar_350'),
+        ('DEV06', 'basket_railings'),
+        ('DEV07', 'gate_small'),
+        ('gate_475', 'gate_small'),
+        ('DEV07T', 'gate_small_rotated'),
+        ('gate_350_rotated', 'gate_small_rotated'),
+        ('DEV09', 'gate_large'),
+        ('RCK', 'rack'),
+        ('ANT02', 'teltonika'),
+        ('WCH01', 'wibotic_receiver'),
+        ('wibotic', 'wibotic_receiver'),
+        ('CAM01', 'orbbec_astra'),
+        ('astra', 'orbbec_astra'),
+        ('CAM02', 'realsense_d435'),
+        ('realsense', 'realsense_d435'),
+        ('CAM03', 'zed_2'),
+        ('CAM04', 'zed_2i'),
+        ('CAM05', 'zed_m'),
+        ('CAM06', 'zed_x'),
+        ('CAM11', 'oak_d_pro'),
+        ('oak', 'oak_d_pro'),
+        ('luxonis_oak_d_pro', 'oak_d_pro'),
+        ('LDR01', 'rplidar_s1'),
+        ('LDR02', 'rplidar_s2'),
+        ('LDR03', 'rplidar_a2m12'),
+        ('LDR04', 'rplidar_a3'),
+        ('LDR06', 'rplidar_s3'),
+        ('LDR10', 'ouster_os0_32'),
+        ('LDR11', 'ouster_os0_64'),
+        ('LDR12', 'ouster_os0_128'),
+        ('LDR13', 'ouster_os1_32'),
+        ('LDR14', 'ouster_os1_64'),
+        ('LDR15', 'ouster_os1_128'),
+        ('LDR20', 'velodyne_puck'),
+        ('LDR22', 'velodyne_alpha_prime'),
+        ('MAN01', 'ur3e'),
+        ('MAN02', 'ur5e'),
+        ('MAN04', 'kinova_gen3_6dof'),
+        ('MAN05', 'kinova_gen3_6dof_vision'),
+        ('MAN06', 'kinova_gen3_7dof'),
+        ('MAN07', 'kinova_gen3_7dof_vision'),
+        ('GRP02', 'robotiq_2f_85'),
+      ])}" />
+
+      <xacro:if value="${type in aliases}">
+        <xacro:property name="type" value="${aliases[type]}" scope="parent" />
+      </xacro:if>
+
+      <xacro:property name="dev_models_dict"
+        value="${dict ([
+        ('cover_access_panel', 'dev01'),
+        ('carrying_handles', 'dev02'),
+        ('mounting_plate', 'dev03'),
+        ('frame_370', 'dev04h'),
+        ('frame_170', 'dev04l'),
+        ('pillar_350', 'dev05'),
+        ('basket_railings', 'dev06'),
+        ('gate_small', 'dev07'),
+        ('gate_small_rotated', 'dev07t'),
+        ('gate_large', 'dev09')
+      ])}" />
+
+      <xacro:if value="${type in dev_models_dict}">
+        <xacro:include
+          filename="$(find husarion_components_description)/urdf/dev.urdf.xacro"
+          ns="dev"
+        />
+        <xacro:dev.dev
+          model="${dev_models_dict[type]}"
+        />
+      </xacro:if>
+
+      <xacro:unless value="${type in dev_models_dict}">
+        <xacro:property name="parent_link" value="${component['parent_link']}" scope="parent" />
+        <xacro:property name="xyz" value="${component['xyz'] if 'xyz' in component else '0.0 0.0 0.0'}" scope="parent" />
+        <xacro:property name="rpy" value="${component['rpy'] if 'rpy' in component else '0.0 0.0 0.0'}" scope="parent" />
+        <xacro:property name="component_name" value="${component['name'] if 'name' in component else ''}" scope="parent" />
+
+        <xacro:if value="${type == 'teltonika'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/teltonika_003R-00253.urdf.xacro"
+            ns="teltonika" />
+
+          <xacro:teltonika.teltonika_003R-00253
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'rack'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/rack.urdf.xacro"
+            ns="rack" />
+
+         <xacro:property name="length" value="${component['length'] if 'length' in component else '1.0'}" scope="parent" />
+
+          <xacro:rack.rack
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            elements="${component['elements']}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'orbbec_astra'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/orbbec_astra.urdf.xacro"
+            ns="camera" />
+
+          <xacro:camera.orbbec_astra
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'realsense_d435'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/intel_realsense_d435.urdf.xacro"
+            ns="camera" />
+
+          <xacro:camera.intel_realsense_d435
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_nominal_extrinsics="${use_sim}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:property name="zed_models_dict"
+          value="${dict ([
+          ('zed_2', 'zed2'),
+          ('zed_2i', 'zed2i'),
+          ('zed_m', 'zedm'),
+          ('zed_x', 'zedx'),
+          ])}" />
+
+          <xacro:if value="${type in zed_models_dict}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/stereolabs_zed.urdf.xacro"
+            ns="camera" />
+
+          <xacro:camera.zed_camera
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            model="${zed_models_dict[type]}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <!-- oak_1_lite (OAK-1-LITE) is not available in the luxonis repo -->
+        <xacro:property name="luxonis_models_dict"
+          value="${dict ([
+          ('oak_d_pro', 'OAK-D-PRO'),
+          ])}" />
+
+        <xacro:if value="${type in luxonis_models_dict}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/luxonis_depthai.urdf.xacro"
+            ns="camera" />
+
+          <xacro:camera.luxonis_depthai
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            model="${luxonis_models_dict[type]}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:property name="rplidar_models_dict"
+          value="${dict ([
+          ('rplidar_s1', 's1'),
+          ('rplidar_s2', 's2'),
+          ('rplidar_a2m12', 'a2m12'),
+          ('rplidar_a3', 'a3'),
+          ('rplidar_c1', 'c1'),
+          ('rplidar_s3', 's3'),
+        ])}" />
+
+        <xacro:if value="${type in rplidar_models_dict}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/slamtec_rplidar.urdf.xacro"
+            ns="lidar"
+          />
+
+          <xacro:lidar.slamtec_rplidar
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            model="${rplidar_models_dict[type]}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:property name="ouster_models_dict"
+          value="${dict ([
+          ('ouster_os0_32', 'os0_32'),
+          ('ouster_os0_64', 'os0_64'),
+          ('ouster_os0_128', 'os0_128'),
+          ('ouster_os1_32', 'os1_32'),
+          ('ouster_os1_64', 'os1_64'),
+          ('ouster_os1_128', 'os1_128')
+        ])}" />
+
+        <xacro:if value="${type in ouster_models_dict}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/ouster.urdf.xacro"
+            ns="lidar"
+          />
+          <xacro:lidar.ouster
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            model="${ouster_models_dict[type]}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'velodyne_puck'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/velodyne_puck.urdf.xacro"
+            ns="lidar"
+          />
+
+          <xacro:lidar.velodyne_puck
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'velodyne_alpha_prime'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/velodyne_alpha_prime.urdf.xacro"
+            ns="lidar"
+          />
+
+          <xacro:lidar.velodyne_alpha_prime
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'ur3e'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/ur.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.ur
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            component_name="${component_name}"
+            ur_type="ur3e"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'ur5e'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/ur.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.ur
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            component_name="${component_name}"
+            ur_type="ur5e"
+          />
+        </xacro:if>
+
+
+        <xacro:if value="${type == 'kinova_gen3_6dof'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/kinova.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.kinova
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            kinova_type="gen3"
+            dof="6"
+            gripper="robotiq_2f_85"
+            vision="false"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'kinova_gen3_6dof_vision'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/kinova.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.kinova
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            kinova_type="gen3"
+            dof="6"
+            gripper="robotiq_2f_85"
+            vision="true"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'kinova_gen3_7dof'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/kinova.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.kinova
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            kinova_type="gen3"
+            dof="7"
+            gripper="robotiq_2f_85"
+            vision="false"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'kinova_gen3_7dof_vision'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/kinova.urdf.xacro"
+            ns="manipulator"
+          />
+
+          <xacro:manipulator.kinova
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            kinova_type="gen3"
+            dof="7"
+            gripper="robotiq_2f_85"
+            vision="true"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'robotiq_2f_85'}">
+          <xacro:include filename="$(find husarion_components_description)/urdf/robotiq.urdf.xacro"
+            ns="gripper" />
+
+          <xacro:gripper.robotiq
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            component_name="${component_name}"
+            robotiq_type="2f_85"
+          />
+        </xacro:if>
+
+        <xacro:if value="${type == 'wibotic_receiver'}">
+          <xacro:include
+            filename="$(find husarion_components_description)/urdf/wibotic_receiver.urdf.xacro"
+            ns="wireless_charger" />
+
+          <xacro:wireless_charger.wibotic_receiver
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+          />
+        </xacro:if>
+
+        <!-- User-supplied URDF/xacro. `file` is resolved against `package` when -->
+        <!-- present ($(find package)/file), otherwise taken as an absolute path. -->
+        <!-- The included file must define a macro with the standard component -->
+        <!-- signature; its name defaults to `custom_component` and is overridable -->
+        <!-- via `macro_name`. -->
+        <xacro:if value="${type == 'custom'}">
+          <xacro:property name="macro_name"
+            value="${component['macro_name'] if 'macro_name' in component else 'custom_component'}" scope="parent" />
+
+          <xacro:if value="${'package' in component}">
+            <xacro:include filename="$(find ${component['package']})/${component['file']}" ns="custom" />
+          </xacro:if>
+          <xacro:unless value="${'package' in component}">
+            <xacro:include filename="${component['file']}" ns="custom" />
+          </xacro:unless>
+
+          <xacro:call macro="custom.${macro_name}"
+            parent_link="${parent_link}"
+            xyz="${xyz}"
+            rpy="${rpy}"
+            robot_namespace="${robot_namespace}"
+            component_name="${component_name}"
+            use_tf_prefix="${use_tf_prefix}"
+          />
+        </xacro:if>
+      </xacro:unless>
+
+      <xacro:if value="${index}">
+        <xacro:load_component
+          counter="${index}"
+          config="${config}"
+          robot_namespace="${robot_namespace}"
+          use_sim="${use_sim}"
+          use_tf_prefix="${use_tf_prefix}"
+        />
+      </xacro:if>
+    </xacro:if>
+  </xacro:macro>
+</robot>

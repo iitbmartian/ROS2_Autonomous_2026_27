@@ -1,0 +1,2115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- working_file -->
+<robot
+  name="rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<!--<xacro:include filename="$(find rover_gazebosim)/urdf/rover.gazebo" />-->
+  
+<!-- <xacro:include filename="$(find rover_gazebosim)/urdf/rover/ros2_control.xacro" /> -->
+
+  <link
+    name="root_link">
+  </link>
+  <joint name="joint_root" type="fixed">
+    <origin xyz="0.276421885520658 -0.526119109974194 -0.213679693338444" rpy="0 0 0"/>
+    <parent link="root_link"/>
+    <child link="base_link"/>
+  </joint>
+
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.27642 -0.52612 0.31368"
+        rpy="0 0 0" />
+      <mass
+        value="1.8895" />
+      <inertia
+        ixx="0.018533"
+        ixy="-1.2571E-10"
+        ixz="2.6134E-12"
+        iyy="0.030522"
+        iyz="2.6137E-10"
+        izz="0.048376" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+            filename="$(find rover_gazebosim)/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+
+  </link>
+  <gazebo reference="base_link">
+      <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>100</update_rate>
+        <topic>/imu</topic>
+        <plugin filename="ignition-gazebo-imu-system"
+                name="ignition::gazebo::systems::Imu"/>
+      </sensor>
+    </gazebo> 
+  <gazebo reference="camera_link">
+    <sensor name="rgbd_camera" type="rgbd_camera">
+      <gz_frame_id>camera_link</gz_frame_id>
+      <topic>/rgbd</topic>
+      <update_rate>1</update_rate>
+      <always_on>1</always_on>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far>  <!-- depth cameras have shorter useful range -->
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+        <depth_camera>
+          <output>depths</output>
+        </depth_camera>
+        <save enabled="false"/>
+      </camera>
+    </sensor>
+  </gazebo>
+  <gazebo reference="sensor_laser">  
+    <sensor name='gpu_lidar' type='gpu_lidar'>"
+        <pose relative_to='sensor_laser'>0 0 0 0 0 0</pose>
+        <gz_frame_id>sensor_laser</gz_frame_id>
+        <!-- <pose> 0 0 0 0 0 0 </pose> -->
+        <topic>lidar</topic>
+        <update_rate>10</update_rate>
+        <ray>
+            <scan>
+                <horizontal>
+                    <samples>360</samples>
+                    <resolution>1</resolution>
+                    <min_angle>-3.1415926</min_angle>
+                    <max_angle>3.1415926</max_angle>
+                </horizontal>
+                <vertical>
+                    <samples>1</samples>
+                    <resolution>1</resolution>
+                    <min_angle>0</min_angle>
+                    <max_angle>0</max_angle>
+                </vertical>
+            </scan>
+            <range>
+                <min>0.02</min>
+                <max>10.0</max>
+                <resolution>0.01</resolution>
+            </range>
+        </ray>
+        <always_on>true</always_on>
+        <visualize>true</visualize>
+    </sensor>
+  </gazebo>
+<link name="sensor_laser">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="1" />
+      <!-- RANDOM INERTIA BELOW -->
+      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+    </inertial>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+      <material name="white" />
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint_sensor_laser" type="fixed">
+    <origin xyz="0.276421885520658 -0.526119109974194 0.413679693338444" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="sensor_laser"/>
+  </joint>
+
+  <!-- Camera -->
+  <link name="camera_link">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.005"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.005"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <!-- <transmission name="simple_trans"> -->
+  <!--   <type>transmission_interface/SimpleTransmission</type> -->
+  <!--   <joint name="camera_joint"> -->
+  <!--     <hardware_interface>hardware_interface/PositionJointInterface</hardware_interface> -->
+  <!--   </joint> -->
+  <!--   <actuator name="camera_motor"> -->
+  <!--     <mechanical_reduction>1</mechanical_reduction> -->
+  <!--     <hardware_interface>hardware_interface/PositionJointInterface</hardware_interface> -->
+  <!--   </actuator> -->
+  <!-- </transmission> -->
+
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="-0.06421885520658 -0.526119109974194 0.703679693338444" rpy="0 0 3.1416"/>
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100" velocity="1"/>
+  </joint>
+
+    <!-- generate an optical frame http://www.ros.org/reps/rep-0103.html#suffix-frames
+      so that ros and opencv can operate on the camera frame correctly -->
+  <joint name="camera_optical_joint" type="fixed">
+    <!-- these values have to be these values otherwise the gazebo camera image
+        won't be aligned properly with the frame it is supposedly originating from -->
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    <parent link="camera_link"/>
+    <child link="camera_link_optical"/>
+  </joint>
+
+  <link name="camera_link_optical">
+  </link>
+
+  <!-- IMU -->
+  <link name="imu_link">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.005"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="0.276421885520658 -0.526119109974194 0.313679693338444" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+  </joint>
+
+
+  <link
+    name="Left_rocker">
+    <inertial>
+      <origin
+        xyz="0.167360944924866 -0.182311497446577 0.0450713948908615"
+        rpy="0 0 0" />
+      <mass
+        value="0.726872906165902" />
+      <inertia
+        ixx="0.00239821590517036"
+        ixy="0.00170592943816476"
+        ixz="2.57104235529553E-18"
+        iyy="0.00324908760666504"
+        iyz="-1.44505695733635E-18"
+        izz="0.00427740926676354" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Left_rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Left_rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint1"
+    type="fixed">
+    <origin
+      xyz="0.29675 -0.78912 0.33409"
+      rpy="1.5708 -0.06648 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Left_rocker" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="wheel_4">
+    <inertial>
+      <origin
+        xyz="0.144438795009644 0.055848060179012 -0.115046141128507"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933179481798" />
+      <inertia
+        ixx="0.0103340900427652"
+        ixy="0.000206732701279778"
+        ixz="-0.00254072736757193"
+        iyy="0.00810089358817614"
+        iyz="-0.000233941595228793"
+        izz="0.0109493657609546" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.03 -0.035 -0.02"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.03 -0.035 -0.02"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_4.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link>
+  <joint
+    name="wheel_joint_4"
+    type="continuous">
+    <origin
+      xyz="0.4071 -0.34158 0.043136"
+      rpy="3.0602 -0.72361 -1.2268" />
+    <parent
+      link="Left_rocker" />
+    <child
+      link="wheel_4" />
+    <axis
+      xyz="-0.6621 -0.060914 0.74694" />
+  </joint>
+  <link
+    name="Left_bogie">
+    <inertial>
+      <origin
+        xyz="-0.0191025407125499 -0.151328320402829 0.0624161568789092"
+        rpy="0 0 0" />
+      <mass
+        value="0.77472658771127" />
+      <inertia
+        ixx="0.00197112599922037"
+        ixy="7.13582562834437E-07"
+        ixz="2.77626402487547E-12"
+        iyy="0.00198480235561076"
+        iyz="-1.49310628600756E-13"
+        izz="0.00141940708466023" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Left_bogie.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Left_bogie.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint3"
+    type="revolute">
+    <origin
+      xyz="-0.23989 -0.077168 0.002"
+      rpy="0 0 -0.11742" />
+    <parent
+      link="Left_rocker" />
+    <child
+      link="Left_bogie" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.1"
+      upper="0.1"
+      effort="10000"
+      velocity="1" />
+  </joint>
+  <link
+    name="wheel_5">
+    <inertial>
+      <origin
+        xyz="0.13231582106083 0.0320795339443446 -0.127730464693944"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933181485893" />
+      <inertia
+        ixx="0.010334421333825"
+        ixy="0.000206987460861856"
+        ixz="-0.00254065913160713"
+        iyy="0.00810063924924905"
+        iyz="-0.000233343656992006"
+        izz="0.0109492888124459" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.01 -0.025 -0.01"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.01 -0.025 -0.01"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_5.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link>
+  <joint
+    name="wheel_joint_5"
+    type="continuous">
+    <origin
+      xyz="0.192 -0.195 0.041136"
+      rpy="3.0602 -0.72361 -2.6667" />
+    <parent
+      link="Left_bogie" />
+    <child
+      link="wheel_5" />
+    <axis
+      xyz="-0.6621 -0.060914 0.74694" />
+  </joint>
+  <link
+    name="wheel_6">
+    <inertial>
+      <origin
+        xyz="0.123984453970486 0.0528779970602527 -0.133419336702574"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933181485893" />
+      <inertia
+        ixx="0.0103344213338249"
+        ixy="0.000206987460861848"
+        ixz="-0.00254065913160712"
+        iyy="0.00810063924924902"
+        iyz="-0.000233343656992003"
+        izz="0.0109492888124459" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.01 -0.025 -0.01"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.01 -0.025 -0.01"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_5.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link>
+  <joint
+    name="wheel_joint_6"
+    type="continuous">
+    <origin
+      xyz="-0.23514 -0.17514 0.041136"
+      rpy="3.0602 -0.72361 -2.6667" />
+    <parent
+      link="Left_bogie" />
+    <child
+      link="wheel_6" />
+    <axis
+      xyz="-0.6621 -0.060914 0.74694" />
+  </joint>
+  <!-- <link
+    name="ball-left-down0">
+    <inertial>
+      <origin
+        xyz="2.07458677270456E-06 -0.0111838499137263 2.02617547698236E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406632794" />
+      <inertia
+        ixx="2.57061050178732E-06"
+        ixy="9.20708510051927E-11"
+        ixz="-1.84149422795921E-09"
+        iyy="3.59636855567973E-07"
+        iyz="8.94129882814569E-12"
+        izz="2.58931051687203E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/ball-left-down0.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/ball-left-down0.STL" />
+      </geometry>
+    </collision>
+  </link> -->
+  <joint
+    name="s-joint-8l"
+    type="fixed">
+    <origin
+      xyz="0.31476 -0.27334 -0.0146"
+      rpy="-1.5708 0 -2.9303" />
+    <parent
+      link="Left_rocker" />
+    <child
+      link="ball-left-down" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  
+  <link
+    name="Right_rocker">
+    <inertial>
+      <origin
+        xyz="0.183201205385285 -0.166386556947178 0.138928605109138"
+        rpy="0 0 0" />
+      <mass
+        value="0.726872906165903" />
+      <inertia
+        ixx="0.00209714276306076"
+        ixy="0.00160105452574116"
+        ixz="6.08506179066926E-19"
+        iyy="0.00355016074877466"
+        iyz="4.53084220245437E-20"
+        izz="0.00427740926676356" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Right_rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Right_rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint2"
+    type="fixed">
+    <origin
+      xyz="0.29675 -0.079119 0.33409"
+      rpy="1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Right_rocker" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="wheel_1">
+    <inertial>
+      <origin
+        xyz="0.0262918155854199 -0.0029220689689949 -0.035977185773284"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933180107679" />
+      <inertia
+        ixx="0.0103344213329832"
+        ixy="0.000206987461048749"
+        ixz="-0.00254065913223699"
+        iyy="0.0081006392481179"
+        iyz="-0.000233343657269651"
+        izz="0.0109492888118564" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_1.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link><!-- reversing xyz for wheel 123 -->
+  <joint
+    name="wheel_joint_1"
+    type="continuous">
+    <origin
+      xyz="0.43071 -0.30158 0"
+      rpy="-0.081372 0.72361 -0.030811" />
+    <parent
+      link="Right_rocker" />
+    <child
+      link="wheel_1" />
+    <axis
+      xyz="0.6621 0.060914 -0.74694" />
+  </joint>
+  <link
+    name="Right_bogie">
+    <inertial>
+      <origin
+        xyz="-5.75209706540694E-05 -0.172763722897866 0.119583843668451"
+        rpy="0 0 0" />
+      <mass
+        value="0.774726597950145" />
+      <inertia
+        ixx="0.00197108962638393"
+        ixy="-9.83621083818607E-08"
+        ixz="2.78023535343234E-12"
+        iyy="0.00198483875975475"
+        iyz="1.50952741755008E-14"
+        izz="0.00141940711596369" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Right_bogie.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/Right_bogie.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint4"
+    type="revolute">
+    <origin
+      xyz="-0.23989 -0.077168 0"
+      rpy="0 0 0" />
+    <parent
+      link="Right_rocker" />
+    <child
+      link="Right_bogie" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.1"
+      upper="0.1"
+      effort="10000"
+      velocity="1" />
+  </joint>
+  <link
+    name="wheel_2">
+    <inertial>
+      <origin
+        xyz="0.029232197183729 0.00711312038511042 -0.0325524060616964"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933180107703" />
+      <inertia
+        ixx="0.0103344213312556"
+        ixy="0.000206987457978303"
+        ixz="-0.00254065913109096"
+        iyy="0.00810063924688358"
+        iyz="-0.00023334366266065"
+        izz="0.0109492888148186" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_2.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link>
+  <joint
+    name="wheel_joint_2"
+    type="continuous">
+    <origin
+      xyz="0.21514 -0.21514 0"
+      rpy="-0.081372 0.72361 -0.030811" />
+    <parent
+      link="Right_bogie" />
+    <child
+      link="wheel_2" />
+    <axis
+      xyz="0.6621 0.060914 -0.74694" />
+  </joint>
+  <link
+    name="wheel_3">
+    <inertial>
+      <origin
+        xyz="0.0292668549783096 0.00479183891094428 -0.0327109899183606"
+        rpy="0 0 0" />
+      <mass
+        value="1.56933179818944" />
+      <inertia
+        ixx="0.0103344956883222"
+        ixy="0.000207212259777325"
+        ixz="-0.00254096968797141"
+        iyy="0.00810114754510584"
+        iyz="-0.000232962227841343"
+        izz="0.0109487061591894" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/wheel_3.STL" />
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>1.5</mu>
+            <mu2>2</mu2>
+            <slip1>1.5</slip1>
+            <slip2>2</slip2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+  </link>
+  <joint
+    name="wheel_joint_3"
+    type="continuous">
+    <origin
+      xyz="-0.21514 -0.21514 0"
+      rpy="-0.081372 0.72361 -0.030811" />
+    <parent
+      link="Right_bogie" />
+    <child
+      link="wheel_3" />
+    <axis
+      xyz="0.6621 0.060914 -0.74694" />
+  </joint>
+  <!-- <link
+    name="ball-right-down0">
+    <inertial>
+      <origin
+        xyz="2.07457333400995E-06 -0.0111838499108833 2.0254998001068E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406420234" />
+      <inertia
+        ixx="2.57061050226204E-06"
+        ixy="9.20708307735023E-11"
+        ixz="-1.8414954739775E-09"
+        iyy="3.59636855997047E-07"
+        iyz="8.94415600789211E-12"
+        izz="2.58931051698473E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/ball-right-down0.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/ball-right-down0.STL" />
+      </geometry>
+    </collision>
+  </link> -->
+  <joint
+    name="s-joint-8r"
+    type="fixed">
+    <origin
+      xyz="0.33825 -0.24368 0.1986"
+      rpy="1.5708 0 -2.7598" />
+    <parent
+      link="Right_rocker" />
+    <child
+      link="ball-right-down" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  
+  <link
+    name="connector-link-1">
+    <inertial>
+      <origin
+        xyz="0.0190878780714502 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.0199033183799962" />
+      <inertia
+        ixx="5.50519098487145E-06"
+        ixy="2.2946490565619E-22"
+        ixz="-3.82219207612435E-23"
+        iyy="5.85049834670421E-06"
+        iyz="-7.63893023886394E-24"
+        izz="4.40671191125244E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/connector-link-1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/connector-link-1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fix-joint-1"
+    type="fixed">
+    <origin
+      xyz="0.57075 -0.57612 0.38409"
+      rpy="1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="connector-link-1" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="triangle-left">
+    <inertial>
+      <origin
+        xyz="0.0808546587691665 -0.0336957844327703 -0.00505192020639311"
+        rpy="0 0 0" />
+      <mass
+        value="0.1522789919621831" />
+      <inertia
+        ixx="7.76693819705009E-05"
+        ixy="-6.57323940361056E-05"
+        ixz="-2.19466715326036E-07"
+        iyy="0.000274526110021768"
+        iyz="9.14616825099291E-08"
+        izz="0.000351313599973131" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-left.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-left.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-left"
+    type="fixed">
+    <origin
+      xyz="0.038 0 0"
+      rpy="1.5708 -1.5513 -1.5708" />
+    <parent
+      link="connector-link-1" />
+    <child
+      link="triangle-left" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1"
+      upper="1"
+      effort="100"
+      velocity="1" />
+  </joint>
+  <link
+    name="triangle-connector">
+    <inertial>
+      <origin
+        xyz="0.05 5.55111512312578E-17 0.00516595949808951"
+        rpy="0 0 0" />
+      <mass
+        value="0.0443640564577731" />
+      <inertia
+        ixx="2.39706488563509E-06"
+        ixy="1.03922319270217E-19"
+        ixz="-5.95432696611056E-21"
+        iyy="6.71951537000553E-05"
+        iyz="-7.31245077877221E-23"
+        izz="6.88258108974862E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.05 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-connector-l.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.05 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-connector-l.STL" />
+      </geometry>
+    </collision>
+  </link><!-- -0.04999 -0.1116 -0.01 -->
+  <joint
+    name="s-joint-left-down"
+    type="fixed">
+    <origin
+      xyz="0.0 -0.1116 -0.01"
+      rpy="3.1416 0 -3.1221" />
+    <parent
+      link="triangle-left" />
+    <child
+      link="triangle-connector" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1"
+      upper="1"
+      effort="30"
+      velocity="1" />
+  </joint>
+
+  <!-- <gazebo>
+    <plugin name="Myrobot_ClosedLoopPlugin" filename="libpegasus_gazebo_closed_loop_plugin.so">
+      <joint>s-joint-left-down</joint> <child>triangle-connector</child> 
+      <parent>triangle-left</parent>
+    </plugin>
+  </gazebo> -->
+  <link
+    name="triangle-ball-left">
+    <inertial>
+      <origin
+        xyz="2.07458677536909E-06 -0.0111838499137585 2.0261754341E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406632795" />
+      <inertia
+        ixx="2.57061050178732E-06"
+        ixy="9.20708510051944E-11"
+        ixz="-1.84149422795903E-09"
+        iyy="3.59636855567973E-07"
+        iyz="8.94129882837395E-12"
+        izz="2.58931051687204E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-ball-left.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-ball-left.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="ball-left"
+    type="fixed">
+    <origin
+      xyz="0.21 0 -0.0256"
+      rpy="-1.5708 0 -0.11925" />
+    <parent
+      link="triangle-left" />
+    <child
+      link="triangle-ball-left" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="socket-left">
+    <inertial>
+      <origin
+        xyz="0.00692886977032131 0.000721743264174457 1.25486276925102E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0295586667242852" />
+      <inertia
+        ixx="1.10515560620637E-06"
+        ixy="1.44945159679416E-07"
+        ixz="-1.78818651322801E-12"
+        iyy="3.67289086455697E-06"
+        iyz="1.41647130464454E-12"
+        izz="3.53209282187446E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-left.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-left.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint 
+    name="ball-socket-left"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="-0.89006 1.4692 -0.17888" />
+    <parent
+      link="triangle-ball-left" />
+    <child
+      link="socket-left" />
+    <axis
+      xyz="0 0.707 0.707" />
+  </joint>
+  <!-- <gazebo> -->
+  <!--       <joint name="ball-socket-left" type="ball"> -->
+  <!--           <parent>triangle-ball-left</parent> -->
+  <!--           <child>socket-left</child> -->
+  <!--           <pose>0 0 0 -0.89006 1.4692 -0.17888</pose> -->
+  <!--           <axis> -->
+  <!--               <xyz>1 0 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-3</lower> -->
+  <!--                   <upper>3</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>1</use_parent_model_frame> -->
+  <!--           </axis> -->
+  <!--           <axis2> -->
+  <!--               <xyz>0 1 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-1</lower> -->
+  <!--                   <upper>1</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>1</use_parent_model_frame> -->
+  <!--           </axis2> -->
+  <!--           <physics> -->
+  <!--               <ode> -->
+  <!--                   <implicit_spring_damper>1</implicit_spring_damper> -->
+  <!--                   <cfm_damping>1</cfm_damping> -->
+  <!--                   <limit> -->
+  <!--                       <cfm>0</cfm> -->
+  <!--                       <erp>0.2</erp> -->
+  <!--                   </limit> -->
+  <!--               </ode> -->
+  <!--           </physics> -->
+  <!--       </joint> -->
+  <!--   </gazebo> -->
+
+  <link
+    name="left-rod">
+    <inertial>
+      <origin
+        xyz="2.39808173319034E-14 -0.149000000000016 -1.69864122767649E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.0212057504117311" />
+      <inertia
+        ixx="0.00012895746969134"
+        ixy="-1.31361244357096E-19"
+        ixz="6.7762635780344E-21"
+        iyy="2.65071880146638E-07"
+        iyz="5.1197971782694E-19"
+        izz="0.00012895746969134" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/left-rod.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/left-rod.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-5l"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 1.5252 1.5708" />
+    <parent
+      link="socket-left" />
+    <child
+      link="left-rod" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="socket-left-down">
+    <inertial>
+      <origin
+        xyz="-0.0240873295919037 -0.00927825613404898 1.55183480510246E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0295586396880072" />
+      <inertia
+        ixx="1.10515560121914E-06"
+        ixy="1.44945047839436E-07"
+        ixz="5.91299289208555E-13"
+        iyy="3.67288871024403E-06"
+        iyz="1.39544129503807E-12"
+        izz="3.53209150489565E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-left-down.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-left-down.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-6l"
+    type="fixed">
+    <origin
+      xyz="0.0094076 -0.26698 0.0033907"
+      rpy="2.7957 0 1.5708" />
+    <parent
+      link="left-rod" />
+    <child
+      link="socket-left-down" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="ball-left-down">
+    <inertial>
+      <origin
+        xyz="2.07458677270456E-06 -0.0111838499137263 2.02617547795381E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406632794" />
+      <inertia
+        ixx="2.57061050178732E-06"
+        ixy="9.20708510051983E-11"
+        ixz="-1.84149422795921E-09"
+        iyy="3.59636855567973E-07"
+        iyz="8.94129882813713E-12"
+        izz="2.58931051687203E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/ball-left-down.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/ball-left-down.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <!-- <joint
+    name="s-joint-7l"
+    type="continuous">
+    <origin
+      xyz="-0.031016 -0.01 0"
+      rpy="-2.2692 -1.1462 2.3562" />
+    <parent
+      link="socket-left-down" />
+    <child
+      link="ball-left-down" />
+    <axis
+      xyz="0 1 0" /> -->
+      <!-- user-defined false axis 0.6621 0.060914 -0.74694-->
+  <!-- </joint> -->
+  <!-- <gazebo> -->
+  <!--       <joint name="s-joint-7l" type="universal"> -->
+  <!--           <parent>socket-left-down</parent> -->
+  <!--           <child>ball-left-down</child> -->
+  <!--           <pose>0.3162 -0.2719 -0.017 0 0 0</pose> -->
+  <!--           <axis> -->
+  <!--               <xyz>0 0 1</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-3</lower> -->
+  <!--                   <upper>3</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+    
+  <!--           </axis> -->
+  <!--           <axis2> -->
+  <!--               <xyz>0 1 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-1</lower> -->
+  <!--                   <upper>1</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+    
+  <!--           </axis2> -->
+  <!--           <physics> -->
+  <!--               <ode> -->
+  <!--                   <implicit_spring_damper>1</implicit_spring_damper> -->
+  <!--                   <cfm_damping>1</cfm_damping> -->
+  <!--                   <limit> -->
+  <!--                       <cfm>0</cfm> -->
+  <!--                       <erp>0.2</erp> -->
+  <!--                   </limit> -->
+  <!--               </ode> -->
+  <!--           </physics> -->
+  <!--       </joint> -->
+  <!--   </gazebo> -->
+  <link
+    name="connector-link-2">
+    <inertial><!-- "0.0190878780714503 0 0" -->
+      <origin
+        xyz="0.29875 0.34231 0.347"
+        rpy="0 0 0" />
+      <mass
+        value="0.0199033183799962" />
+      <inertia
+        ixx="5.50519098487144E-06"
+        ixy="1.33101064420802E-22"
+        ixz="-1.62187736189962E-21"
+        iyy="5.8504983467042E-06"
+        iyz="-2.75337406645934E-22"
+        izz="4.40671191125243E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/connector-link-2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/connector-link-2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fix-joint-2"
+    type="fixed">
+    <origin
+      xyz="0.57075 -0.47612 0.38409"
+      rpy="1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="connector-link-2" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="triangle-right"><!-- -0.259403396495337 0.315319674105032 0.341802956534147 0.0808546587691665 -0.0336957844327703 -0.00505192020639311-->
+    <inertial>
+      <origin
+        xyz="0.34 -0.347105032 -0.336802956534147"
+        rpy="0 0 0" />
+      <mass
+        value="0.151146897932714" />
+      <inertia
+        ixx="0.000209697810225404"
+        ixy="-0.000177445612241148"
+        ixz="6.02356058570887E-07"
+        iyy="0.000741116112539513"
+        iyz="-2.43837164352351E-07"
+        izz="0.000948432531563561" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.34 -0.347105032 -0.336802956534147"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-right.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.34 -0.347105032 -0.336802956534147"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-right.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-right"
+    type="fixed"><!-- "-0.29875 -0.34231 -0.347" -->
+    <origin
+      xyz="0.038 0 0"
+      rpy="1.5708 1.5513 1.5708" />
+    <parent
+      link="connector-link-2" />
+    <child
+      link="triangle-right" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1"
+      upper="1"
+      effort="100"
+      velocity="1" />
+  </joint>
+  <!-- <link
+    name="triangle-connector-r">
+    <inertial>
+      <origin
+        xyz="0.05 0 0.00516595949808973"
+        rpy="0 0 0" />
+      <mass
+        value="0.0443640564577731" />
+      <inertia
+        ixx="2.39706488563509E-06"
+        ixy="1.0392846462111E-19"
+        ixz="-5.96763105461838E-21"
+        iyy="6.71951537000553E-05"
+        iyz="-7.27665004284254E-23"
+        izz="6.88258108974862E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.05 0 0.01516595949808973"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/triangle-connector-l.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_gazebosim/$(find rover_gazebosim)/meshes/triangle-connector-l.STL" />
+      </geometry>
+    </collision>
+  </link> --><!-- -0.39024 0.23936 0.34675 -->
+  <!-- <joint
+    name="s-joint-right-down"
+    type="revolute">
+    <origin
+      xyz="0.0 -0.1116 -0.01"
+      rpy="0 0 -0.019521" />
+    <parent
+      link="triangle-right" />
+    <child
+      link="triangle-connector-r" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1"
+      upper="1"
+      effort="100"
+      velocity="1" />
+  </joint> -->
+
+  <!-- <gazebo> -->
+  <!--       <joint name="s-joint-right-down" type="revolute"> -->
+  <!--           <parent>triangle-right</parent> -->
+  <!--           <child>triangle-connector</child> -->
+  <!--           <pose>0.1 0.0 0.01 3.1416 0 -3.1221</pose> -->
+  <!--           <axis> -->
+  <!--               <xyz>1 0 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-30</lower> -->
+  <!--                   <upper>30</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>1</use_parent_model_frame> -->
+    
+  <!--           </axis> -->
+  <!--           <physics> -->
+  <!--               <ode> -->
+  <!--                   <implicit_spring_damper>1</implicit_spring_damper> -->
+  <!--                   <cfm_damping>1</cfm_damping> -->
+  <!--                   <limit> -->
+  <!--                       <cfm>0</cfm> -->
+  <!--                       <erp>0.2</erp> -->
+  <!--                   </limit> -->
+  <!--               </ode> -->
+  <!--           </physics> -->
+  <!--       </joint> -->
+  <!--   </gazebo> -->
+  <link
+    name="triangle-ball-right">
+    <inertial>
+      <origin
+        xyz="2.07458677570216E-06 -0.0111838499137586 2.02617543465511E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406632795" />
+      <inertia
+        ixx="2.57061050178732E-06"
+        ixy="9.20708510051459E-11"
+        ixz="-1.84149422795908E-09"
+        iyy="3.59636855567974E-07"
+        iyz="8.94129882843501E-12"
+        izz="2.58931051687204E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-ball-right.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/triangle-ball-right.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="ball-right"
+    type="fixed">
+    <origin
+      xyz="0.21 0 0.0256"
+      rpy="1.5708 0 -0.056761" />
+    <parent
+      link="triangle-right" />
+    <child
+      link="triangle-ball-right" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="socket-right">
+    <inertial>
+      <origin
+        xyz="0.00692887499287914 0.000721744320446027 1.70823757916772E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.029558630160923" />
+      <inertia
+        ixx="1.10515565135978E-06"
+        ixy="1.44945104956428E-07"
+        ixz="1.51117255919173E-12"
+        iyy="3.6728879834209E-06"
+        iyz="1.42307816563006E-12"
+        izz="3.53209083484226E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-right.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-right.STL" />
+      </geometry>
+    </collision>
+  </link><!-- looks good, might check again -->
+  <joint
+    name="ball-socket-right"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="-2.1439 -1.5681 2.1943" />
+    <parent
+      link="triangle-ball-right" />
+    <child
+      link="socket-right" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <!-- <gazebo> -->
+  <!--       <joint name="ball-socket-right" type="ball"> -->
+  <!--           <parent>triangle-ball-right</parent> -->
+  <!--           <child>socket-right</child> -->
+  <!--           <pose>0 0 0 -2.1439 -1.5681 2.1943</pose> -->
+  <!--           <axis> -->
+  <!--               <xyz>0 1 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-3</lower> -->
+  <!--                   <upper>3</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+  <!--           </axis> -->
+  <!--           <axis2> -->
+  <!--               <xyz>0 0 1</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-1</lower> -->
+  <!--                   <upper>1</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+  <!--           </axis2> -->
+  <!--           <physics> -->
+  <!--               <ode> -->
+  <!--                   <implicit_spring_damper>1</implicit_spring_damper> -->
+  <!--                   <cfm_damping>1</cfm_damping> -->
+  <!--                   <limit> -->
+  <!--                       <cfm>0</cfm> -->
+  <!--                       <erp>0.2</erp> -->
+  <!--                   </limit> -->
+  <!--               </ode> -->
+  <!--           </physics> -->
+  <!--       </joint> -->
+  <!--   </gazebo> -->
+
+  <link
+    name="right-rod">
+    <inertial>
+      <origin
+        xyz="-4.44089209850063E-16 -0.144572533027339 -4.44089209850063E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.0212057504117311" />
+      <inertia
+        ixx="0.00012895746969134"
+        ixy="-1.30319410375586E-19"
+        ixz="1.35525271560688E-20"
+        iyy="2.65071880146639E-07"
+        iyz="-2.55542560997232E-19"
+        izz="0.00012895746969134" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/right-rod.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/right-rod.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-5r"
+    type="fixed">
+    <origin
+      xyz="0.0044275 0 0"
+      rpy="0 0.46215 1.5708" />
+    <parent
+      link="socket-right" />
+    <child
+      link="right-rod" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="socket-right-down">
+    <inertial>
+      <origin
+        xyz="-0.0230097250802122 -0.00927825576114527 1.45507657034472E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0295586322554704" />
+      <inertia
+        ixx="1.10515540673767E-06"
+        ixy="1.44945069137753E-07"
+        ixz="-3.58261688020332E-13"
+        iyy="3.67288825565564E-06"
+        iyz="1.36590332483955E-12"
+        izz="3.53209132242541E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-right-down.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/socket-right-down.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="s-joint-6r"
+    type="fixed">
+    <origin
+      xyz="-0.0044029 -0.26363 0.0089786"
+      rpy="1.1149 0 1.5708" />
+    <parent
+      link="right-rod" />
+    <child
+      link="socket-right-down" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="ball-right-down">
+    <inertial>
+      <origin
+        xyz="2.07457333400995E-06 -0.0111838499108833 2.0254998001068E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0236792406420234" />
+      <inertia
+        ixx="2.57061050226204E-06"
+        ixy="9.20708307735027E-11"
+        ixz="-1.8414954739775E-09"
+        iyy="3.59636855997047E-07"
+        iyz="8.94415600789162E-12"
+        izz="2.58931051698473E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/ball-right-down.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.650980392156863 0.619607843137255 0.588235294117647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find rover_gazebosim)/meshes/ball-right-down.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <!-- <joint
+    name="s-joint-7r"
+    type="continuous">
+    <origin
+      xyz="-0.029939 -0.01 0"
+      rpy="3.0227 1.1904 3.07" />
+    <parent
+      link="socket-right-down" />
+    <child
+      link="ball-right-down" />
+    <axis
+      xyz="0 0 1" /> -->
+      <!-- user-defined false axis 0.6621 0.060914 -0.74694-->
+  <!-- </joint> -->
+  <!-- <gazebo> -->
+  <!--       <joint name="s-joint-7r" type="universal"> -->
+  <!--           <parent>socket-right-down</parent> -->
+  <!--           <child>ball-right-down</child> -->
+  <!--           <pose>0.337 -0.2425 0.2 0 0 0</pose> -->
+  <!--           <axis> -->
+  <!--               <xyz>0 0 1</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-3</lower> -->
+  <!--                   <upper>3</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+  <!--           </axis> -->
+  <!--           <axis2> -->
+  <!--               <xyz>1 0 0</xyz> -->
+  <!--               <limit> -->
+  <!--                   <lower>-1</lower> -->
+  <!--                   <upper>1</upper> -->
+  <!--               </limit> -->
+  <!--               <dynamics> -->
+  <!--                   <spring_reference>0</spring_reference> -->
+  <!--                   <spring_stiffness>0</spring_stiffness> -->
+  <!--               </dynamics> -->
+  <!--               <use_parent_model_frame>0</use_parent_model_frame> -->
+  <!--           </axis2> -->
+  <!--           <physics> -->
+  <!--               <ode> -->
+  <!--                   <implicit_spring_damper>1</implicit_spring_damper> -->
+  <!--                   <cfm_damping>1</cfm_damping> -->
+  <!--                   <limit> -->
+  <!--                       <cfm>0</cfm> -->
+  <!--                       <erp>0.2</erp> -->
+  <!--                   </limit> -->
+  <!--               </ode> -->
+  <!--           </physics> -->
+  <!--       </joint> -->
+      <!--   </gazebo> -->
+      <!-- <ros2_control name="GazeboSimSystem" type="system"> -->
+    <!-- <hardware> -->
+      <!--   <plugin>gz_ros2_control/GazeboSimSystem</plugin> -->
+    <!-- </hardware> -->
+    <!-- <joint name="wheel_1"> -->
+      <!-- <command_interface name="velocity"> -->
+      <!--   <param name="min">-1</param> -->
+      <!--   <param name="max">1</param> -->
+      <!-- </command_interface> -->
+      <!-- <state_interface name="position"/> -->
+      <!-- <state_interface name="velocity"/> -->
+    <!-- </joint> -->
+    <!-- <joint name="wheel_4"> -->
+      <!-- <command_interface name="velocity"> -->
+      <!--   <param name="min">-1</param> -->
+      <!--   <param name="max">1</param> -->
+      <!-- </command_interface> -->
+      <!-- <state_interface name="position"/> -->
+      <!-- <state_interface name="velocity"/> -->
+    <!-- </joint> -->
+  <!-- </ros2_control> -->
+
+  <!-- <gazebo> -->
+      <!-- <!-1- Joint state publisher -1-> -->
+    <!-- <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin"> -->
+      <!-- <parameters>$(find rover_wheel_control)/config/diff_drive_controller.yaml</parameters> -->
+    <!-- </plugin> -->
+  <!-- </gazebo> -->
+  <gazebo>
+    <plugin
+      filename="libignition-gazebo6-diff-drive-system.so"
+      name="ignition::gazebo::systems::DiffDrive">
+
+      <!-- <left_joint>wheel_joint_4</left_joint>
+      <left_joint>wheel_joint_5</left_joint>
+      <left_joint>wheel_joint_6</left_joint>
+
+      <right_joint>wheel_joint_1</right_joint>
+      <right_joint>wheel_joint_2</right_joint>
+      <right_joint>wheel_joint_3</right_joint> -->
+      <left_joint>wheel_joint_1</left_joint>
+      <left_joint>wheel_joint_2</left_joint>
+      <left_joint>wheel_joint_3</left_joint>
+
+      <right_joint>wheel_joint_4</right_joint>
+      <right_joint>wheel_joint_5</right_joint>
+      <right_joint>wheel_joint_6</right_joint>
+
+      <wheel_separation>1.0</wheel_separation>
+      <wheel_radius>0.115</wheel_radius>
+      
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <topic>cmd_vel</topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <odom_topic>/odom</odom_topic>
+      <!-- <tf_topic>/tf</tf_topic> -->
+    </plugin>
+  </gazebo>
+  <gazebo>
+    <plugin filename="libignition-gazebo-pose-publisher-system.so"
+        name="ignition::gazebo::systems::PosePublisher">
+      <update_frequency>1.0</update_frequency>
+      <publish_link_pose>false</publish_link_pose>
+      <publish_sensor_pose>true</publish_sensor_pose>
+      <publish_collision_pose>false</publish_collision_pose>
+      <publish_visual_pose>false</publish_visual_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+    </plugin>
+  </gazebo>
+  <gazebo>
+    <plugin filename="libignition-gazebo-joint-state-publisher-system.so" 
+        name="ignition::gazebo::systems::JointStatePublisher">
+      <joint_name>wheel_joint_1</joint_name>
+      <joint_name>wheel_joint_2</joint_name>
+      <joint_name>wheel_joint_3</joint_name>
+      <joint_name>wheel_joint_4</joint_name>
+      <joint_name>wheel_joint_5</joint_name>
+      <joint_name>wheel_joint_6</joint_name>
+      <update_rate>50</update_rate>
+      <topic>joint_states</topic>
+    </plugin>
+  </gazebo>
+</robot>

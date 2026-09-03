@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+
+<!--
+Copyright 2022 Stereolabs
+Copyright 2025 Husarion sp. z o.o.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!-- Reference: https://github.com/stereolabs/zed-ros2-wrapper/blob/master/zed_wrapper/urdf/zed_macro.urdf.xacro -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+
+  <xacro:macro name="zed_camera"
+               params="parent_link
+                       xyz:='0.0 0.0 0.0'
+                       rpy:='0.0 0.0 0.0'
+                       model:=zed
+                       robot_namespace:=''
+                       component_name:=''
+                       use_tf_prefix:=True">
+
+    <xacro:if value="${component_name == ''}">
+      <xacro:property name="component_name" value="zed" />
+    </xacro:if>
+
+    <xacro:property name="robot_namespace_slash" value="${robot_namespace + '/' if robot_namespace != '' else ''}" />
+    <xacro:property name="tf_prefix" value="${robot_namespace_slash if use_tf_prefix in ['True', True] else ''}" />
+
+    <xacro:include filename="$(find zed_description)/urdf/zed_macro.urdf.xacro" />
+
+    <joint name="${parent_link}_to_${component_name}_joint" type="fixed">
+      <origin xyz="${xyz}" rpy="${rpy}" />
+      <parent link="${parent_link}"/>
+      <child link="${component_name}_camera_link" />
+    </joint>
+
+    <xacro:zed_camera name="${component_name}" model="${model}" enable_gnss="false" >
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:zed_camera>
+
+    <!-- GAZEBO -->
+    <xacro:include filename="$(find husarion_components_description)/urdf/gz_sensor.urdf.xacro" ns="gz_sensor" />
+
+    <xacro:gz_sensor.camera
+      reference="${component_name}_camera_center"
+      name="${robot_namespace_slash}${component_name}_camera_color"
+      topic="${robot_namespace_slash}${component_name}/zed_node/rgb/image_rect_color"
+      frame_id="${tf_prefix}${component_name}_camera_center"
+      frequency="30"
+      width="1280"
+      height="720"
+      fov="${110.0/180.0*pi}" />
+
+    <xacro:gz_sensor.depth_camera
+      reference="${component_name}_camera_center"
+      name="${robot_namespace_slash}${component_name}_camera_depth"
+      topic="${robot_namespace_slash}${component_name}/zed_node/depth"
+      frame_id="${tf_prefix}${component_name}_camera_center"
+      frequency="30"
+      width="1280"
+      height="720"
+      fov="${110.0/180.0*pi}"
+      min_dist="0.3"
+      max_dist="20.0"
+      stddev_error="0.03" />
+
+  </xacro:macro>
+</robot>

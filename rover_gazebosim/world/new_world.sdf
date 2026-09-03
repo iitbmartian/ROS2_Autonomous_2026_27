@@ -1,0 +1,1634 @@
+<sdf version='1.9'>
+  <world name='demo'>
+    <plugin name='ignition::gazebo::systems::Physics' filename='ignition-gazebo-physics-system'/>
+    <plugin name='ignition::gazebo::systems::SceneBroadcaster' filename='ignition-gazebo-scene-broadcaster-system'/>
+    <plugin name='ignition::gazebo::systems::UserCommands' filename='ignition-gazebo-user-commands-system'/>
+    <plugin name='ignition::gazebo::systems::Imu' filename='libignition-gazebo-imu-system.so'/>
+    <plugin name='ignition::gazebo::systems::JointStatePublisher' filename='libignition-gazebo-joint-state-publisher-system.so'/>
+    <plugin name='ignition::gazebo::systems::TriggeredPublisher' filename='libignition-gazebo-triggered-publisher-system.so'>
+      <input type='ignition.msgs.Int32' topic='/keyboard/keypress'>
+        <match field='data'>16777235</match>
+      </input>
+      <output type='ignition.msgs.Twist' topic='/cmd_vel'>linear: {x: 0.5}, angular: {z: 0.0}</output>
+    </plugin>
+    <plugin name='ignition::gazebo::systems::TriggeredPublisher' filename='libignition-gazebo-triggered-publisher-system.so'>
+      <input type='ignition.msgs.Int32' topic='/keyboard/keypress'>
+        <match field='data'>16777237</match>
+      </input>
+      <output type='ignition.msgs.Twist' topic='/cmd_vel'>linear: {x: -0.5}, angular: {z: 0.0}</output>
+    </plugin>
+    <plugin name='ignition::gazebo::systems::TriggeredPublisher' filename='libignition-gazebo-triggered-publisher-system.so'>
+      <input type='ignition.msgs.Int32' topic='/keyboard/keypress'>
+        <match field='data'>16777236</match>
+      </input>
+      <output type='ignition.msgs.Twist' topic='/cmd_vel'>linear: {x: 0.0}, angular: {z: -0.5}</output>
+    </plugin>
+    <plugin name='ignition::gazebo::systems::TriggeredPublisher' filename='libignition-gazebo-triggered-publisher-system.so'>
+      <input type='ignition.msgs.Int32' topic='/keyboard/keypress'>
+        <match field='data'>16777234</match>
+      </input>
+      <output type='ignition.msgs.Twist' topic='/cmd_vel'>linear: {x: 0.0}, angular: {z: 0.5}</output>
+    </plugin>
+    <plugin name='ignition::gazebo::systems::Sensors' filename='libignition-gazebo-sensors-system.so'>
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <physics type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <audio>
+      <device>default</device>
+    </audio>
+    <wind/>
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <latitude_deg>0</latitude_deg>
+      <longitude_deg>0</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+    <state world_name='default'>
+      <sim_time>18 65000000</sim_time>
+      <real_time>18 192097028</real_time>
+      <wall_time>1773165763 143053464</wall_time>
+      <iterations>18065</iterations>
+      <model name='assgn1_model'>
+        <pose>-1.01694 0.480728 0.108129 -0.003915 6e-06 0.012927</pose>
+        <scale>1 1 1</scale>
+        <link name='link_0'>
+          <pose>-0.593203 0.348721 0.436172 -0.003915 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_1'>
+          <pose>-0.297095 0.651554 0.174998 1.56709 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_1_clone'>
+          <pose>-0.897045 0.643798 0.175001 1.56709 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_1_clone_0'>
+          <pose>-0.289339 0.051608 0.177347 1.56709 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_1_clone_1'>
+          <pose>-0.889289 0.043852 0.17735 1.56709 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_2'>
+          <pose>-0.393239 0.353009 0.871168 -0.003915 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_3'>
+          <pose>-0.208263 0.356085 1.04617 -1.62498 1.56688 -1.61205</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_4'>
+          <pose>0.0142 0.35856 0.943619 -0.003916 6e-06 0.012927</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+        <link name='link_5'>
+          <pose>0.014209 0.357805 0.75112 -1.62496 1.56687 -1.61203</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='ground_plane'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0 0 0 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <light name='sun'>
+        <pose>0 0 10 0 -0 0</pose>
+      </light>
+    </state>
+    <gui fullscreen='false'>
+      <camera name='user_camera'>
+        <pose>3.19975 -2.0595 1.08073 0 0.275643 2.3562</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+    <model name='ground_plane'>
+      <static>true</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <contact>
+              <collide_bitmask>65535</collide_bitmask>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu>100</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='visual'>
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <self_collide>false</self_collide>
+        <enable_wind>false</enable_wind>
+        <kinematic>false</kinematic>
+        <pose>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+      </link>
+      <pose>0 0 0 0 -0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='rover'>
+      <link name='root_link'>
+        <inertial>
+          <pose>0.646627 -1.04555 0.067287 0 -0 0</pose>
+          <mass>4.9862299999999999</mass>
+          <inertia>
+            <ixx>0.28456399999999998</ixx>
+            <ixy>0.0128471</ixy>
+            <ixz>0.031806099999999997</ixz>
+            <iyy>0.19602600000000001</iyy>
+            <iyz>0.016932099999999999</iyz>
+            <izz>0.33812799999999998</izz>
+          </inertia>
+        </inertial>
+        <collision name='root_link_fixed_joint_lump__base_link_collision'>
+          <pose>0.276421885520658 -0.526119109974194 -0.213679693338444 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/base_link.STL</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__camera_link_collision_1'>
+          <pose>0.212203030314078 -1.052238219948388 0.49 0 0 -3.141585307179587</pose>
+          <geometry>
+            <cylinder>
+              <length>0.0050000000000000001</length>
+              <radius>0.0050000000000000001</radius>
+            </cylinder>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+          </surface>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__connector-link-1_collision_2'>
+          <pose>0.847171885520658 -1.102239109974194 0.170410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/connector-link-1.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__triangle-left_collision_3'>
+          <pose>0.8851718855206581 -1.102239109974194 0.170410306661556 1.570796326096418 0.01949999999986857 -1.570796398417984</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-left.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__triangle-ball-left_collision_4'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 -3.673910225802517e-06 0.1387499999998688 -1.570796398501886</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-ball-left.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__socket-left_collision_5'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 2.865087210628054 1.528037792266841 2.006724068566941</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-left.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__left-rod_collision_6'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 1.561001172513787 -0.04162317154605426 2.237836992933839</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/left-rod.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__socket-left-down_collision_7'>
+          <pose>0.9028033466962471 -1.292372382376243 -0.09999575661596605 1.455875726301699 -1.528033213700029 -1.134931579529444</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-left-down.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__triangle-connector_collision_8'>
+          <pose>0.8951718891790377 -1.050063048605705 0.05883189125274074 1.570803673903449 -7.346410075503318e-06 1.570796255185424</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-connector-l.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__connector-link-2_collision_9'>
+          <pose>0.847171885520658 -1.002239109974194 0.170410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/connector-link-2.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__triangle-right_collision_10'>
+          <pose>0.5483689043969839 -0.6555356553687685 -0.1699991544888846 1.570796326096418 -0.01949999999986857 1.570796398417984</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-right.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__triangle-ball-right_collision_11'>
+          <pose>0.9107718704826691 -0.7922790331258446 0.1745050471637152 -3.141588981083521 0.03726100000013136 1.570796398378331</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-ball-right.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__socket-right_collision_12'>
+          <pose>0.9107718704826691 -0.7922790331258446 0.1745050471637152 0.1065852622205472 1.531899579196736 -1.514570271400118</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-right.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__right-rod_collision_13'>
+          <pose>0.9107815459311792 -0.7924509329755507 0.1700808960499571 1.53432870483634 0.01353444297993296 0.4115440486209589</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/right-rod.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__socket-right-down_collision_14'>
+          <pose>0.9109170550248149 -0.8126693352714445 -0.09296278004254466 1.470282398899384 -1.531900466496702 1.627204859092052</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-right-down.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__imu_link_collision_15'>
+          <pose>0.552843771041316 -1.052238219948388 0.09999999999999998 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.050000000000000003</length>
+              <radius>0.050000000000000003</radius>
+            </cylinder>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__Left_rocker_collision_16'>
+          <pose>0.573171885520658 -1.315239109974194 0.120410306661556 1.5708 -0.06648000000000001 -6.954255725832553e-18</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Left_rocker.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__ball-left-down_collision_17'>
+          <pose>0.9053948439096691 -1.30063810594041 -0.1314160021317445 3.141585169205781 0.2777726535883254 3.141591852524644</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/ball-left-down.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__Right_rocker_collision_18'>
+          <pose>0.573171885520658 -0.6052381099741939 0.120410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Right_rocker.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__ball-right-down_collision_19'>
+          <pose>0.9114218855206579 -0.8038372148862345 -0.1232704228353337 -2.849976781616171e-07 0.381792653587085 3.141591178824209</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/ball-right-down.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <collision name='root_link_fixed_joint_lump__sensor_laser_collision_20'>
+          <pose>0.552843771041316 -1.052238219948388 0.2 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.050000000000000003</length>
+              <radius>0.050000000000000003</radius>
+            </cylinder>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+          </surface>
+        </collision>
+        <visual name='root_link_fixed_joint_lump__base_link_visual'>
+          <pose>0.276421885520658 -0.526119109974194 -0.213679693338444 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/base_link.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.9902 1 1 1</diffuse>
+            <ambient>0.9902 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__camera_link_visual_1'>
+          <pose>0.212203030314078 -1.052238219948388 0.49 0 0 -3.141585307179587</pose>
+          <geometry>
+            <cylinder>
+              <length>0.0050000000000000001</length>
+              <radius>0.0050000000000000001</radius>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0 0 1</diffuse>
+            <ambient>0 0 0 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__connector-link-1_visual_2'>
+          <pose>0.847171885520658 -1.102239109974194 0.170410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/connector-link-1.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__triangle-left_visual_3'>
+          <pose>0.8851718855206581 -1.102239109974194 0.170410306661556 1.570796326096418 0.01949999999986857 -1.570796398417984</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-left.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__triangle-ball-left_visual_4'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 -3.673910225802517e-06 0.1387499999998688 -1.570796398501886</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-ball-left.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__socket-left_visual_5'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 2.865087210628054 1.528037792266841 2.006724068566941</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-left.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__left-rod_visual_6'>
+          <pose>0.9107718704826691 -1.312199186822543 0.1663155661593967 1.561001172513787 -0.04162317154605426 2.237836992933839</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/left-rod.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 0.627451 0.627451 1</diffuse>
+            <ambient>1 0.627451 0.627451 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__socket-left-down_visual_7'>
+          <pose>0.9028033466962471 -1.292372382376243 -0.09999575661596605 1.455875726301699 -1.528033213700029 -1.134931579529444</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-left-down.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__triangle-connector_visual_8'>
+          <pose>0.8951718891790377 -1.050063048605705 0.05883189125274074 1.570803673903449 -7.346410075503318e-06 1.570796255185424</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-connector-l.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__connector-link-2_visual_9'>
+          <pose>0.847171885520658 -1.002239109974194 0.170410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/connector-link-2.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__triangle-right_visual_10'>
+          <pose>0.5483689043969839 -0.6555356553687685 -0.1699991544888846 1.570796326096418 -0.01949999999986857 1.570796398417984</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-right.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 1 1 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__triangle-ball-right_visual_11'>
+          <pose>0.9107718704826691 -0.7922790331258446 0.1745050471637152 -3.141588981083521 0.03726100000013136 1.570796398378331</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/triangle-ball-right.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__socket-right_visual_12'>
+          <pose>0.9107718704826691 -0.7922790331258446 0.1745050471637152 0.1065852622205472 1.531899579196736 -1.514570271400118</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-right.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__right-rod_visual_13'>
+          <pose>0.9107815459311792 -0.7924509329755507 0.1700808960499571 1.53432870483634 0.01353444297993296 0.4115440486209589</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/right-rod.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>1 0.627451 0.627451 1</diffuse>
+            <ambient>1 0.627451 0.627451 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__socket-right-down_visual_14'>
+          <pose>0.9109170550248149 -0.8126693352714445 -0.09296278004254466 1.470282398899384 -1.531900466496702 1.627204859092052</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/socket-right-down.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__imu_link_visual_15'>
+          <pose>0.552843771041316 -1.052238219948388 0.09999999999999998 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.0050000000000000001</length>
+              <radius>0.0050000000000000001</radius>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0 0 1</diffuse>
+            <ambient>0 0 0 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__Left_rocker_visual_16'>
+          <pose>0.573171885520658 -1.315239109974194 0.120410306661556 1.5708 -0.06648000000000001 -6.954255725832553e-18</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Left_rocker.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__ball-left-down_visual_17'>
+          <pose>0.9053948439096691 -1.30063810594041 -0.1314160021317445 3.141585169205781 0.2777726535883254 3.141591852524644</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/ball-left-down.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__Right_rocker_visual_18'>
+          <pose>0.573171885520658 -0.6052381099741939 0.120410306661556 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Right_rocker.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__ball-right-down_visual_19'>
+          <pose>0.9114218855206579 -0.8038372148862345 -0.1232704228353337 -2.849976781616171e-07 0.381792653587085 3.141591178824209</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/ball-right-down.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.813726 0.77451 0.735294 1</diffuse>
+            <ambient>0.813726 0.77451 0.735294 1</ambient>
+          </material>
+        </visual>
+        <visual name='root_link_fixed_joint_lump__sensor_laser_visual_20'>
+          <pose>0.552843771041316 -1.052238219948388 0.2 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.050000000000000003</length>
+              <radius>0.050000000000000003</radius>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0 0 1</diffuse>
+            <ambient>0 0 0 1</ambient>
+          </material>
+        </visual>
+        <sensor name='imu_sensor' type='imu'>
+          <pose>0.276422 -0.526119 -0.21368 0 -0 0</pose>
+          <topic>/imu</topic>
+          <update_rate>100</update_rate>
+          <enable_metrics>false</enable_metrics>
+          <imu>
+            <orientation_reference_frame>
+              <localization>CUSTOM</localization>
+              <custom_rpy>0 0 0</custom_rpy>
+              <grav_dir_x>1 0 0</grav_dir_x>
+            </orientation_reference_frame>
+            <angular_velocity>
+              <x>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </x>
+              <y>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </y>
+              <z>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </z>
+            </angular_velocity>
+            <linear_acceleration>
+              <x>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </x>
+              <y>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </y>
+              <z>
+                <noise type='none'>
+                  <mean>0</mean>
+                  <stddev>0</stddev>
+                  <bias_mean>0</bias_mean>
+                  <bias_stddev>0</bias_stddev>
+                  <dynamic_bias_stddev>0</dynamic_bias_stddev>
+                  <dynamic_bias_correlation_time>0</dynamic_bias_correlation_time>
+                  <precision>0</precision>
+                </noise>
+              </z>
+            </linear_acceleration>
+            <enable_orientation>true</enable_orientation>
+          </imu>
+        </sensor>
+        <sensor name='rgbd_camera' type='rgbd_camera'>
+          <topic>/rgbd</topic>
+          <update_rate>1</update_rate>
+          <always_on>true</always_on>
+          <visualize>true</visualize>
+          <camera>
+            <horizontal_fov>1.0469999999999999</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.10000000000000001</near>
+              <far>10</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.0070000000000000001</stddev>
+            </noise>
+            <depth_camera>
+              <output>depths</output>
+            </depth_camera>
+            <save enabled='false'>
+              <path>__default__</path>
+            </save>
+          </camera>
+          <pose>0.212203 -1.05224 0.49 0 0 -3.14159</pose>
+          <gz_frame_id>camera_link</gz_frame_id>
+        </sensor>
+        <sensor name='gpu_lidar' type='gpu_lidar'>
+          <pose>0.552844 -1.05224 0.2 0 -0 0</pose>
+          <topic>lidar</topic>
+          <update_rate>1</update_rate>
+          <enable_metrics>false</enable_metrics>
+          <lidar>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.1415899999999999</min_angle>
+                <max_angle>3.1415899999999999</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+                <resolution>1</resolution>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.02</min>
+              <max>10</max>
+              <resolution>0.01</resolution>
+            </range>
+            <noise>
+              <type>none</type>
+              <mean>0</mean>
+              <stddev>0</stddev>
+            </noise>
+            <visibility_mask>4294967295</visibility_mask>
+          </lidar>
+        </sensor>
+        <pose>0 0 0 0 -0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='joint3' type='revolute'>
+        <pose>0 -0 0 0 -0 0</pose>
+        <parent>root_link</parent>
+        <child>Left_bogie</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-0.5</lower>
+            <upper>0.29999999999999999</upper>
+            <effort>10000</effort>
+            <velocity>1</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='Left_bogie'>
+        <pose>0.338938 -1.31724 0.027477 1.5708 -0.034843 0</pose>
+        <inertial>
+          <pose>-0.019103 -0.151328 0.062416 0 -0 0</pose>
+          <mass>0.77472700000000005</mass>
+          <inertia>
+            <ixx>0.0019711300000000002</ixx>
+            <ixy>7.1358299999999999e-07</ixy>
+            <ixz>2.7762600000000001e-12</ixz>
+            <iyy>0.0019848000000000001</iyy>
+            <iyz>-1.4931099999999999e-13</iyz>
+            <izz>0.0014194100000000001</izz>
+          </inertia>
+        </inertial>
+        <collision name='Left_bogie_collision'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Left_bogie.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='Left_bogie_visual'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Left_bogie.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_5' type='revolute'>
+        <pose>0 -0 0 0 -0 0</pose>
+        <parent>Left_bogie</parent>
+        <child>wheel_5</child>
+        <axis>
+          <xyz>0.662098 0.060914 -0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_5'>
+        <pose>0.537615 -1.35837 -0.160717 1.84388 0.374363 -2.35016</pose>
+        <inertial>
+          <pose>0.132316 0.03208 -0.12773 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.010334400000000001</ixx>
+            <ixy>0.000206987</ixy>
+            <ixz>-0.0025406600000000001</ixz>
+            <iyy>0.0081006399999999992</iyy>
+            <iyz>-0.00023334399999999999</iyz>
+            <izz>0.0109493</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_5_collision'>
+          <pose>-0.01 -0.025 -0.01 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_5.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_5_visual'>
+          <pose>-0.01 -0.025 -0.01 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_5.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_6' type='revolute'>
+        <pose>-0 -0 0 0 -0 0</pose>
+        <parent>Left_bogie</parent>
+        <child>wheel_6</child>
+        <axis>
+          <xyz>0.662098 0.060914 -0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_6'>
+        <pose>0.110042 -1.35837 -0.155749 1.84388 0.374363 -2.35016</pose>
+        <inertial>
+          <pose>0.123984 0.052878 -0.133419 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.010334400000000001</ixx>
+            <ixy>0.000206987</ixy>
+            <ixz>-0.0025406600000000001</ixz>
+            <iyy>0.0081006399999999992</iyy>
+            <iyz>-0.00023334399999999999</iyz>
+            <izz>0.0109493</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_6_collision'>
+          <pose>-0.01 -0.025 -0.01 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_5.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_6_visual'>
+          <pose>-0.01 -0.025 -0.01 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_5.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_4' type='revolute'>
+        <pose>0 -0 -0 0 -0 0</pose>
+        <parent>root_link</parent>
+        <child>wheel_4</child>
+        <axis>
+          <xyz>0.662098 0.060914 -0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_4'>
+        <pose>1.00206 -1.35837 -0.193371 -2.64149 0.757585 -1.14655</pose>
+        <inertial>
+          <pose>0.144439 0.055848 -0.115046 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.010334100000000001</ixx>
+            <ixy>0.00020673299999999999</ixy>
+            <ixz>-0.0025407300000000002</ixz>
+            <iyy>0.0081008899999999995</iyy>
+            <iyz>-0.000233942</iyz>
+            <izz>0.0109494</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_4_collision'>
+          <pose>-0.03 -0.035 -0.02 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_4.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_4_visual'>
+          <pose>-0.03 -0.035 -0.02 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_4.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='joint4' type='revolute'>
+        <pose>0 0 0 0 -0 0</pose>
+        <parent>root_link</parent>
+        <child>Right_bogie</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-0.5</lower>
+            <upper>0.29999999999999999</upper>
+            <effort>10000</effort>
+            <velocity>1</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='Right_bogie'>
+        <pose>0.333282 -0.605238 0.043242 1.5708 0.043401 0</pose>
+        <inertial>
+          <pose>-5.8e-05 -0.172764 0.119584 0 -0 0</pose>
+          <mass>0.77472700000000005</mass>
+          <inertia>
+            <ixx>0.00197109</ixx>
+            <ixy>-9.8362099999999996e-08</ixy>
+            <ixz>2.7802399999999999e-12</ixz>
+            <iyy>0.0019848399999999999</iyy>
+            <iyz>1.5095300000000001e-14</iyz>
+            <izz>0.0014194100000000001</izz>
+          </inertia>
+        </inertial>
+        <collision name='Right_bogie_collision'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Right_bogie.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='Right_bogie_visual'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/Right_bogie.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_2' type='revolute'>
+        <pose>-0 0 0 0 -0 0</pose>
+        <parent>Right_bogie</parent>
+        <child>wheel_2</child>
+        <axis>
+          <xyz>-0.662098 -0.060914 0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_2'>
+        <pose>0.538885 -0.605237 -0.181029 1.53861 0.055591 0.724978</pose>
+        <inertial>
+          <pose>0.029232 0.007113 -0.032552 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.010334400000000001</ixx>
+            <ixy>0.000206987</ixy>
+            <ixz>-0.0025406600000000001</ixz>
+            <iyy>0.0081006399999999992</iyy>
+            <iyz>-0.00023334399999999999</iyz>
+            <izz>0.0109493</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_2_collision'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_2.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_2_visual'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_2.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_3' type='revolute'>
+        <pose>-0 0 0 0 -0 0</pose>
+        <parent>Right_bogie</parent>
+        <child>wheel_3</child>
+        <axis>
+          <xyz>-0.662098 -0.060914 0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_3'>
+        <pose>0.10901 -0.605237 -0.162361 1.53861 0.055591 0.724978</pose>
+        <inertial>
+          <pose>0.029267 0.004792 -0.032711 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.0103345</ixx>
+            <ixy>0.00020721199999999999</ixy>
+            <ixz>-0.00254097</ixz>
+            <iyy>0.0081011499999999997</iyy>
+            <iyz>-0.000232962</iyz>
+            <izz>0.0109487</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_3_collision'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_3.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_3_visual'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_3.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <joint name='wheel_joint_1' type='revolute'>
+        <pose>0 -0 0 0 -0 0</pose>
+        <parent>root_link</parent>
+        <child>wheel_1</child>
+        <axis>
+          <xyz>-0.662098 -0.060914 0.746938</xyz>
+          <limit>
+            <lower>-10000000000000000</lower>
+            <upper>10000000000000000</upper>
+            <effort>inf</effort>
+            <velocity>inf</velocity>
+            <stiffness>100000000</stiffness>
+            <dissipation>1</dissipation>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+            <damping>0</damping>
+            <friction>0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='wheel_1'>
+        <pose>1.00388 -0.605237 -0.18117 1.50983 0.023086 0.723846</pose>
+        <inertial>
+          <pose>0.026292 -0.002922 -0.035977 0 -0 0</pose>
+          <mass>1.5693299999999999</mass>
+          <inertia>
+            <ixx>0.010334400000000001</ixx>
+            <ixy>0.000206987</ixy>
+            <ixz>-0.0025406600000000001</ixz>
+            <iyy>0.0081006399999999992</iyy>
+            <iyz>-0.00023334399999999999</iyz>
+            <izz>0.0109493</izz>
+          </inertia>
+        </inertial>
+        <collision name='wheel_1_collision'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_1.STL</uri>
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name='wheel_1_visual'>
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/apratim/MRT/Induction/bot_ws_3/install/rover_gazebosim/share/rover_gazebosim/meshes/wheel_1.STL</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <diffuse>0.990196 1 1 1</diffuse>
+            <ambient>0.990196 1 1 1</ambient>
+          </material>
+        </visual>
+        <enable_wind>false</enable_wind>
+      </link>
+      <plugin name='ignition::gazebo::systems::DiffDrive' filename='libignition-gazebo6-diff-drive-system.so'>
+        <left_joint>wheel_joint_1</left_joint>
+        <left_joint>wheel_joint_2</left_joint>
+        <left_joint>wheel_joint_3</left_joint>
+        <right_joint>wheel_joint_4</right_joint>
+        <right_joint>wheel_joint_5</right_joint>
+        <right_joint>wheel_joint_6</right_joint>
+        <wheel_separation>1.2</wheel_separation>
+        <wheel_radius>0.4</wheel_radius>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <topic>cmd_vel</topic>
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_link</child_frame_id>
+        <odom_topic>/odom</odom_topic>
+      </plugin>
+      <plugin name='ignition::gazebo::systems::PosePublisher' filename='libignition-gazebo-pose-publisher-system.so'>
+        <update_frequency>1.0</update_frequency>
+        <publish_link_pose>false</publish_link_pose>
+        <publish_sensor_pose>true</publish_sensor_pose>
+        <publish_collision_pose>false</publish_collision_pose>
+        <publish_visual_pose>false</publish_visual_pose>
+        <publish_nested_model_pose>true</publish_nested_model_pose>
+      </plugin>
+      <plugin name='ignition::gazebo::systems::JointStatePublisher' filename='libignition-gazebo-joint-state-publisher-system.so'>
+        <joint_name>wheel_joint_1</joint_name>
+        <joint_name>wheel_joint_2</joint_name>
+        <joint_name>wheel_joint_3</joint_name>
+        <joint_name>wheel_joint_4</joint_name>
+        <joint_name>wheel_joint_5</joint_name>
+        <joint_name>wheel_joint_6</joint_name>
+        <update_rate>50</update_rate>
+        <topic>joint_states</topic>
+      </plugin>
+      <frame name='camera_optical_joint' attached_to='camera_link'>
+        <pose>0 0 0 -1.5708 -0 -1.5708</pose>
+      </frame>
+      <frame name='camera_link_optical' attached_to='camera_optical_joint'/>
+      <frame name='camera_joint' attached_to='base_link'>
+        <pose>-0.064219 -0.526119 0.70368 0 -0 -3.14159</pose>
+      </frame>
+      <frame name='camera_link' attached_to='camera_joint'/>
+      <frame name='s-joint-6l' attached_to='left-rod'>
+        <pose>0.009408 -0.26698 0.003391 2.7957 0 1.5708</pose>
+      </frame>
+      <frame name='socket-left-down' attached_to='s-joint-6l'/>
+      <frame name='s-joint-5l' attached_to='socket-left'>
+        <pose>0 0 0 0 1.5252 1.5708</pose>
+      </frame>
+      <frame name='left-rod' attached_to='s-joint-5l'/>
+      <frame name='ball-socket-left' attached_to='triangle-ball-left'>
+        <pose>0 0 0 -0.89006 1.4692 -0.17888</pose>
+      </frame>
+      <frame name='socket-left' attached_to='ball-socket-left'/>
+      <frame name='ball-left' attached_to='triangle-left'>
+        <pose>0.21 0 -0.0256 -1.5708 -0 -0.11925</pose>
+      </frame>
+      <frame name='triangle-ball-left' attached_to='ball-left'/>
+      <frame name='s-joint-left-down' attached_to='triangle-left'>
+        <pose>0 -0.1116 -0.01 -3.14159 -0 -3.1221</pose>
+      </frame>
+      <frame name='triangle-connector' attached_to='s-joint-left-down'/>
+      <frame name='s-joint-left' attached_to='connector-link-1'>
+        <pose>0.038 0 0 1.5708 -1.5513 -1.5708</pose>
+      </frame>
+      <frame name='triangle-left' attached_to='s-joint-left'/>
+      <frame name='fix-joint-1' attached_to='base_link'>
+        <pose>0.57075 -0.57612 0.38409 1.5708 -0 0</pose>
+      </frame>
+      <frame name='connector-link-1' attached_to='fix-joint-1'/>
+      <frame name='s-joint-6r' attached_to='right-rod'>
+        <pose>-0.004403 -0.26363 0.008979 1.1149 -0 1.5708</pose>
+      </frame>
+      <frame name='socket-right-down' attached_to='s-joint-6r'/>
+      <frame name='s-joint-5r' attached_to='socket-right'>
+        <pose>0.004428 0 0 0 0.46215 1.5708</pose>
+      </frame>
+      <frame name='right-rod' attached_to='s-joint-5r'/>
+      <frame name='ball-socket-right' attached_to='triangle-ball-right'>
+        <pose>0 0 0 -2.1439 -1.5681 2.1943</pose>
+      </frame>
+      <frame name='socket-right' attached_to='ball-socket-right'/>
+      <frame name='ball-right' attached_to='triangle-right'>
+        <pose>0.21 0 0.0256 1.5708 -0 -0.056761</pose>
+      </frame>
+      <frame name='triangle-ball-right' attached_to='ball-right'/>
+      <frame name='s-joint-right' attached_to='connector-link-2'>
+        <pose>0.038 0 0 1.5708 1.5513 1.5708</pose>
+      </frame>
+      <frame name='triangle-right' attached_to='s-joint-right'/>
+      <frame name='fix-joint-2' attached_to='base_link'>
+        <pose>0.57075 -0.47612 0.38409 1.5708 -0 0</pose>
+      </frame>
+      <frame name='connector-link-2' attached_to='fix-joint-2'/>
+      <frame name='imu_joint' attached_to='base_link'>
+        <pose>0.276422 -0.526119 0.31368 0 -0 0</pose>
+      </frame>
+      <frame name='imu_link' attached_to='imu_joint'/>
+      <frame name='s-joint-8l' attached_to='Left_rocker'>
+        <pose>0.31476 -0.27334 -0.0146 -1.5708 -0 -2.9303</pose>
+      </frame>
+      <frame name='ball-left-down' attached_to='s-joint-8l'/>
+      <frame name='joint1' attached_to='base_link'>
+        <pose>0.29675 -0.78912 0.33409 1.5708 -0.06648 -0</pose>
+      </frame>
+      <frame name='Left_rocker' attached_to='joint1'/>
+      <frame name='s-joint-8r' attached_to='Right_rocker'>
+        <pose>0.33825 -0.24368 0.1986 1.5708 -0 -2.7598</pose>
+      </frame>
+      <frame name='ball-right-down' attached_to='s-joint-8r'/>
+      <frame name='joint2' attached_to='base_link'>
+        <pose>0.29675 -0.079119 0.33409 1.5708 -0 0</pose>
+      </frame>
+      <frame name='Right_rocker' attached_to='joint2'/>
+      <frame name='joint_sensor_laser' attached_to='base_link'>
+        <pose>0.276422 -0.526119 0.41368 0 -0 0</pose>
+      </frame>
+      <frame name='sensor_laser' attached_to='joint_sensor_laser'/>
+      <frame name='joint_root' attached_to='root_link'>
+        <pose>0.276422 -0.526119 -0.21368 0 -0 0</pose>
+      </frame>
+      <frame name='base_link' attached_to='joint_root'/>
+      <pose>2.02169 1.99607 0.271272 0.000738 -0.038008 -0.040437</pose>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='box'>
+      <pose>-0.633749 0.959498 0.5 0 0 -0</pose>
+      <link name='box_link'>
+        <inertial>
+          <inertia>
+            <ixx>0.16666</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.16666</iyy>
+            <iyz>0</iyz>
+            <izz>0.16666</izz>
+          </inertia>
+          <mass>1</mass>
+          <pose>0 0 0 0 -0 0</pose>
+        </inertial>
+        <collision name='box_collision'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='box_visual'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>1 1 1 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 -0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='box_0'>
+      <pose>3.84314 -2.13245 0.5 0 0 -0</pose>
+      <link name='box_link'>
+        <inertial>
+          <inertia>
+            <ixx>0.16666</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.16666</iyy>
+            <iyz>0</iyz>
+            <izz>0.16666</izz>
+          </inertia>
+          <mass>1</mass>
+          <pose>0 0 0 0 -0 0</pose>
+        </inertial>
+        <collision name='box_collision'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='box_visual'>
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>1 1 1 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 -0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <model name='cylinder'>
+      <pose>2.87012 4.80508 0.499999 0 -0 -0</pose>
+      <link name='cylinder_link'>
+        <inertial>
+          <inertia>
+            <ixx>0.14580000000000001</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.14580000000000001</iyy>
+            <iyz>0</iyz>
+            <izz>0.125</izz>
+          </inertia>
+          <mass>1</mass>
+          <pose>0 0 0 0 -0 0</pose>
+        </inertial>
+        <collision name='cylinder_collision'>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>1</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='cylinder_visual'>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>1</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>1 1 1 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 -0 0</pose>
+        <enable_wind>false</enable_wind>
+      </link>
+      <static>false</static>
+      <self_collide>false</self_collide>
+    </model>
+    <light name='sun' type='directional'>
+      <pose>0 0 10 0 -0 0</pose>
+      <cast_shadows>true</cast_shadows>
+      <intensity>1</intensity>
+      <direction>-0.5 0.1 -0.9</direction>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <linear>0.01</linear>
+        <constant>0.90000000000000002</constant>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+  </world>
+</sdf>

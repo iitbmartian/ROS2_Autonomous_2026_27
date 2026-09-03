@@ -1,0 +1,415 @@
+<?xml version="1.0" ?>
+
+<robot>
+
+
+
+  <self_collide>true</self_collide>
+  <gazebo reference="base_link">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="Left_rocker">
+    <material>Gazebo/Grey</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="Right_rocker">
+    <material>Gazebo/Grey</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="Left_bogie">
+    <material>Gazebo/DarkGrey</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="Right_bogie">
+    <material>Gazebo/DarkGrey</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_1">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_2">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_3">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_4">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_5">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+  <gazebo reference="wheel_6">
+    <material>Gazebo/Trunk</material>
+    <self_collide>true</self_collide>
+  </gazebo>
+
+
+
+  <!-- old plugin -->
+   <!-- <gazebo> -->
+   <!--  <plugin filename="libgazebo_ros_diff_drive.so" name="differential_drive_controller"> -->
+   <!--    <alwaysOn>true</alwaysOn> -->
+   <!--    <updateRate>20</updateRate> -->
+   <!--    <leftJoint>wheel_joint_1</leftJoint> -->
+   <!--    <rightJoint>wheel_joint_4</rightJoint> -->
+
+   <!--    <rosDebugLevel>1</rosDebugLevel> -->
+   <!--    <publishOdomTF>true</publishOdomTF> -->
+   <!--    <publishWheelTF>false</publishWheelTF> -->
+   <!--    <publishWheelJointState>true</publishWheelJointState> -->
+
+   <!--    <wheelSeparation>0.43</wheelSeparation> -->
+   <!--    <wheelDiameter>0.15</wheelDiameter> -->
+   <!--    <torque>0.1</torque> -->
+
+   <!--    <commandTopic>cmd_vel_filtered</commandTopic> -->
+   <!--    <odometryTopic>odom</odometryTopic> -->
+   <!--    <odometryFrame>odom</odometryFrame> -->
+   <!--    <robotBaseFrame>base_link</robotBaseFrame> -->
+
+   <!--  </plugin> -->
+  <!-- </gazebo> --> 
+
+  <!-- new plugin for 6 wheels, works for gz sim-->
+  <!-- <gazebo> -->
+<!-- <plugin name="wheel_drive_controller" filename="libgazebo_ros_diff_drive.so"> -->
+  <!-- <!-1- wheels -1-> -->
+  <!-- <num_wheel_pairs>3</num_wheel_pairs> -->
+  <!--  <left_joint>wheel_joint_4</left_joint> -->
+  <!--   <left_joint>wheel_joint_5</left_joint> -->
+  <!--   <left_joint>wheel_joint_6</left_joint> -->
+  <!--   <right_joint>wheel_joint_1</right_joint> -->
+  <!--   <right_joint>wheel_joint_2</right_joint> -->
+  <!--   <right_joint>wheel_joint_3</right_joint> -->
+
+  <!-- <!-1- kinematics -1-> -->
+  <!-- <wheel_separation>0.43</wheel_separation> -->
+  <!-- <wheel_diameter>0.15</wheel_diameter> -->
+  <!-- <max_wheel_torque>10.0</max_wheel_torque> -->
+  <!-- <max_wheel_acceleration>10.0</max_wheel_acceleration> -->
+
+  <!-- <!-1- odometry  -1-> --> 
+  <!-- <odometry_source>world</odometry_source> -->
+  <!-- <odometry_frame>odom</odometry_frame> -->
+  <!-- <robot_base_frame>base_link</robot_base_frame> -->
+
+  <!-- <!-1- topic & re remappings -1-> -->
+  <!-- <ros> -->
+  <!--     <namespace>/rover</namespace> -->
+  <!--   <argument>/cmd_vel:=cmd_vel</argument> -->
+  <!--   <argument>/odom:=odom</argument> -->
+  <!-- </ros> -->
+
+  <!-- <publish_odom>true</publish_odom> -->
+  <!-- <publish_odom_tf>true</publish_odom_tf> -->
+  <!-- <update_rate>100.0</update_rate> -->
+<!-- </plugin><!-1- </gazebo> -1-> -->
+      <!-- </gazebo> -->
+      <!-- new plugin for fortress -->
+<gazebo>
+  <plugin
+  filename="libignition-gazebo-diff-drive-system.so"
+      name="ignition::gazebo::systems::DiffDrive">
+    <!-- <ros>
+      <namespace>/demo</namespace>
+    </ros> -->
+        <num_wheel_pairs>3</num_wheel_pairs>
+        <left_joint>wheel_joint_4</left_joint>
+        <left_joint>wheel_joint_5</left_joint>
+        <left_joint>wheel_joint_6</left_joint>
+        <right_joint>wheel_joint_1</right_joint>
+        <right_joint>wheel_joint_2</right_joint>
+        <right_joint>wheel_joint_3</right_joint>
+
+        <wheel_separation>0.43</wheel_separation>
+        <wheel_radius>0.1075</wheel_radius>
+<!-- 
+        <max_linear_acceleration>1</max_linear_acceleration>
+        <min_linear_acceleration>-1</min_linear_acceleration>
+        <max_angular_acceleration>2</max_angular_acceleration>
+        <min_angular_acceleration>-2</min_angular_acceleration>
+        <max_linear_velocity>10.0</max_linear_velocity>
+        <min_linear_velocity>-10.0</min_linear_velocity>
+        <max_angular_velocity>1</max_angular_velocity>
+        <min_angular_velocity>-1</min_angular_velocity> -->
+
+  <!-- odometry  --> 
+      <odometry_source></odometry_source>
+      <!-- <odometry_frame>/wheel_odom</odometry_frame>
+      <robot_base_frame>root_link</robot_base_frame> -->
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <update_rate>100.0</update_rate>
+    <publish_wheel_tf>true</publish_wheel_tf>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <topic>cmd_vel</topic>
+      </plugin>
+  </gazebo>
+
+<gazebo>
+    <plugin filename="libignition-gazebo-sensors-system.so" name="ignition::gazebo::systems::Sensors">
+        <render_engine>ogre2</render_engine>
+    </plugin>
+</gazebo>
+  <gazebo reference="sensor_laser">
+    <sensor name='sensor_laser' type='gpu_lidar'>
+          <topic>lidar</topic>
+          <update_rate>10</update_rate>
+          <lidar>
+            <scan>
+              <horizontal>
+                <samples>640</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.14</min_angle>
+                <max_angle>3.14</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>16</samples>
+                <resolution>0.01</resolution>
+                <min_angle>-3.14</min_angle>
+                <max_angle>3.14</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.08</min>
+              <max>10.0</max>
+              <resolution>0.01</resolution>
+            </range>
+          </lidar>
+          <alwaysOn>1</alwaysOn>
+          <visualize>true</visualize>
+            <gz_frame_id>sensor_laser</gz_frame_id>
+      </sensor>
+  </gazebo>
+          <!-- old lidar plugin -->
+  <!-- <gazebo reference="sensor_laser"> -->
+  <!--   <sensor type="ray" name="head_hokuyo_sensor"> -->
+  <!--     <pose>0 0 0.2 0 0 0</pose> -->
+  <!--     <visualize>false</visualize> -->
+  <!--     <update_rate>10</update_rate> -->
+  <!--     <ray> -->
+  <!--       <scan> -->
+  <!--         <horizontal> -->
+  <!--           <samples>720</samples> -->
+  <!--           <resolution>1</resolution> -->
+  <!--           <min_angle>-3</min_angle> -->
+  <!--           <max_angle>3<!-1- 1.570796 -1-></max_angle> -->
+  <!--         </horizontal> -->
+  <!--       </scan> -->
+  <!--       <range> -->
+  <!--         <min>0.20</min> -->
+  <!--         <max>10.0</max> -->
+  <!--         <resolution>0.01</resolution> -->
+  <!--       </range> -->
+  <!--       <noise> -->
+  <!--         <type>gaussian</type> -->
+  <!--         <mean>0.0</mean> -->
+  <!--         <stddev>0.01</stddev> -->
+  <!--       </noise> -->
+  <!--     </ray> -->
+  <!--     <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_ray_sensor.so"> -->
+  <!--       <topic_name>/mrt/laser/scan</topic_name> -->
+  <!--       <frame_name>sensor_laser</frame_name> -->
+  <!--     </plugin> -->
+  <!--   </sensor> -->
+  <!-- </gazebo> -->
+
+  <!-- <gazebo> -->
+  <!--   <plugin filename="libgazebo_ros_control.so" name="gazebo_ros_control"> -->
+  <!--     <robot_namespace>/rover</robot_namespace> -->
+  <!--     <robot_sim_type>gazebo_ros_control/DefaultRobotHWSim</robot_sim_type> -->
+  <!--   </plugin> -->
+  <!-- </gazebo> -->
+
+  <!-- camera -->
+  <gazebo reference="camera_link">
+  <sensor name="rgbd_camera_name" type="rgbd_camera">
+  <origin rpy="0 0 0" xyz="0 0 0"/>"/>
+  <camera>
+    <horizontal_fov>1.5708</horizontal_fov>
+    <image>
+      <width>640</width>
+      <height>360</height>
+    </image>
+    <clip>
+      <near>0.1</near>
+      <far>100</far>
+    </clip>
+  </camera>
+  <always_on>1</always_on>
+  <update_rate>30</update_rate>
+  <visualize>true</visualize>
+  <topic>rgbd_camera</topic>
+  <enable_metrics>true</enable_metrics>
+  <gz_frame_id>camera_link</gz_frame_id>
+</sensor>
+      </gazebo>
+
+      <!-- <plugin name="camera_controller" filename="libgazebo_ros_camera.so"> -->
+      <!--   <alwaysOn>true</alwaysOn> -->
+      <!--   <updateRate>0.0</updateRate> -->
+      <!--   <cameraName>camera</cameraName> -->
+      <!--   <imageTopicName>image_raw</imageTopicName> -->
+      <!--   <cameraInfoTopicName>camera_info</cameraInfoTopicName> -->
+      <!--   <frameName>camera_link</frameName> -->
+      <!--   <hackBaseline>0.07</hackBaseline> -->
+      <!--   <distortionK1>0.0</distortionK1> -->
+      <!--   <distortionK2>0.0</distortionK2> -->
+      <!--   <distortionK3>0.0</distortionK3> -->
+      <!--   <distortionT1>0.0</distortionT1> -->
+      <!--   <distortionT2>0.0</distortionT2> -->
+    <!-- </plugin> --> 
+      <!-- <plugin name="camera_plugin" filename="libgazebo_ros_openni_kinect.so"> -->
+      <!--   <baseline>0.2</baseline> -->
+      <!--   <always_on>true</always_on> -->
+      <!--   <!-1- Keep this zero, update_rate in the parent <sensor> tag -1-> -->
+      <!--     <!-1- will control the frame rate. -1-> -->
+      <!--   <update_rate>0.0</update_rate> -->
+      <!--   <camera_name>mrt/camera</camera_name> -->
+      <!--   <image_topic_name>color/image_raw</image_topic_name> -->
+      <!--   <camera_info_topic_name>color/camera_info</camera_info_topic_name> -->
+      <!--   <depth_image_topic_name>depth/image_rect_raw</depth_image_topic_name> -->
+      <!--   <depth_image_camera_info_topic_name>depth/camera_info</depth_image_camera_info_topic_name> -->
+      <!--   <point_cloud_topic_name>depth/color/points</point_cloud_topic_name> -->
+      <!--   <frame_name>camera_link_optical</frame_name> -->
+      <!--   <point_cloud_cutoff>0.5</point_cloud_cutoff> -->
+      <!--   <point_cloud_cutoff_max>7.0</point_cloud_cutoff_max> -->
+      <!--   <distortion_k1>0</distortion_k1> -->
+      <!--   <distortion_k2>0</distortion_k2> -->
+      <!--   <distortion_k3>0</distortion_k3> -->
+      <!--   <distortion_t1>0</distortion_t1> -->
+      <!--   <distortion_t2>0</distortion_t2> -->
+      <!--   <cx_prime>0</cx_prime> -->
+      <!--   <cx>0</cx> -->
+      <!--   <cy>0</cy> -->
+      <!--   <focal_length>0</focal_length> -->
+          <!-- </plugin> -->
+
+
+<!-- old  imu plugin -->
+<!--   <gazebo reference="imu_link"> -->
+<!--     <gravity>true</gravity> -->
+<!--     <sensor name="imu_sensor" type="imu"> -->
+<!--       <always_on>true</always_on> -->
+<!--       <update_rate>100</update_rate> -->
+<!--       <visualize>true</visualize> -->
+<!--       <topic>__default_topic__</topic> -->
+<!--       <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin"> -->
+<!--         <topic_name>imu/data_raw</topic_name> -->
+<!--         <body_name>imu_link</body_name> -->
+<!--         <update_rate_hz>30.0</update_rate_hz> -->
+<!--         <gaussian_noise>0.0</gaussian_noise> -->
+<!--         <xyz_offset>0 0 0</xyz_offset> -->
+<!--         <rpy_offset>0 0 0</rpy_offset> -->
+<!--         <frame_name>imu_link</frame_name> -->
+<!--         <initial_orientation_as_reference>false</initial_orientation_as_reference> -->
+<!--       </plugin> -->
+<!--       <pose>0 0 0 0 0 0</pose> -->
+<!--     </sensor> -->
+
+
+
+
+
+      <gazebo> 
+
+
+
+        <!-- Moving Forward-->
+        <plugin filename="libignition-gazebo-triggered-publisher-system.so"
+                name="ignition::gazebo::systems::TriggeredPublisher">
+            <input type="ignition.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">16777235</match>
+            </input>
+            <output type="ignition.msgs.Twist" topic="/cmd_vel">
+                linear: {x: 1.5}, angular: {z: 0.0}
+            </output>
+        </plugin>
+
+        <!-- Moving Backward-->
+        <plugin filename="libignition-gazebo-triggered-publisher-system.so"
+                name="ignition::gazebo::systems::TriggeredPublisher">
+            <input type="ignition.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">16777237</match>
+            </input>
+            <output type="ignition.msgs.Twist" topic="/cmd_vel">
+                linear: {x: -1.5}, angular: {z: 0.0}
+            </output>
+        </plugin>
+
+        <!-- Rotating right-->
+        <plugin filename="libignition-gazebo-triggered-publisher-system.so"
+                name="ignition::gazebo::systems::TriggeredPublisher">
+            <input type="ignition.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">16777236</match>
+            </input>
+            <output type="ignition.msgs.Twist" topic="/cmd_vel">
+                linear: {x: 0.0}, angular: {z: -1.5}
+            </output>
+        </plugin>
+
+        <!--Rotating left-->
+        <plugin filename="libignition-gazebo-triggered-publisher-system.so"
+                name="ignition::gazebo::systems::TriggeredPublisher">
+            <input type="ignition.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">16777234</match>
+            </input>
+            <output type="ignition.msgs.Twist" topic="/cmd_vel">
+                linear: {x: 0.0}, angular: {z: 1.5}
+            </output>
+        </plugin>
+
+
+      </gazebo> 
+
+
+
+    <!--   </gazebo> -->
+<gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <update_rate>100</update_rate>
+            <visualize>true</visualize>
+            <topic>imu</topic>
+            <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu">
+            
+            </plugin>
+            <pose>0 0 0 0 0 0</pose>
+            <gz_frame_id>imu_link</gz_frame_id>
+        </sensor>
+    </gazebo>
+
+  <!-- <gazebo> -->
+  <!--   <plugin name="gps_controller" filename="libhector_gazebo_ros_gps.so"> -->
+  <!--     <always_on>true</always_on> -->
+  <!--     <update_rate>1.0</update_rate> -->
+  <!--     <body_name>base_link</body_name> -->
+  <!--     <topic_name>fix</topic_name> -->
+  <!--     <velocity_topic_name>fix_velocity</velocity_topic_name> -->
+  <!--     <drift>0.0 0.0 0.0</drift> -->
+  <!--     <gaussian_noise>0.0001 0.0001 0.0001</gaussian_noise> -->
+  <!--     <velocity_drift>0 0 0</velocity_drift> -->
+  <!--     <velocity_gaussian_noise>0.0 0.0 0.0</velocity_gaussian_noise> -->
+  <!--   </plugin> -->
+      <!-- </gazebo> -->
+
+ <!-- add spherical coordinates initialisation in world SDF -->
+<gazebo reference="imu_link">
+  <sensor name="navsat" type="navsat">
+    <always_on>1</always_on>
+    <update_rate>1</update_rate>
+    <topic>navsat</topic>
+   <gz_frame_id>imu_link</gz_frame_id>
+  </sensor>
+</gazebo>
+</robot>
