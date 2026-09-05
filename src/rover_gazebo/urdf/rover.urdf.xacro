@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+  Rover model for Gazebo.
+
+  The SolidWorks export this is built from has three problems that stop it working in
+  Gazebo. Each is fixed in exactly one place, and the place is commented.
+
+    1. The suspension contains four closed kinematic loops. URDF is a tree, so the
+       loops cannot be written down and the suspension falls apart without them.
+       Fixed in rover_body.xacro: the loop-closing joints get effort interfaces and
+       are held together at runtime by rocker_coupling_node, which applies the
+       constraints as torques. Gazebo has no solver-level way to enforce them
+       (no <mimic> support), so this is the only coupling mechanism this package
+       ships.
+
+    2. The export is Y-up. Spawned as-is the rover lies on its side.
+       Fixed below, by a rotated fixed joint under a ROS-convention base_link.
+
+    3. Every joint declares effort="0", which in Gazebo is a zero force limit, so
+       nothing can be driven. Fixed in rover_body.xacro.
+
+  Arguments
+
+    sim             harmonic    'harmonic' or 'fortress'; picks plugin names only.
+    mass_scale      1.0         scales every mass and inertia tensor together.
+    mesh_collision  false       true restores the exporter's mesh collision on the
+                                chassis, rockers and knuckles.
+    ros2_control    true        false strips the hardware interface, for RViz-only use.
+-->
+<robot name="rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="sim"            default="harmonic"/>
+  <xacro:arg name="mass_scale"     default="1.0"/>
+  <xacro:arg name="mesh_collision" default="false"/>
+  <xacro:arg name="ros2_control"   default="true"/>
+  <xacro:arg name="controllers_file" default="$(find rover_gazebo)/config/controllers.yaml"/>
+
+  <xacro:property name="sim"            value="$(arg sim)"/>
+  <xacro:property name="mass_scale"     value="$(arg mass_scale)"/>
+  <xacro:property name="mesh_collision" value="$(arg mesh_collision)"/>
+
+  <!-- ================================================================= -->
+  <!-- Frame fix.                                                        -->
+  <!--                                                                   -->
+  <!-- The exported chassis frame has X pointing backwards, Y up and Z    -->
+  <!-- to the left. ROS wants X forward, Y left, Z up. The rotation that  -->
+  <!-- takes one to the other is a quarter turn about X followed by a     -->
+  <!-- half turn about Z, which is the rpy on chassis_mount below.        -->
+  <!--                                                                   -->
+  <!-- Both joints are fixed, so sdformat folds all three links into one  -->
+  <!-- body and the simulation pays nothing for them.                    -->
+  <!-- ================================================================= -->
+  <link name="base_footprint"/>
+  <link name="base_link"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+    <!-- ground sits 0.7225 m below the chassis origin; see tools/derive_ratios.py -->
+    <origin xyz="0 0 0.7225" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="chassis_mount" type="fixed">
+    <parent link="base_link"/>
+    <child  link="chassis_link"/>
+    <origin xyz="0 0 0" rpy="1.5707963267948966 0 3.141592653589793"/>
+  </joint>
+
+  <xacro:include filename="$(find rover_gazebo)/urdf/rover_body.xacro"/>
+  <xacro:include filename="$(find rover_gazebo)/urdf/rover_gazebo.xacro"/>
+  <xacro:include filename="$(find rover_gazebo)/urdf/rover_sensors.xacro"/>
+
+  <xacro:if value="${'$(arg ros2_control)' in ['true', 'True', '1']}">
+    <xacro:include filename="$(find rover_gazebo)/urdf/rover_ros2_control.xacro"/>
+  </xacro:if>
+
+</robot>

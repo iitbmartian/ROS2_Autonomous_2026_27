@@ -1,23 +1,44 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rover_gazebo</name>
   <version>1.0.0</version>
   <description>
-    <p>URDF Description package for rover_gazebo</p>
-    <p>This package contains configuration data, 3D models and launch files
-for rover_gazebo robot</p>
+    Gazebo model and control for the four-wheel-steer rocker-differential rover.
+
+    The SolidWorks export contains four closed kinematic loops that URDF cannot
+    represent. They are replaced here by linear joint couplings derived from the CAD
+    geometry, which keeps the suspension behaving like the real mechanism without
+    asking the physics engine to solve a loop.
   </description>
-  <author>TODO</author>
-  <maintainer email="TODO@email.com">TODO</maintainer>
-  <license>BSD</license>
+  <maintainer email="software.mrt.iitb@gmail.com">apratim</maintainer>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>xacro</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>rviz2</exec_depend>
   <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>velocity_controllers</exec_depend>
+  <exec_depend>effort_controllers</exec_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
