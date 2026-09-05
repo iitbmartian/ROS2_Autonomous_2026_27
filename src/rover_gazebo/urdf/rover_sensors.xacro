@@ -134,7 +134,13 @@
       <always_on>1</always_on>
       <update_rate>15</update_rate>
       <topic>/camera</topic>
-      <gz_frame_id>camera_link</gz_frame_id>
+      <!-- Images and CameraInfo must be stamped with the optical frame, not
+           camera_link. camera_link is ROS convention (x forward, y left, z up);
+           every ROS image consumer, RTAB-Map included, reads the header frame as
+           an optical frame (z forward, x right, y down) and reprojects depth in
+           it. Stamping camera_link put the whole reconstructed cloud on its
+           side. camera_optical_frame below carries the REP-103 rotation. -->
+      <gz_frame_id>camera_optical_frame</gz_frame_id>
       <visualize>false</visualize>
       <camera name="zed2i_front">
         <horizontal_fov>1.5708</horizontal_fov>

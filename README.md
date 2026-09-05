@@ -23,8 +23,13 @@ packages under [`src/`](src/).
 | [`rover_bringup`](src/rover_bringup/) | (unassigned) | launch files, config files, bashfile |
 | [`rover_controls`](src/rover_controls/) | (unassigned) | input: wheel encoders, IMU, etc → output: ROS2 odometry topic |
 
-All eleven are currently **placeholder directories** — each holds only a README stating its scope
-and owner. Build files are added by each owner in their first implementation PR.
+`rover_gazebo` and `rover_slam` are implemented. The other nine are **placeholder
+directories** — each holds only a README stating its scope and owner. Build files are added by
+each owner in their first implementation PR.
+
+`rover_slam` runs RTAB-Map against the `rover_gazebo` simulation, and
+[`src/rover_slam/doc/RTABMAP_PIPELINE.md`](src/rover_slam/doc/RTABMAP_PIPELINE.md) documents
+how the two fit together.
 
 The architecture diagram shows Gazebo and Unity as one node; they are split into two packages here
 because they have different owners and very different dependency trees.
@@ -39,8 +44,8 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-Until packages have `package.xml` files, `rosdep` and `colcon build` are no-ops — they will
-succeed but build nothing. The intended way to run all of this is inside the container defined in
+`rosdep` and `colcon build` now build `rover_gazebo` and `rover_slam`; the remaining
+placeholder packages have no `package.xml` and are skipped. The intended way to run all of this is inside the container defined in
 [`docker/`](docker/).
 
 ## Contributing

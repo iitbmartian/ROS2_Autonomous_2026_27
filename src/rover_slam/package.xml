@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rover_slam</name>
+  <version>1.0.0</version>
+  <description>
+    RTAB-Map SLAM for the rover, wired to the Gazebo simulation in rover_gazebo.
+
+    The RGB-D camera supplies visual features, loop closure and visual odometry; the
+    3D lidar supplies ICP refinement and the occupancy grid. RTAB-Map squishes its 3D
+    map to a 2D OccupancyGrid on /map for Nav2 to plan on.
+  </description>
+  <maintainer email="software.mrt.iitb@gmail.com">sohan</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>rtabmap_slam</exec_depend>
+  <exec_depend>rtabmap_odom</exec_depend>
+  <exec_depend>rtabmap_sync</exec_depend>
+  <exec_depend>rtabmap_util</exec_depend>
+  <exec_depend>rtabmap_viz</exec_depend>
+  <exec_depend>rtabmap_rviz_plugins</exec_depend>
+
+  <exec_depend>rover_gazebo</exec_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
