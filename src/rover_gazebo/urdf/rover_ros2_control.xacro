@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+  ros2_control interfaces.
+
+  Eight driven joints: four steering knuckles under position control and four wheels
+  under velocity control. All four rockers, the free suspension joint and its three
+  dependent followers, get effort interfaces: rocker_coupling_node applies the
+  suspension's closed-loop constraints through them, since Gazebo has no
+  solver-level way to enforce those constraints itself.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="hw_plugin"
+    value="${'gz_ros2_control/GazeboSimSystem' if sim == 'harmonic' else 'ign_ros2_control/IgnitionSystem'}"/>
+
+  <xacro:macro name="steer_joint" params="name">
+    <joint name="${name}">
+      <command_interface name="position">
+        <param name="min">-1.75</param>
+        <param name="max">1.75</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="drive_joint" params="name">
+    <joint name="${name}">
+      <command_interface name="velocity">
+        <param name="min">-30.0</param>
+        <param name="max">30.0</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="RoverSystem" type="system">
+    <hardware>
+      <plugin>${hw_plugin}</plugin>
+    </hardware>
+
+    <xacro:steer_joint name="FLE_joint"/>
+    <xacro:steer_joint name="FRE_joint"/>
+    <xacro:steer_joint name="BLE_joint"/>
+    <xacro:steer_joint name="BRE_joint"/>
+
+    <xacro:drive_joint name="FLD_joint"/>
+    <xacro:drive_joint name="FRD_joint"/>
+    <xacro:drive_joint name="BLD_joint"/>
+    <xacro:drive_joint name="BRD_joint"/>
+
+    <!-- Suspension. All four rockers become torque-driven, because a constraint has
+         to push on both joints it ties together. Holding only the followers would
+         let the rear wheels carry load the front rockers never feel, which is not
+         the mechanism the CAD describes. -->
+    <xacro:macro name="coupled_rocker" params="name">
+      <joint name="${name}">
+        <command_interface name="effort">
+          <param name="min">-5000.0</param>
+          <param name="max">5000.0</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    </xacro:macro>
+    <xacro:coupled_rocker name="FLS_joint"/>
+    <xacro:coupled_rocker name="BLS_joint"/>
+    <xacro:coupled_rocker name="BRS_joint"/>
+    <xacro:coupled_rocker name="FRS_joint"/>
+
+  </ros2_control>
+
+</robot>

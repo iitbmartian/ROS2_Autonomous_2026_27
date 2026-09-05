@@ -1,0 +1,31 @@
+# Driving limits and feel. These are the knobs worth touching; everything geometric
+# lives in rover_kinematics.yaml and is generated from the CAD.
+
+rover_kinematics:
+  ros__parameters:
+    use_sim_time: true
+    max_speed: 1.0             # m/s
+    min_turn_radius: 0.8       # m, tightest Ackermann arc measured from the rover centre
+    max_steer_angle: 1.5708    # rad, leave at a quarter turn so spot mode can reach it
+    max_spin_rate: 0.7854      # rad/s, 45 deg/s in spot mode
+    speed_ramp_time: 1.2       # s, standstill to full speed
+    steer_ramp_time: 0.8       # s, lock to lock
+    update_rate: 100.0         # Hz
+    command_timeout: 0.5       # s without a Twist before the rover coasts to a stop
+    mode: ackermann
+
+rocker_coupling:
+  ros__parameters:
+    use_sim_time: true
+    stiffness: 8000.0          # N m per rad of constraint residual
+    damping: 250.0             # N m per rad/s
+    max_torque: 400.0          # N m per joint. Enough to hold the suspension, and
+                               # deliberately no more: whatever residual the coupling
+                               # cannot correct becomes a fore-aft shove that a
+                               # sideways-pointing wheel cannot resist, so a bigger
+                               # ceiling makes crab and spot drift
+    update_rate: 500.0         # Hz
+    capture_rest: true         # zero the coupling against the settled pose,
+                               # not the CAD pose, so it applies no standing
+                               # push once the rover has bedded in
+    rest_capture_delay: 2.5    # s of settling before that reference is taken

@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!--
+  Onboard sensors, transplanted from the mrt_ws rover.urdf.
+
+  Every joint here is fixed and parented to chassis_link, the raw SolidWorks
+  export frame. The origins are verbatim from the source model, so each sensor
+  keeps its donor placement; the joint rpy rotates each sensor frame into the
+  ROS convention (X forward, Y left, Z up) relative to the vehicle.
+
+    imu_link        2 cm box, centre of the chassis cube, on /imu/data at 100 Hz
+    lidar3d_link    3D gpu lidar, roof mount, /lidar/points at 5 Hz, 360 deg
+    camera_link     RGBD camera, front mount, /camera at 15 Hz, plus the
+                    REP-103 optical frame the image data is published in
+
+  The gpu lidar and RGBD camera need the Sensors system (ogre2) and the IMU
+  needs the Imu system in the world; the shipped worlds load both. Topics are
+  bridged in config/bridge.yaml.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="ros_frame" value="1.5708 0 3.14159"/>
+
+  <link name="imu_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="1e-06" ixy="0" ixz="0" iyy="1e-06" iyz="0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.02 0.02"/></geometry>
+      <material name="imu_grey"><color rgba="0.2 0.2 0.2 1"/></material>
+    </visual>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0 -0.2 0" rpy="${ros_frame}"/>
+    <parent link="chassis_link"/>
+    <child link="imu_link"/>
+  </joint>
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <topic>/imu/data</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.00005</bias_mean><bias_stddev>0.00001</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.00005</bias_mean><bias_stddev>0.00001</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.00005</bias_mean><bias_stddev>0.00001</bias_stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.005</bias_mean><bias_stddev>0.001</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.005</bias_mean><bias_stddev>0.001</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.005</bias_mean><bias_stddev>0.001</bias_stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <link name="lidar3d_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.0003" ixy="0" ixz="0" iyy="0.0004" iyz="0" izz="0.0003"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.04" length="0.05"/></geometry>
+      <material name="lidar_black"><color rgba="0.05 0.05 0.05 1"/></material>
+    </visual>
+  </link>
+  <joint name="lidar3d_joint" type="fixed">
+    <origin xyz="0 0.03 0" rpy="${ros_frame}"/>
+    <parent link="chassis_link"/>
+    <child link="lidar3d_link"/>
+  </joint>
+  <gazebo reference="lidar3d_link">
+    <sensor name="lidar3d" type="gpu_lidar">
+      <always_on>1</always_on>
+      <update_rate>5</update_rate>
+      <topic>/lidar/points</topic>
+      <gz_frame_id>lidar3d_link</gz_frame_id>
+      <visualize>false</visualize>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>16</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.261799</min_angle>
+            <max_angle>0.261799</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.5</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </lidar>
+    </sensor>
+  </gazebo>
+
+  <link name="camera_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.161"/>
+      <inertia ixx="3.4e-05" ixy="0" ixz="0" iyy="4.3e-05" iyz="0" izz="3.4e-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.04 0.04 0.03"/></geometry>
+      <material name="camera_blue"><color rgba="0.1 0.2 0.5 1"/></material>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="-0.21 -0.1 0" rpy="${ros_frame}"/>
+    <parent link="chassis_link"/>
+    <child link="camera_link"/>
+  </joint>
+  <link name="camera_optical_frame"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+    <parent link="camera_link"/>
+    <child link="camera_optical_frame"/>
+  </joint>
+  <gazebo reference="camera_link">
+    <sensor name="rgbd_camera" type="rgbd_camera">
+      <always_on>1</always_on>
+      <update_rate>15</update_rate>
+      <topic>/camera</topic>
+      <gz_frame_id>camera_link</gz_frame_id>
+      <visualize>false</visualize>
+      <camera name="zed2i_front">
+        <horizontal_fov>1.5708</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>20.0</far>
+        </clip>
+      </camera>
+    </sensor>
+  </gazebo>
+
+</robot>
