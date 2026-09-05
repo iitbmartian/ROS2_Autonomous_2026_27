@@ -1,0 +1,83 @@
+# Displays for watching RTAB-Map build the map. Deliberately minimal, in the
+# style of rover_gazebo/rviz/rover.rviz; RViz fills in the rest of the defaults.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 40
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Topic:
+        Value: /robot_description
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: false
+      Marker Scale: 0.5
+    # The 2D squish of the 3D map. This is what Nav2 plans on.
+    - Class: rviz_default_plugins/Map
+      Name: Occupancy Grid
+      Enabled: true
+      Topic:
+        Value: /map
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+      Color Scheme: map
+      Alpha: 0.7
+    # The assembled 3D map.
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Cloud Map
+      Enabled: true
+      Topic:
+        Value: /rtabmap/cloud_map
+        Reliability Policy: Reliable
+      Size (m): 0.03
+      Style: Points
+      Color Transformer: RGB8
+      Decay Time: 0
+    # Live lidar return, to see what the mapper is actually being fed.
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Lidar
+      Enabled: false
+      Topic:
+        Value: /lidar/points
+        Reliability Policy: Reliable
+      Size (m): 0.02
+      Style: Points
+      Color Transformer: Intensity
+    - Class: rviz_default_plugins/Odometry
+      Name: Visual Odometry
+      Enabled: true
+      Topic:
+        Value: /rtabmap/odom
+        Reliability Policy: Reliable
+      Keep: 200
+      Shape:
+        Value: Arrow
+        Shaft Length: 0.2
+        Shaft Radius: 0.02
+        Head Length: 0.08
+        Head Radius: 0.05
+    - Class: rviz_default_plugins/Image
+      Name: Camera
+      Enabled: false
+      Topic:
+        Value: /camera/image_raw
+        Reliability Policy: Reliable
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 20
+      Focal Point: {X: 0, Y: 0, Z: 0}
+      Pitch: 0.7
+      Yaw: 2.3
