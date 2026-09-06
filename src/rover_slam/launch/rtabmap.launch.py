@@ -19,8 +19,18 @@ Outputs:
 
     /map                 nav_msgs/OccupancyGrid   the 2D grid Nav2 plans on
     /rtabmap/cloud_map   sensor_msgs/PointCloud2  the assembled 3D map
-    /rtabmap/odom        nav_msgs/Odometry        visual odometry
+    /rtabmap/odom        nav_msgs/Odometry        the estimate, visual or lidar
     TF                   map -> odom -> base_footprint
+
+Pick the odometry source to match the world. The rover_gazebo worlds are a bare
+ground plane plus at most two boxes, which is why the default is ground truth:
+
+    flat.sdf     ground_truth only. No texture for vision, no geometry for ICP.
+    bars.sdf     ground_truth or lidar.
+    ledge.sdf    ground_truth or lidar.
+
+'visual' needs a textured scene and no world provides one yet. It stays here for
+real camera data and for a world with texture in it.
 
 Structure follows rtabmap_demos/launch/husky/husky_slam3d.launch.py, which is the
 same problem: a simulated robot carrying a 3D lidar and an RGB-D camera.
@@ -89,6 +99,10 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         "Icp/PointToPlane": "true",
         "Icp/PointToPlaneK": "10",
         "Icp/VoxelSize": "0.1",
+        "Icp/Iterations": "10",
+        "Icp/Epsilon": "0.001",
+        "Icp/Strategy": "1",
+        "Icp/OutlierRatio": "0.7",
         "Icp/MaxCorrespondenceDistance": "1.0",   # ~10x voxel size
         "Icp/MaxTranslation": "1.0",
         # The lidar sits on the roof with a 0.5 m minimum range, but be explicit
@@ -115,6 +129,38 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         "Odom/ResetCountdown": "10",
         "Vis/MinInliers": "15",        # 640x360 is a small image; 20 is too strict
         "Vis/EstimationType": "1",     # 3D->2D PnP
+    }
+
+    # ------------------------------------------------------------------
+    # Lidar odometry, odom_source:=lidar.
+    #
+    # icp_odometry registers scan geometry, so unlike rgbd_odometry it does not
+    # care whether the scene has visual texture. That is the difference that
+    # matters in this simulation: every world in rover_gazebo is a bare ground
+    # plane plus at most two boxes, so rgbd_odometry only ever extracts a
+    # handful of features and never reaches the 15 it needs to initialise.
+    #
+    # ICP needs geometry to bite on, though, and a perfectly flat plane
+    # constrains nothing in x, y or yaw. On flat.sdf this drifts freely; use
+    # bars.sdf or ledge.sdf, or odom_source:=ground_truth.
+    # ------------------------------------------------------------------
+    icp_odom_parameters = {
+        "odom_frame_id": "odom",
+        "publish_tf": True,
+        "wait_imu_to_init": True,
+        # The lidar is declared at 5 Hz in rover_sensors.xacro. Naming the rate
+        # lets icp_odometry warn about dropped scans instead of silently
+        # integrating over a gap.
+        "expected_update_rate": 6.0,
+        # 360 horizontal samples x 16 rings. icp_odometry infers this and warns
+        # when it is unset, so state it and keep the log clean.
+        "scan_cloud_max_points": 5760,
+        "Odom/ScanKeyFrameThr": "0.4",
+        "OdomF2M/ScanSubtractRadius": "0.1",   # match Icp/VoxelSize
+        "OdomF2M/ScanMaxSize": "15000",
+        "OdomF2M/BundleAdjustment": "false",
+        # 360x16 samples is a sparse cloud, so demand little overlap per match.
+        "Icp/CorrespondenceRatio": "0.01",
     }
 
     # ------------------------------------------------------------------
@@ -176,6 +222,10 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         # IMU through the odometry node. Without this the map slowly tilts.
         "Optimizer/GravitySigma": "0.3",
         "Mem/NotLinkedNodesKept": "false",
+        # The depth images are 32-bit float. RTAB-Map's default .rvl compression
+        # only handles 16-bit, so it falls back to .png and warns once per run.
+        # Saying .png outright keeps full float depth and drops the warning.
+        "Mem/DepthCompressionFormat": ".png",
     }
 
     remappings = [
@@ -216,6 +266,12 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
                         {"subscribe_rgbd": True}],
             remappings=remappings,
             arguments=["--ros-args", "--log-level", "warn"]))
+    elif odom_source == "lidar":
+        nodes.append(Node(
+            package="rtabmap_odom", executable="icp_odometry", output="screen",
+            parameters=[shared_parameters, icp_odom_parameters],
+            remappings=remappings,
+            arguments=["--ros-args", "--log-level", "warn"]))
     else:
         nodes.append(Node(
             package=PKG, executable="gt_odom_tf.py", name="gt_odom_tf",
@@ -223,11 +279,12 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
             parameters=[{"use_sim_time": True}],
             remappings=[("odom", "/odom")]))
 
-    # On the visual path the mapper takes odometry from the /rtabmap/odom topic,
-    # which carries OdomInfo and so tells it how much to trust each link. On the
-    # ground-truth path there is no such topic, only TF, and naming odom_frame_id
-    # is what switches the mapper to reading TF instead.
-    odom_input = {} if odom_source == "visual" else {"odom_frame_id": "odom"}
+    # The two estimator paths publish a real odometry topic on /rtabmap/odom, so
+    # the mapper subscribes to it and gets the per-link confidence with it. The
+    # ground-truth path only rebroadcasts TF and has no such topic, and naming
+    # odom_frame_id is what switches the mapper over to reading TF instead.
+    odom_input = ({"odom_frame_id": "odom"}
+                  if odom_source == "ground_truth" else {})
 
     if localization:
         # Keep the existing map, do not extend it.
@@ -262,11 +319,13 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
-            "odom_source", default_value="visual",
-            choices=["visual", "ground_truth"],
-            description="'visual' runs rgbd_odometry; 'ground_truth' rebroadcasts "
-                        "Gazebo's /odom as TF, which isolates mapping faults from "
-                        "estimator faults"),
+            "odom_source", default_value="ground_truth",
+            choices=["visual", "lidar", "ground_truth"],
+            description="'ground_truth' rebroadcasts Gazebo's /odom as TF and is "
+                        "the only source that works on flat.sdf; 'lidar' runs "
+                        "icp_odometry, which needs geometry so use bars.sdf or "
+                        "ledge.sdf; 'visual' runs rgbd_odometry and needs a "
+                        "textured scene, which no world currently provides"),
         DeclareLaunchArgument(
             "localization", default_value="false", choices=["true", "false"],
             description="localise against an existing database instead of mapping"),

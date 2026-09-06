@@ -56,8 +56,8 @@ def generate_launch_description():
         DeclareLaunchArgument("teleop", default_value="false"),
 
         # rover_slam arguments
-        DeclareLaunchArgument("odom_source", default_value="visual",
-                              choices=["visual", "ground_truth"]),
+        DeclareLaunchArgument("odom_source", default_value="ground_truth",
+                              choices=["visual", "lidar", "ground_truth"]),
         DeclareLaunchArgument("localization", default_value="false",
                               choices=["true", "false"]),
         DeclareLaunchArgument("database_path",
