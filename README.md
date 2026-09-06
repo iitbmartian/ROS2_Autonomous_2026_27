@@ -39,9 +39,11 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-Until packages have `package.xml` files, `rosdep` and `colcon build` are no-ops — they will
-succeed but build nothing. The intended way to run all of this is inside the container defined in
-[`docker/`](docker/).
+Until a package has `package.xml`/`CMakeLists.txt` files, `rosdep` and `colcon build` are no-ops
+for it — they will succeed but build nothing. [`rover_drivers`](src/rover_drivers/) is the first
+package with real build files; see its README for driver-specific prerequisites (e.g. the ZED SDK
+is a binary install, not something `rosdep` can fetch). The intended way to run all of this is
+inside the container defined in [`docker/`](docker/).
 
 ## Contributing
 
