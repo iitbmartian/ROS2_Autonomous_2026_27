@@ -1,0 +1,7 @@
+Blocked on ../unitree_lidar_sdk/lib/x86_64/libunilidar_sdk2.a, which was never
+committed: the old unanchored `lib/` rule in the root .gitignore excluded it, so
+the shipped archive was dropped when src/rover_drivers was added. That rule is
+fixed now. This package is otherwise a healthy ament_cmake ROS 2 package and
+fails only at link time with "cannot find -lunilidar_sdk2".
+
+Delete this file once the archive is committed and this will build.

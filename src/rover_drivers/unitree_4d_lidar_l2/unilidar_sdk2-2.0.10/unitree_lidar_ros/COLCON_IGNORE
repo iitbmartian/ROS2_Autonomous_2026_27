@@ -1,0 +1,3 @@
+ROS 1 catkin package (src/unitree_lidar_ros/package.xml declares catkin as its
+buildtool_depend). It cannot build under ROS 2 Jazzy on any machine. The ROS 2
+port lives beside it in ../unitree_lidar_ros2. Vendored here for reference only.

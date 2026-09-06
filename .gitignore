@@ -1,10 +1,13 @@
-devel/
-logs/
-build/
-bin/
-lib/
-msg_gen/
-srv_gen/
+# Anchored to the repository root on purpose. An unanchored pattern such as
+# `lib/` or `bin/` matches at ANY depth, and a bare `lib/` here silently
+# swallowed the prebuilt libunilidar_sdk2.a inside the vendored Unitree SDK
+# when src/rover_drivers was committed, which is why unitree_lidar_sdk and
+# unitree_lidar_ros2 fail to link. Do not remove the leading slashes.
+/devel/
+/logs/
+/build/
+/msg_gen/
+/srv_gen/
 msg/*Action.msg
 msg/*ActionFeedback.msg
 msg/*ActionGoal.msg
@@ -53,17 +56,27 @@ CATKIN_IGNORE
 # ---------------------------------------------------------------------------
 # ROS2 / colcon
 # ---------------------------------------------------------------------------
-build/
-install/
-log/
+/build/
+/install/
+/log/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 *.egg-info/
 
-# colcon markers
+# unitree_lidar_sdk's CMakeLists writes executables into its own source tree
+# (EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin). Build output, not vendor
+# content, so it is ignored by exact path rather than by a bare `bin/`.
+src/rover_drivers/unitree_4d_lidar_l2/unilidar_sdk2-2.0.10/unitree_lidar_sdk/bin/
+
+# colcon markers stay ignored so anyone can skip a package on their own machine.
+# The four below are tracked because they fail on every machine, not just one.
 COLCON_IGNORE
 AMENT_IGNORE
+!src/rover_drivers/unitree_4d_lidar_l2/point_lio_unilidar-2.0.2/COLCON_IGNORE
+!src/rover_drivers/unitree_4d_lidar_l2/unilidar_sdk2-2.0.10/unitree_lidar_ros/COLCON_IGNORE
+!src/rover_drivers/unitree_4d_lidar_l2/unilidar_sdk2-2.0.10/unitree_lidar_ros2/COLCON_IGNORE
+!src/rover_drivers/unitree_4d_lidar_l2/unilidar_sdk2-2.0.10/unitree_lidar_sdk/COLCON_IGNORE
 
 # Editors / IDEs
 .vscode/
