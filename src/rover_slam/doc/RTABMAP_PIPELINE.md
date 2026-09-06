@@ -185,6 +185,28 @@ lidar geometry sharpens it. This is the reason both sensors are wired in rather 
 registration alone and logs "RGBD odometry works only with Reg/Strategy=0. Ignoring value 2."
 if it sees it.
 
+### Lidar odometry, and why it was added
+
+The first end-to-end run showed `rgbd_odometry` never initialising. It needs 15 tracked
+features and found about 8, because the worlds are untextured. That was not a tuning
+problem and no threshold would have fixed it honestly; lowering `Vis/MinInliers` far enough
+to initialise would only have produced an estimate built on noise.
+
+`odom_source:=lidar` runs `rtabmap_odom/icp_odometry` instead. ICP registers geometry rather
+than appearance, so texture is irrelevant to it, and the rover already carries the 3D lidar.
+Parameters follow `rtabmap_examples/launch/lidar3d.launch.py`:
+
+| Parameter | Value | Why |
+|---|---|---|
+| `Odom/ScanKeyFrameThr` | `0.4` | new keyframe once the scan overlap drops below 40% |
+| `OdomF2M/ScanSubtractRadius` | `0.1` | matches `Icp/VoxelSize`, so the local map does not accumulate duplicate points |
+| `OdomF2M/ScanMaxSize` | `15000` | cap on the local map, roughly three scans' worth |
+| `Icp/CorrespondenceRatio` | `0.01` | 360x16 is a sparse cloud, so demand little overlap per match |
+| `scan_cloud_max_points` | `5760` | the 360x16 declared in `rover_sensors.xacro`. Stated because `icp_odometry` infers it and warns when unset |
+
+ICP has its own blind spot, the mirror of the visual one: a perfectly flat plane constrains
+nothing in x, y or yaw, so on `flat.sdf` it drifts freely. Section 6 has the pairing.
+
 ### The occupancy grid, which is the 3D → 2D squish
 
 | Parameter | Value | Why |
@@ -242,15 +264,43 @@ ignored...". Do not add it back without dropping one of the two sensors.
 colcon build --symlink-install --packages-select rover_gazebo rover_slam
 source install/setup.bash
 ros2 launch rover_slam slam_sim.launch.py rviz:=true
-ros2 run rover_gazebo teleop_rover.py     # another terminal
+ros2 run rover_gazebo teleop_rover.py     # another terminal, keep it focused
 ```
 
-Mapping over the obstacle courses:
+`W`/`S` drive, `A`/`D` turn, `1`/`2`/`3` pick Ackermann, crab or spot turn, space stops.
+These are not the keys `teleop_twist_keyboard` sends, which is the usual reason the rover
+sits still. The map only grows while the rover moves; watch `WM=` climb in the SLAM log.
+
+In RViz set Fixed Frame to `map`. The grey and black grid is `/map`, the coloured points
+are `/rtabmap/cloud_map`.
+
+### Choosing the odometry source
+
+This matters more than anything else in the file, because every world in `rover_gazebo` is
+a bare ground plane plus at most two boxes.
+
+| World | Works with | Why |
+|---|---|---|
+| `flat.sdf` | `ground_truth` only | no texture for vision, no geometry for ICP |
+| `bars.sdf` | `ground_truth`, `lidar` | two bars give ICP something to bite on |
+| `ledge.sdf` | `ground_truth`, `lidar` | ramp and step, likewise |
+
+`ground_truth` is the default. It takes the simulator's own pose, so a mapping fault can be
+told apart from an estimator fault, and it is the only source that works on `flat.sdf`.
+
+`lidar` runs `rtabmap_odom/icp_odometry` on `/lidar/points`. It is the honest test, since
+it uses a sensor the real rover carries:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py world:=ledge.sdf
-ros2 launch rover_slam slam_sim.launch.py world:=bars.sdf
+ros2 launch rover_slam slam_sim.launch.py world:=bars.sdf odom_source:=lidar rviz:=true
 ```
+
+`visual` runs `rgbd_odometry`. It has never initialised in any world here: it needs 15
+tracked features and finds about 8 against blank surfaces, logging `15 visual features
+required to initialize the odometry` forever. Downstream the mapper then rejects every
+frame with `no odometry is provided. Image 0 is ignored!`. Nothing is wrong with the
+settings, the worlds simply have no texture. Adding a ground material to the worlds is a
+`rover_gazebo` change and would make this path usable.
 
 Localise against a map you already built:
 
@@ -258,39 +308,43 @@ Localise against a map you already built:
 ros2 launch rover_slam slam_sim.launch.py localization:=true
 ```
 
-Take the estimator out of the loop, to tell a mapping fault from an odometry fault:
-
-```bash
-ros2 launch rover_slam slam_sim.launch.py odom_source:=ground_truth
-```
+Shut down with Ctrl-C and let it finish. A leftover `rtabmap` process fights the next run,
+and two of them on one `/clock` makes sim time jump backwards, which shows up as
+`Detected not valid consecutive stamps`. Clear it with
+`pkill -f rtabmap; pkill -f "gz sim"`.
 
 ---
 
 ## 7. What was verified, and what was not
 
-Verified here:
+Verified without the simulator:
 
 - `colcon build` clean for both packages.
 - The processed xacro carries `<gz_frame_id>camera_optical_frame</gz_frame_id>`, so the frame
   fix reaches the model.
-- Both launch branches start clean with no simulator running: every node reaches a steady
-  state waiting for topics, and neither logs a single warning. The mapper confirms it loaded
-  `Grid/Sensor=2`, `Grid/3D=false`, `RGBD/CreateOccupancyGrid=true`, `Reg/Strategy=2`, and in
-  localisation mode `Mem/IncrementalMemory=false`.
+- Every launch branch starts clean with no simulator running: each node reaches a steady
+  state waiting for topics. The mapper confirms it loaded `Grid/Sensor=2`, `Grid/3D=false`,
+  `RGBD/CreateOccupancyGrid=true`, `Reg/Strategy=2`, and in localisation mode
+  `Mem/IncrementalMemory=false`.
 
-**Not verified here**, because it needs a GPU and several minutes of driving:
+Verified in the simulator, headless, on `bars.sdf` with `odom_source:=lidar`:
 
-1. `ros2 topic echo /camera/camera_info --once` reports `frame_id: camera_optical_frame`.
-2. `ros2 run tf2_tools view_frames` shows `map` → `odom` → `base_footprint` → `base_link`,
-   with `map` → `odom` owned by `rtabmap` and `odom` → `base_footprint` by `rgbd_odometry`.
-3. `ros2 topic hz /map` and `ros2 topic hz /rtabmap/cloud_map` both publish, and the grid
-   grows in RViz as you drive.
-4. Drive a circuit on `bars.sdf`, return to the start, and `ros2 topic echo /rtabmap/info`
-   shows a non-zero `loopClosureId`.
-5. `odom_source:=ground_truth` still maps.
+| Check | Result |
+|---|---|
+| `/rtabmap/odom` rate | 4.86 Hz against a 5 Hz lidar |
+| TF `map` → `base_footprint` | resolves |
+| Map nodes after driving | grew from 1 to 31 |
+| `/map` occupancy grid | 786 x 1207 cells at 0.05 m |
+| Errors in the log | none |
 
-Run those five before trusting the map. Items 1 and 2 are the ones that catch a frame
-problem, and they take seconds.
+`odom_source:=ground_truth` was verified the same way and also maps cleanly.
+
+**Still not verified:**
+
+1. **Loop closure.** Needs a circuit driven back to its own start, then
+   `ros2 topic echo /rtabmap/info` showing a non-zero `loopClosureId`.
+2. **Localization mode** against a database saved from a previous run.
+3. **`odom_source:=visual`**, which cannot be tested until a world has texture in it.
 
 ---
 
@@ -315,24 +369,54 @@ odometry, not the mapping.
 **The map tilts over a long run.** `Optimizer/GravitySigma` and the IMU wiring. Check
 `/imu/data` is arriving and `wait_imu_to_init` is set.
 
+**`15 visual features required to initialize the odometry (only 8 extracted)`, forever.**
+The scene has no texture. This is the normal state of every world in `rover_gazebo`. Switch
+to `odom_source:=lidar` on `bars.sdf` or `ledge.sdf`, or `ground_truth` anywhere.
+
+**`no odometry is provided. Image 0 is ignored!`** Always a consequence of the line above,
+never a fault in the mapper. Nothing published `odom` → `base_footprint`, so fix the
+odometry source first. `local map=0, WM=0` in the rate line is the same symptom.
+
+**The rover does not move when you press keys.** `teleop_rover.py` uses `W`/`A`/`S`/`D`, not
+the `i`/`j`/`k`/`l` that `teleop_twist_keyboard` sends. The teleop terminal also has to be
+the focused one.
+
+**`Detected not valid consecutive stamps`, sim time going backwards.** Two simulators or two
+`rtabmap` processes are alive at once on one `/clock`. `pkill -f rtabmap; pkill -f "gz sim"`
+and start again.
+
 ---
 
 ## 9. Pushing this
 
-The branch is `sohan/rover_slam-rtabmap-bringup`, committed and ready:
+Two branches, and they are independent of each other.
+
+**`sohan/workspace-colcon-build-fix`**, off `main`. A root `colcon build` failed for
+everyone before it; the cause was an unanchored `lib/` in the root `.gitignore` silently
+dropping a vendored binary. It touches the root `.gitignore`, the root `README.md` and four
+`COLCON_IGNORE` markers inside `rover_drivers`, so Ram should review it. It can merge
+immediately and does not wait on anything.
+
+**`sohan/rover_slam-rtabmap-bringup`**, this work.
 
 ```bash
 cd ~/ROS2_Autonomous_2026_27
 git fetch origin
-git push -u origin sohan/rover_slam-rtabmap-bringup
+git push origin sohan/workspace-colcon-build-fix
+git push origin sohan/rover_slam-rtabmap-bringup
 ```
 
-Open the PR against `main`. CONTRIBUTING.md section 3 requires shared-area changes to be
-called out explicitly, and this branch has two:
+Open both PRs against `main`. CONTRIBUTING.md section 3 requires shared-area changes to be
+called out, and the SLAM branch has two:
 
 - `src/rover_gazebo/urdf/rover_sensors.xacro`, one line, another owner's package. Section 2
   above is the justification.
 - the root `README.md`, package status only.
 
-The PR also needs to say that it sits on top of `pradyun/rover_gazebo-urdf-sim-bringup` and
-cannot merge before that branch does.
+The SLAM branch sits on top of `pradyun/rover_gazebo-urdf-sim-bringup` and cannot merge
+before that branch does. It also carries the build fix as a merge, so whichever lands first
+the other stays clean.
+
+One thing to hand to Pradyun rather than fix here: none of the three worlds has a surface
+material, which is why `odom_source:=visual` cannot work. A ground texture would make the
+camera path usable and make the simulation a fairer stand-in for the real rover.
