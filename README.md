@@ -23,8 +23,11 @@ packages under [`src/`](src/).
 | [`rover_bringup`](src/rover_bringup/) | (unassigned) | launch files, config files, bashfile |
 | [`rover_controls`](src/rover_controls/) | (unassigned) | input: wheel encoders, IMU, etc → output: ROS2 odometry topic |
 
-All eleven are currently **placeholder directories** — each holds only a README stating its scope
+Ten of the eleven are **placeholder directories** — each holds only a README stating its scope
 and owner. Build files are added by each owner in their first implementation PR.
+
+`rover_drivers` is the exception: it carries vendored upstream driver sources for the SBG, ZED
+2i and Unitree 4D lidar hardware. Not all of them build on a stock machine — see below.
 
 The architecture diagram shows Gazebo and Unity as one node; they are split into two packages here
 because they have different owners and very different dependency trees.
@@ -39,9 +42,23 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-Until packages have `package.xml` files, `rosdep` and `colcon build` are no-ops — they will
-succeed but build nothing. The intended way to run all of this is inside the container defined in
-[`docker/`](docker/).
+The placeholder packages have no `package.xml` and are skipped. Of the vendored drivers,
+`sbg_driver` and `zed_msgs` build once `rosdep` has run.
+
+Two caveats on a fresh clone:
+
+- **The ZED wrapper needs the proprietary [ZED SDK](https://www.stereolabs.com/developers/release)**
+  and CUDA. Without it, `zed_components` fails and `zed_wrapper`, `zed_ros2` and `zed_debug` are
+  skipped as dependants. On a machine with no ZED hardware, drop a local `COLCON_IGNORE` into
+  `src/rover_drivers/zed2i_ws/src/zed-ros2-wrapper/zed_components/`. That filename is gitignored,
+  so it stays on your machine.
+- **Four Unitree lidar trees are skipped by tracked `COLCON_IGNORE` files.** Two are ROS 1 catkin
+  packages that cannot build under Jazzy at all. The other two are blocked on a prebuilt archive,
+  `unitree_lidar_sdk/lib/x86_64/libunilidar_sdk2.a`, that was never committed. Each marker file
+  explains its own case.
+
+Add `--continue-on-error` to see every failure at once; without it the first one aborts the run.
+The intended way to run all of this is inside the container defined in [`docker/`](docker/).
 
 ## Contributing
 

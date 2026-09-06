@@ -1,0 +1,3 @@
+ROS 1 catkin package (buildtool_depend is catkin, and CMakeLists.txt calls
+find_package(catkin REQUIRED)). It cannot build under ROS 2 Jazzy on any
+machine. Vendored here for reference only.

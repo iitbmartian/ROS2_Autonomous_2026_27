@@ -1,0 +1,8 @@
+Blocked on lib/x86_64/libunilidar_sdk2.a, which was never committed: the old
+unanchored `lib/` rule in the root .gitignore excluded it, so the shipped
+archive was dropped when src/rover_drivers was added. That rule is fixed now.
+
+Delete this file once the archive is committed and this will build.
+
+Not a ROS package either way -- plain CMake that builds the vendor's standalone
+example binaries, which colcon does not consume.
