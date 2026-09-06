@@ -85,7 +85,7 @@
             publish_roi_mask: false # Advertise the ROI mask image topic that is published only if a node subscribes to it
 
         depth:
-            depth_mode: 'NEURAL' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: -1 # Negative value takes SDK default, 0 is disabled - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 10.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be <= the camera framerate. Set to 0 for no limit (= grab_frame_rate).
@@ -151,10 +151,10 @@
             target_yaw_uncertainty: 0.1 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
         mapping:
-            mapping_enabled: true # True to enable mapping t # Pand fused point cloud pubblication
-            resolution: 0.03 # maps resolution in meters [min: 0.01f - max: 0.2f]
-            max_mapping_range: 3.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
-            fused_pointcloud_freq: 2.0 # frequency of the publishing of the fused colored point cloud. Set to 0 for no limit (= point_cloud_freq).
+            mapping_enabled: false # True to enable mapping t # Pand fused point cloud pubblication
+            resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
+            max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+            fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud. Set to 0 for no limit (= point_cloud_freq).
             clicked_point_topic: '/clicked_point' # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
             pd_max_distance_threshold: 0.15 # Plane detection: controls the spread of plane by checking the position difference.
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
