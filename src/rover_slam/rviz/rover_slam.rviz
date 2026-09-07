@@ -31,12 +31,14 @@ Visualization Manager:
         Reliability Policy: Reliable
       Color Scheme: map
       Alpha: 0.7
-    # The assembled 3D map.
+    # The assembled 3D map. /cloud_map, not /rtabmap/cloud_map: RTAB-Map's
+    # topics sit under its node's namespace, and rtabmap.launch.py sets none
+    # so that /map lands where Nav2 looks for it.
     - Class: rviz_default_plugins/PointCloud2
       Name: Cloud Map
       Enabled: true
       Topic:
-        Value: /rtabmap/cloud_map
+        Value: /cloud_map
         Reliability Policy: Reliable
       Size (m): 0.03
       Style: Points

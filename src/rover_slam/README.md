@@ -28,7 +28,7 @@ ros2 run rover_gazebo teleop_rover.py
 Keep that terminal focused or the keys go nowhere. The map only grows while the rover
 moves: watch `WM=` climb in the SLAM log.
 
-Pick the odometry source to match the world, because all three worlds are a bare ground
+Pick the odometry source to match the world, because every world so far is a bare ground
 plane plus at most two boxes:
 
 | World | Works with |
@@ -36,6 +36,13 @@ plane plus at most two boxes:
 | `flat.sdf` | `ground_truth` only. No texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth` or `lidar` |
 | `ledge.sdf` | `ground_truth` or `lidar` |
+| `husarion_world.sdf` | `ground_truth` only |
+
+`husarion_world.sdf` is Husarion's open world, a 25 m grey plane with the Husarion logo
+laid into the floor. The logo is a 0.25 m tile 1.8 cm thick sitting at (13, 16), off the
+edge of the plane, so nothing in this world stands up and the map it produces is as flat
+and as grey as `flat.sdf`. It is here because it is the ground the Husarion office world
+is built on, not because it is a mapping test.
 
 `lidar` is the honest test, since it uses a real sensor rather than the simulator's answer:
 
@@ -63,7 +70,7 @@ ros2 launch rover_slam rtabmap.launch.py rviz:=true
 | `database_path` | `~/.ros/rover_slam.db` | where the map is stored |
 | `delete_db_on_start` | `true` | start each mapping run from an empty database |
 | `rviz` | `false` | RViz, with the map, cloud and odometry preloaded |
-| `viz` | `false` | `rtabmap_viz`, RTAB-Map's own inspector |
+| `viz` | `true` | `rtabmap_viz`, RTAB-Map's own inspector: camera feeds, cloud, pose graph, loop closures. Pass `viz:=false` for a headless run |
 
 `slam_sim.launch.py` also takes `world`, `sim`, `gui` and `teleop`, and passes them to
 `rover_gazebo`.
@@ -73,10 +80,16 @@ ros2 launch rover_slam rtabmap.launch.py rviz:=true
 | Topic | Type | Meaning |
 |---|---|---|
 | `/map` | `nav_msgs/OccupancyGrid` | the 2D grid, for Nav2 |
-| `/rtabmap/cloud_map` | `sensor_msgs/PointCloud2` | the assembled 3D map |
+| `/cloud_map` | `sensor_msgs/PointCloud2` | the assembled 3D map |
 | `/rtabmap/odom` | `nav_msgs/Odometry` | visual odometry |
-| `/rtabmap/info` | `rtabmap_msgs/Info` | loop closure IDs and timing |
+| `/info` | `rtabmap_msgs/Info` | loop closure IDs and timing |
+| `/mapData` | `rtabmap_msgs/MapData` | the pose graph, read by `rtabmap_viz` |
 | `/rgbd_image` | `rtabmap_msgs/RGBDImage` | RGB, depth and intrinsics, synchronised |
+
+Only `/rtabmap/odom` carries a prefix, and it is an explicit remap. RTAB-Map puts its
+topics under the node's ROS namespace, and upstream `rtabmap_launch` sets that namespace
+to `rtabmap`, which is why its documentation says `/rtabmap/map`. This package sets no
+namespace, so `/map` lands where Nav2 looks for it and the rest follow.
 
 TF: `map` → `odom` from the mapper, `odom` → `base_footprint` from whichever odometry
 source is selected. `rover_gazebo` publishes everything below `base_footprint`.
