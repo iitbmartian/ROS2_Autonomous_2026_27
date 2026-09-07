@@ -3,7 +3,7 @@ project(rover_gazebo)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY urdf meshes launch config worlds rviz doc tools
+install(DIRECTORY urdf meshes models launch config worlds rviz doc tools
         DESTINATION share/${PROJECT_NAME})
 
 install(PROGRAMS

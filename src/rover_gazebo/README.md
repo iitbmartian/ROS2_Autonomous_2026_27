@@ -37,6 +37,12 @@ keeps them there for four metres, and `world:=bars.sdf` lays two bars across the
 8 cm under the right and 12 cm under the left. Both exist to make the suspension work
 for its living.
 
+`world:=husarion_world.sdf` is Husarion's open world, vendored from their ROSbot
+simulation assets: a 25 m grey plane with the Husarion logo laid into the floor. It is
+flat, so it asks nothing of the suspension. Its mesh lives in `models/HusarionLogo`,
+which the package's environment hook puts on `GZ_SIM_RESOURCE_PATH` so that `model://`
+URIs resolve.
+
 ## Sensors
 
 Three onboard sensors, bridged from Gazebo to ROS 2 topics:

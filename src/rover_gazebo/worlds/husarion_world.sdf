@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!--
+  Husarion's open world: a 25 x 25 m grey plane with the Husarion logo laid into
+  the floor. Vendored from the husarion/rosbot-ros simulation assets.
+
+  Geometrically this is flat.sdf with a decal on it. The logo is a 0.25 m floor
+  tile 1.8 cm thick, and it sits at (13, 16), off the edge of the plane. Nothing
+  here stands up, so it gives a visual odometry and a mapper almost nothing to
+  hold on to; use odom_source:=ground_truth and expect a flat map. It is here as
+  the base the Husarion office world builds on, not as a mapping test.
+
+  Changed from the upstream file: the mesh URI now uses the standard model://
+  scheme, the four TriggeredPublisher blocks that fired gz.msgs.Twist at /cmd_vel
+  were dropped because that topic is not bridged and this rover is driven by
+  rover_kinematics_node instead, and the duplicate collision name was fixed.
+-->
+<sdf version="1.8">
+  <world name="husarion_world">
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+
+    <physics name="1ms" type="dart">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <gravity>0 0 -9.80665</gravity>
+
+    <!-- Husarion's office is in Krakow. Harmless here, but it is what fixes the
+         world origin if anything downstream ever wants a global reference. -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>50.088384</latitude_deg>
+      <longitude_deg>19.939128</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+
+    <model name="husarion_world">
+      <static>true</static>
+
+      <link name="mesh">
+        <pose>13.0 16.0 0 0 0 -1.57</pose>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>model://HusarionLogo/meshes/husarion_logo.dae</uri>
+              <scale>6.0 6.0 6.0</scale>
+            </mesh>
+          </geometry>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>model://HusarionLogo/meshes/husarion_logo.dae</uri>
+              <scale>6.0 6.0 6.0</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="map">
+        <light type="directional" name="sun">
+          <cast_shadows>true</cast_shadows>
+          <pose>0 0 10 0 0 0</pose>
+          <diffuse>0.8 0.8 0.8 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+          <attenuation>
+            <range>1000</range>
+            <constant>0.9</constant>
+            <linear>0.01</linear>
+            <quadratic>0.001</quadratic>
+          </attenuation>
+          <direction>-0.5 0.1 -0.9</direction>
+        </light>
+        <collision name="collision">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>25 25</size></plane>
+          </geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>25 25</size></plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
