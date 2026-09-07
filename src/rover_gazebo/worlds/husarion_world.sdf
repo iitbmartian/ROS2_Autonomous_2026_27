@@ -44,6 +44,19 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
+    <!-- Upstream declares this inside the ground model's link, which works but
+         is not how the other worlds here do it. Hoisted to world level to match
+         them, and the attenuation block dropped because it means nothing for a
+         directional light. This is structural only: measured at the rover's
+         camera, scene brightness is unchanged either way. -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.25 0.25 0.25 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
     <model name="husarion_world">
       <static>true</static>
 
@@ -68,19 +81,6 @@
       </link>
 
       <link name="map">
-        <light type="directional" name="sun">
-          <cast_shadows>true</cast_shadows>
-          <pose>0 0 10 0 0 0</pose>
-          <diffuse>0.8 0.8 0.8 1</diffuse>
-          <specular>0.2 0.2 0.2 1</specular>
-          <attenuation>
-            <range>1000</range>
-            <constant>0.9</constant>
-            <linear>0.01</linear>
-            <quadratic>0.001</quadratic>
-          </attenuation>
-          <direction>-0.5 0.1 -0.9</direction>
-        </light>
         <collision name="collision">
           <geometry>
             <plane><normal>0 0 1</normal><size>25 25</size></plane>
