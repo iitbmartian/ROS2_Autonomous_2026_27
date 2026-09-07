@@ -18,16 +18,26 @@ Inputs, all published by rover_gazebo's ros_gz_bridge:
 Outputs:
 
     /map                 nav_msgs/OccupancyGrid   the 2D grid Nav2 plans on
-    /rtabmap/cloud_map   sensor_msgs/PointCloud2  the assembled 3D map
+    /cloud_map           sensor_msgs/PointCloud2  the assembled 3D map
+    /mapData             rtabmap_msgs/MapData     the pose graph, for rtabmap_viz
+    /info                rtabmap_msgs/Info        loop closures, for rtabmap_viz
     /rtabmap/odom        nav_msgs/Odometry        the estimate, visual or lidar
     TF                   map -> odom -> base_footprint
+
+These names have no /rtabmap prefix on purpose. RTAB-Map's topics sit under the
+node's namespace, and upstream rtabmap_launch sets that namespace to 'rtabmap',
+which is why its documentation says /rtabmap/map. This file sets no namespace,
+so that /map reaches Nav2 where Nav2 looks for it, and the rest follow.
+/rtabmap/odom is the one exception, and it is an explicit remap.
 
 Pick the odometry source to match the world. The rover_gazebo worlds are a bare
 ground plane plus at most two boxes, which is why the default is ground truth:
 
-    flat.sdf     ground_truth only. No texture for vision, no geometry for ICP.
-    bars.sdf     ground_truth or lidar.
-    ledge.sdf    ground_truth or lidar.
+    flat.sdf            ground_truth only. No texture for vision, no geometry for ICP.
+    bars.sdf            ground_truth or lidar.
+    ledge.sdf           ground_truth or lidar.
+    husarion_world.sdf  ground_truth only. A grey plane with a floor decal, so
+                        flat.sdf in substance and mapped the same way.
 
 'visual' needs a textured scene and no world provides one yet. It stays here for
 real camera data and for a world with texture in it.
@@ -302,9 +312,40 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
             arguments=["-d"] if delete_db else []))
 
     if arg("viz") == "true":
+        # RTAB-Map's own inspector: the RGB and depth feeds side by side, the
+        # assembled cloud in the 3D view, the pose graph, and the loop closure
+        # counters. It reads /info and /mapData from the mapping node, both of
+        # which it already subscribes to under those names.
+        #
+        # It gets its own parameter dict rather than the mapper's. The mapper's
+        # carries database_path, the whole Grid/ block and Reg/Strategy, none of
+        # which the viewer acts on, and a second node holding database_path
+        # reads as if it were also writing the database. What the viewer does
+        # need is the same set of input subscriptions, so those are repeated.
+        #
+        # subscribe_odom_info would add the feature and inlier overlay on the
+        # camera image, and it is left off on purpose. It is unavailable in the
+        # combination used here for the same reason it is on the mapper, there
+        # being no rgbdScan3dInfo sync, and under the default
+        # odom_source:=ground_truth nothing publishes odom_info at all, so
+        # asking for it would leave the window waiting on a topic that never
+        # arrives.
+        viz_parameters = {
+            "subscribe_rgbd": True,
+            "subscribe_scan_cloud": True,
+            "subscribe_depth": False,
+            "subscribe_rgb": False,
+            "subscribe_odom_info": False,
+        }
+        # One "Could not get odometry pose from TF for stamp N, aborting" is
+        # normal on startup and is not worth chasing. The viewer is the last
+        # node up and its first synchronised frame is stamped about 10 ms ahead
+        # of the newest TF its listener has collected. Raising wait_for_transform
+        # does not help, because the buffer is empty rather than late. The
+        # following frame lands and it does not recur.
         nodes.append(Node(
             package="rtabmap_viz", executable="rtabmap_viz", output="screen",
-            parameters=[rtabmap_parameters, shared_parameters, odom_input],
+            parameters=[viz_parameters, shared_parameters, odom_input],
             remappings=remappings))
 
     if arg("rviz") == "true":
@@ -336,8 +377,10 @@ def generate_launch_description():
             "delete_db_on_start", default_value="true", choices=["true", "false"],
             description="start each mapping run from an empty database"),
         DeclareLaunchArgument(
-            "viz", default_value="false", choices=["true", "false"],
-            description="launch rtabmap_viz, RTAB-Map's own inspector"),
+            "viz", default_value="true", choices=["true", "false"],
+            description="launch rtabmap_viz, RTAB-Map's own inspector: camera "
+                        "feeds, cloud, pose graph, loop closures. viz:=false "
+                        "for a headless run"),
         DeclareLaunchArgument(
             "rviz", default_value="false", choices=["true", "false"],
             description="launch RViz with the map, cloud and TF preloaded"),

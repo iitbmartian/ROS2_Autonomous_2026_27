@@ -106,7 +106,7 @@ Gazebo
                                               │           │
                                               └──────► rtabmap
                                                           │
-                                        /map  /rtabmap/cloud_map  TF map→odom
+                                          /map  /cloud_map  TF map→odom
 ```
 
 `rgbd_sync` exists so RGB, depth and intrinsics are matched once into a single `RGBDImage`,
@@ -272,7 +272,7 @@ These are not the keys `teleop_twist_keyboard` sends, which is the usual reason 
 sits still. The map only grows while the rover moves; watch `WM=` climb in the SLAM log.
 
 In RViz set Fixed Frame to `map`. The grey and black grid is `/map`, the coloured points
-are `/rtabmap/cloud_map`.
+are `/cloud_map`.
 
 ### Choosing the odometry source
 
@@ -284,6 +284,7 @@ a bare ground plane plus at most two boxes.
 | `flat.sdf` | `ground_truth` only | no texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth`, `lidar` | two bars give ICP something to bite on |
 | `ledge.sdf` | `ground_truth`, `lidar` | ramp and step, likewise |
+| `husarion_world.sdf` | `ground_truth` only | a grey plane and a floor decal, so `flat.sdf` in substance |
 
 `ground_truth` is the default. It takes the simulator's own pose, so a mapping fault can be
 told apart from an estimator fault, and it is the only source that works on `flat.sdf`.
@@ -342,7 +343,8 @@ Verified in the simulator, headless, on `bars.sdf` with `odom_source:=lidar`:
 **Still not verified:**
 
 1. **Loop closure.** Needs a circuit driven back to its own start, then
-   `ros2 topic echo /rtabmap/info` showing a non-zero `loopClosureId`.
+   `ros2 topic echo /info` showing a non-zero `loopClosureId`, or the loop
+   closure counter climbing in `rtabmap_viz`.
 2. **Localization mode** against a database saved from a previous run.
 3. **`odom_source:=visual`**, which cannot be tested until a world has texture in it.
 

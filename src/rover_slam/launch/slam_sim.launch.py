@@ -49,7 +49,8 @@ def generate_launch_description():
     return LaunchDescription([
         # rover_gazebo arguments
         DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="flat.sdf, ledge.sdf or bars.sdf"),
+                              description="flat.sdf, ledge.sdf, bars.sdf or "
+                                          "husarion_world.sdf"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               choices=["harmonic", "fortress"]),
         DeclareLaunchArgument("gui", default_value="true"),
@@ -64,7 +65,7 @@ def generate_launch_description():
                               default_value="~/.ros/rover_slam.db"),
         DeclareLaunchArgument("delete_db_on_start", default_value="true",
                               choices=["true", "false"]),
-        DeclareLaunchArgument("viz", default_value="false",
+        DeclareLaunchArgument("viz", default_value="true",
                               choices=["true", "false"]),
         DeclareLaunchArgument("rviz", default_value="false",
                               choices=["true", "false"]),
