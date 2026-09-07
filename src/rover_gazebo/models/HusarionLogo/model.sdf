@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- Standalone form of the logo, so it can be dropped into any world. The
+     husarion_world.sdf copy inlines the mesh instead, the way upstream has it. -->
+<sdf version="1.8">
+  <model name="HusarionLogo">
+    <static>true</static>
+    <link name="mesh">
+      <visual name="visual">
+        <geometry>
+          <mesh><uri>model://HusarionLogo/meshes/husarion_logo.dae</uri></mesh>
+        </geometry>
+      </visual>
+      <collision name="collision">
+        <geometry>
+          <mesh><uri>model://HusarionLogo/meshes/husarion_logo.dae</uri></mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

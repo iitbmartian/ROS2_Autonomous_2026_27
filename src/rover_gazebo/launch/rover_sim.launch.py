@@ -31,7 +31,8 @@ def generate_launch_description():
 
     args = [
         DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf"),
+                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf, "
+                                          "husarion_world.sdf"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               description="'harmonic' or 'fortress'; picks plugin names"),
         DeclareLaunchArgument("mass_scale", default_value="1.0"),
