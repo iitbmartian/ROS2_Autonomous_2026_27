@@ -38,10 +38,22 @@ keeps them there for four metres, and `world:=bars.sdf` lays two bars across the
 for its living.
 
 `world:=husarion_world.sdf` is Husarion's open world, vendored from their ROSbot
-simulation assets: a 25 m grey plane with the Husarion logo laid into the floor. It is
-flat, so it asks nothing of the suspension. Its mesh lives in `models/HusarionLogo`,
-which the package's environment hook puts on `GZ_SIM_RESOURCE_PATH` so that `model://`
-URIs resolve.
+simulation assets. Its mesh lives in `models/HusarionLogo`, which the package's
+environment hook puts on `GZ_SIM_RESOURCE_PATH` so that `model://` URIs resolve.
+
+The logo in it is not a floor decal. Every node in `husarion_logo.dae` carries a x100
+scale matrix, so at the world's `<scale>6</scale>` the logo is 24.6 x 24.6 m and stands
+1.80 m tall, covering x -11.96..12.66 and y -12.32..12.31. The world origin is inside it,
+so **spawn the rover clear of the plate or it starts 1.8 m underground**, invisible and
+unable to move:
+
+```bash
+ros2 launch rover_gazebo rover_sim.launch.py world:=husarion_world.sdf x:=-13.0
+```
+
+The ground plane is 60 m here rather than Husarion's 25 m, because their plane is smaller
+than the logo standing on it and left nowhere to put the rover. A plane collision is
+infinite either way, so only the visible square changes.
 
 ## Sensors
 

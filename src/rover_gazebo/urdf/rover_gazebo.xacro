@@ -37,7 +37,6 @@
       <kd>10000.0</kd>
       <minDepth>0.001</minDepth>
       <maxVel>0.1</maxVel>
-      <material>Gazebo/DarkGrey</material>
     </gazebo>
   </xacro:macro>
 
@@ -46,10 +45,13 @@
   <xacro:wheel_contact name="BLD"/>
   <xacro:wheel_contact name="BRD"/>
 
+  <!-- No <material> here or in wheel_contact. sdformat turns a Gazebo-Classic
+       material name into a <script> pointing at gazebo.material, an Ogre script
+       Harmonic cannot read, and it overrides the RGBA the URDF already carries.
+       Colour is set once, in rover_body.xacro's rover_grey. -->
   <gazebo reference="chassis_link">
     <mu1>0.5</mu1>
     <mu2>0.5</mu2>
-    <material>Gazebo/Grey</material>
   </gazebo>
 
   <!-- The connector bars and the differential chain overlap their neighbours by

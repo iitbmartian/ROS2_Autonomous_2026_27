@@ -32,7 +32,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/base_link.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/base_link.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <!-- the chassis STL is exactly a 0.4 m cube -->
@@ -52,13 +52,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FLS.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FLS.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/FLS.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/FLS.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -73,7 +73,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/LCON.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/LCON.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -88,13 +88,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FLE.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FLE.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/FLE.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/FLE.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -109,7 +109,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FLD.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FLD.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <!-- cylinder matches the STL to a tenth of a millimetre -->
@@ -129,13 +129,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FRS.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FRS.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/FRS.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/FRS.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -150,7 +150,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/RCON.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/RCON.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -165,13 +165,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FRE.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FRE.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/FRE.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/FRE.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -186,7 +186,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/FRD.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/FRD.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <!-- cylinder matches the STL to a tenth of a millimetre -->
@@ -206,13 +206,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BRS.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BRS.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/BRS.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/BRS.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -227,13 +227,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BRE.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BRE.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/BRE.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/BRE.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -248,7 +248,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BRD.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BRD.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <!-- cylinder matches the STL to a tenth of a millimetre -->
@@ -268,7 +268,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Rdiffcon2.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Rdiffcon2.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -283,13 +283,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BLS.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BLS.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/BLS.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/BLS.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -304,13 +304,13 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BLE.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BLE.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <xacro:if value="${mesh_collision}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><mesh filename="package://rover_gazebo/meshes/BLE.STL"/></geometry>
+        <geometry><mesh filename="${mesh_uri}/BLE.STL"/></geometry>
       </collision>
     </xacro:if>
   </link>
@@ -325,7 +325,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/BLD.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/BLD.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
     <!-- cylinder matches the STL to a tenth of a millimetre -->
@@ -345,7 +345,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Ldiffcon2.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Ldiffcon2.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -360,7 +360,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Differential.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Differential.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -375,7 +375,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Ldiff.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Ldiff.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -390,7 +390,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Ldiffcon.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Ldiffcon.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -405,7 +405,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Rdiff.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Rdiff.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>
@@ -420,7 +420,7 @@
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://rover_gazebo/meshes/Rdiffcon.STL"/></geometry>
+      <geometry><mesh filename="${mesh_uri}/Rdiffcon.STL"/></geometry>
       <material name="rover_grey"/>
     </visual>
   </link>

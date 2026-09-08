@@ -94,7 +94,7 @@ class Gen:
 
         self.w("    <visual>")
         self.w('      <origin xyz="0 0 0" rpy="0 0 0"/>')
-        self.w(f'      <geometry><mesh filename="package://rover_gazebo/meshes/{raw}.STL"/></geometry>')
+        self.w(f'      <geometry><mesh filename="${{mesh_uri}}/{raw}.STL"/></geometry>')
         self.w('      <material name="rover_grey"/>')
         self.w("    </visual>")
 
@@ -131,7 +131,7 @@ class Gen:
             self.w('    <xacro:if value="${mesh_collision}">')
             self.w("      <collision>")
             self.w('        <origin xyz="0 0 0" rpy="0 0 0"/>')
-            self.w(f'        <geometry><mesh filename="package://rover_gazebo/meshes/{raw}.STL"/></geometry>')
+            self.w(f'        <geometry><mesh filename="${{mesh_uri}}/{raw}.STL"/></geometry>')
             self.w("      </collision>")
             self.w("    </xacro:if>")
             return

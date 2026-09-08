@@ -32,6 +32,10 @@ def generate_launch_description():
             "sim": LaunchConfiguration("sim"),
             "gui": LaunchConfiguration("gui"),
             "teleop": LaunchConfiguration("teleop"),
+            "x": LaunchConfiguration("x"),
+            "y": LaunchConfiguration("y"),
+            "z": LaunchConfiguration("z"),
+            "yaw": LaunchConfiguration("yaw"),
         }.items())
 
     slam = IncludeLaunchDescription(
@@ -55,6 +59,13 @@ def generate_launch_description():
                               choices=["harmonic", "fortress"]),
         DeclareLaunchArgument("gui", default_value="true"),
         DeclareLaunchArgument("teleop", default_value="false"),
+        # Where the rover spawns. Only husarion_world.sdf needs this moved: its
+        # logo is a 1.8 m tall plate covering the origin, so spawn west of it
+        # with x:=-13. The other three worlds are clear at the origin.
+        DeclareLaunchArgument("x", default_value="0.0"),
+        DeclareLaunchArgument("y", default_value="0.0"),
+        DeclareLaunchArgument("z", default_value="0.02"),
+        DeclareLaunchArgument("yaw", default_value="0.0"),
 
         # rover_slam arguments
         DeclareLaunchArgument("odom_source", default_value="ground_truth",

@@ -36,8 +36,8 @@ ground plane plus at most two boxes, which is why the default is ground truth:
     flat.sdf            ground_truth only. No texture for vision, no geometry for ICP.
     bars.sdf            ground_truth or lidar.
     ledge.sdf           ground_truth or lidar.
-    husarion_world.sdf  ground_truth only. A grey plane with a floor decal, so
-                        flat.sdf in substance and mapped the same way.
+    husarion_world.sdf  ground_truth or lidar. A 1.8 m tall logo plate, which is
+                        geometry ICP can bite on. Spawn clear of it with x:=-13.
 
 'visual' needs a textured scene and no world provides one yet. It stays here for
 real camera data and for a world with texture in it.

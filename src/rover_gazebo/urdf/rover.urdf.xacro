@@ -40,6 +40,23 @@
   <xacro:property name="mesh_collision" value="$(arg mesh_collision)"/>
 
   <!-- ================================================================= -->
+  <!-- Mesh URI.                                                         -->
+  <!--                                                                   -->
+  <!-- Absolute, and deliberately not package://. This model is spawned   -->
+  <!-- from a string, not a file: rover_sim.launch.py runs                -->
+  <!-- 'ros_gz_sim create -topic robot_description'. sdformat rewrites    -->
+  <!-- package:// to model:// and then has no file to resolve it against, -->
+  <!-- so the raw model:// URI reaches the renderer, which silently draws -->
+  <!-- nothing. See doc/GAZEBO_VISUALS.md.                                -->
+  <!--                                                                   -->
+  <!-- An absolute file:// URI needs no resolution at all. xacro expands  -->
+  <!-- $(find rover_gazebo) on the machine that launches, so this stays   -->
+  <!-- correct per machine. resource_retriever reads it, so RViz is       -->
+  <!-- unaffected.                                                       -->
+  <!-- ================================================================= -->
+  <xacro:property name="mesh_uri" value="file://$(find rover_gazebo)/meshes"/>
+
+  <!-- ================================================================= -->
   <!-- Frame fix.                                                        -->
   <!--                                                                   -->
   <!-- The exported chassis frame has X pointing backwards, Y up and Z    -->

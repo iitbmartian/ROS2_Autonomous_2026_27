@@ -284,7 +284,7 @@ a bare ground plane plus at most two boxes.
 | `flat.sdf` | `ground_truth` only | no texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth`, `lidar` | two bars give ICP something to bite on |
 | `ledge.sdf` | `ground_truth`, `lidar` | ramp and step, likewise |
-| `husarion_world.sdf` | `ground_truth` only | a grey plane and a floor decal, so `flat.sdf` in substance |
+| `husarion_world.sdf` | `ground_truth`, `lidar` | a 1.8 m tall logo plate; spawn clear of it with `x:=-13` |
 
 `ground_truth` is the default. It takes the simulator's own pose, so a mapping fault can be
 told apart from an estimator fault, and it is the only source that works on `flat.sdf`.

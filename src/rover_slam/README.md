@@ -36,13 +36,19 @@ plane plus at most two boxes:
 | `flat.sdf` | `ground_truth` only. No texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth` or `lidar` |
 | `ledge.sdf` | `ground_truth` or `lidar` |
-| `husarion_world.sdf` | `ground_truth` only |
+| `husarion_world.sdf` | `ground_truth` or `lidar` |
 
-`husarion_world.sdf` is Husarion's open world, a 25 m grey plane with the Husarion logo
-laid into the floor. The logo is a 0.25 m tile 1.8 cm thick sitting at (13, 16), off the
-edge of the plane, so nothing in this world stands up and the map it produces is as flat
-and as grey as `flat.sdf`. It is here because it is the ground the Husarion office world
-is built on, not because it is a mapping test.
+`husarion_world.sdf` is Husarion's open world. Its logo is not the floor decal it looks
+like: it is 24.6 x 24.6 m and stands 1.80 m tall, and it covers the world origin. Spawn
+the rover clear of it, a metre off its western edge, or it starts 1.8 m underground:
+
+```bash
+ros2 launch rover_slam slam_sim.launch.py world:=husarion_world.sdf x:=-13.0
+```
+
+That plate and its raised letters are the only 3D structure in this world, which makes it
+the only thing here worth mapping. Drive along the edge and around a corner to give the
+mapper geometry to work with.
 
 `lidar` is the honest test, since it uses a real sensor rather than the simulator's answer:
 
