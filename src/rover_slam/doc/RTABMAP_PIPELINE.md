@@ -267,9 +267,15 @@ ros2 launch rover_slam slam_sim.launch.py rviz:=true
 ros2 run rover_gazebo teleop_rover.py     # another terminal, keep it focused
 ```
 
-`W`/`S` drive, `A`/`D` turn, `1`/`2`/`3` pick Ackermann, crab or spot turn, space stops.
+`W`/`S` drive, `A`/`D` turn, `1`/`2`/`3`/`4` pick Ackermann, crab, spot turn or
+explicit, space stops. Explicit is the swerve mode: `A`/`D` aim all four wheels by
+hand, `W`/`S` then drive along that aim, and `C` sweeps them back to straight.
 These are not the keys `teleop_twist_keyboard` sends, which is the usual reason the rover
 sits still. The map only grows while the rover moves; watch `WM=` climb in the SLAM log.
+
+Started by hand in a second terminal, as above, teleop falls back to the defaults in the
+script. `rover_gazebo`'s `config/rover_control.yaml` only reaches it when the simulator
+itself is launched with `teleop:=true`.
 
 In RViz set Fixed Frame to `map`. The grey and black grid is `/map`, the coloured points
 are `/cloud_map`.
@@ -363,8 +369,9 @@ lost. `ros2 topic echo /camera/camera_info --once` must say `camera_optical_fram
 **"Did not receive data" warnings.** Timestamps are not lining up. Check `use_sim_time` is
 true everywhere, that `/clock` is being published, and widen `approx_sync_max_interval`.
 
-**Odometry keeps resetting.** The rover is probably in crab or spot mode, which look nothing
-like the visual motion model. `Odom/ResetCountdown` is 10, so it recovers rather than dying.
+**Odometry keeps resetting.** The rover is probably in crab, spot or explicit mode, which
+look nothing like the visual motion model. Explicit mode reaches the same wheel geometry
+crab does whenever the aim sits near 90 degrees, so it fails the same way. `Odom/ResetCountdown` is 10, so it recovers rather than dying.
 Confirm with `odom_source:=ground_truth`: if the map is fine there, the fault is in the
 odometry, not the mapping.
 

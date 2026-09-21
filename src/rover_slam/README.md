@@ -24,9 +24,16 @@ then drive it, in another terminal:
 ros2 run rover_gazebo teleop_rover.py
 ```
 
-`W`/`S` drive, `A`/`D` turn, `1`/`2`/`3` pick Ackermann, crab or spot turn, space stops.
+`W`/`S` drive, `A`/`D` turn, `1`/`2`/`3`/`4` pick Ackermann, crab, spot turn or
+explicit, space stops. Explicit is the swerve mode: `A`/`D` aim all four wheels by
+hand, `W`/`S` then drive along that aim, and `C` sweeps them back to straight.
 Keep that terminal focused or the keys go nowhere. The map only grows while the rover
 moves: watch `WM=` climb in the SLAM log.
+
+Run by hand like this, teleop uses the defaults built into the script. The tuned
+keyboard feel in `rover_gazebo`'s `config/rover_control.yaml` is only read when the
+simulator is launched with `teleop:=true`, which `slam_sim.launch.py` leaves off by
+default so the SLAM log stays readable.
 
 Pick the odometry source to match the world, because every world so far is a bare ground
 plane plus at most two boxes:

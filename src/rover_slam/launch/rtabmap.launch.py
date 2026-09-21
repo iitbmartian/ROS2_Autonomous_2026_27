@@ -134,8 +134,9 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         "publish_tf": True,
         "Odom/Strategy": "0",          # frame-to-map, the default and the steadiest
         "Odom/GuessMotion": "true",
-        # The rover can crab and spot-turn, which look nothing like the motion
-        # model. Rather than fail, reset after 10 dead frames and carry on.
+        # The rover can crab, spot-turn and swerve under explicit mode, none of
+        # which look like the motion model. Rather than fail, reset after 10
+        # dead frames and carry on.
         "Odom/ResetCountdown": "10",
         "Vis/MinInliers": "15",        # 640x360 is a small image; 20 is too strict
         "Vis/EstimationType": "1",     # 3D->2D PnP
