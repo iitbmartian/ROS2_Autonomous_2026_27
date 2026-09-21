@@ -5,12 +5,13 @@
 | Topic | Type | Direction | Where it comes from |
 |---|---|---|---|
 | `/cmd_vel` | `geometry_msgs/Twist` | in | you, teleop, or a nav stack |
-| `/rover/steer_mode` | `std_msgs/String` | in | `ackermann`, `crab` or `spot` |
+| `/rover/steer_mode` | `std_msgs/String` | in | `ackermann`, `crab`, `spot` or `explicit` |
 | `/joint_states` | `sensor_msgs/JointState` | out | `joint_state_broadcaster` |
 | `/odom` | `nav_msgs/Odometry` | out | Gazebo, bridged. Ground truth |
 | `/tf`, `/tf_static` | | out | `robot_state_publisher` |
 | `/steer_controller/commands` | `std_msgs/Float64MultiArray` | in | four steering angles, radians |
 | `/wheel_controller/commands` | `std_msgs/Float64MultiArray` | in | four wheel speeds, rad/s |
+| `/rover/steer_aim` | `std_msgs/Float64` | out | explicit mode's shared wheel angle, radians |
 
 Onboard sensors, all bridged from Gazebo:
 
@@ -38,11 +39,27 @@ Publish a `Twist` on `/cmd_vel`. What the fields mean depends on the mode:
 | `ackermann` | forward speed | ignored | yaw rate, capped by the tightest turn radius |
 | `crab` | forward speed | sideways speed | ignored |
 | `spot` | ignored | ignored | spin rate |
+| `explicit` | wheel speed, all four | ignored | steering sweep rate |
 
 Ackermann is the mode a nav stack wants: it is ordinary differential-drive `Twist`
 semantics, with the yaw rate limited so the turn stays inside what the steering can
 reach. Crab and spot are there because the rover can do them and a planner might want
 them, not because anything needs them by default.
+
+Explicit is not a body-velocity mode at all, so read its row carefully. `angular.z` is
+still rad/s, but it is the rate the steering sweeps at rather than the rate the body
+yaws at, and `rover_kinematics_node` integrates it into one angle shared by all four
+wheels. `linear.x` is then handed to every wheel as its own speed, scaled only by that
+wheel's `drive_sign`. Nothing solves for where the rover will go.
+
+Two things follow from that. The aim persists: stop publishing and the 0.5 s
+`command_timeout` zeroes the rate, so the drive coasts down while the wheels stay
+pointed where you left them. And because the node owns the angle rather than the
+publisher, it echoes it on `/rover/steer_aim`, which is how you close the loop if you
+want to command an absolute angle rather than a rate. Switching into explicit mode
+sweeps the wheels back to straight ahead first, so you always start from a known pose.
+
+One consequence follows you wherever the aim comes from, hand-driven or published by your own code: hold a large aim while driving and the chassis creeps and yaws on its own, worse the closer the aim sits to 90 degrees. This is not the steering joint running out of travel; at 90 degrees it still has ten degrees of margin before its hard stop. It is the suspension coupling's own residual, which exists at every aim and every mode, finding nothing to resist it once the wheels stop pointing along the chassis rather than across it. `doc/VERIFICATION.md` has the numbers, measured under crab mode, which reaches the same wheel geometry. Nothing here saturates, so a tighter aim clamp trades away range for less exposure to this, it does not remove a limit fight that was never happening.
 
 To bypass the kinematics entirely, stop `rover_kinematics_node` and publish the two
 `Float64MultiArray` command topics yourself. Joint order is front-left, front-right,
