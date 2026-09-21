@@ -57,6 +57,14 @@ That plate and its raised letters are the only 3D structure in this world, which
 the only thing here worth mapping. Drive along the edge and around a corner to give the
 mapper geometry to work with.
 
+A metre of clearance is enough to spawn in but not to drive in. The plate's collision
+face is a wall, not a kerb, and `x:=-13.0` leaves the rover's front wheels about half a
+metre from it: press `W` from the spawn pose and the rover stalls against it almost
+immediately, wheels still turning at the commanded rate while the body pitches in place.
+That looks exactly like broken physics and is not. Either drive along the plate rather
+than into it, which is the better mapping run anyway, or spawn further out with something
+like `x:=-16.0` if you want room to approach it head on.
+
 `lidar` is the honest test, since it uses a real sensor rather than the simulator's answer:
 
 ```bash
