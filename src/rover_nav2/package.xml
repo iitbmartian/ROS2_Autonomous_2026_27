@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rover_nav2</name>
+  <version>0.0.0</version>
+  <description>Nav2 configuration, tuning and launch files for the rover: path planning,
+    control and recovery on top of the map from rover_slam and the odometry from rover_ekf.</description>
+  <maintainer email="singhalram44@gmail.com">Ram Singhal</maintainer>
+  <license>TODO: License declaration</license>
+
+  <exec_depend>rclpy</exec_depend>
+
+  <!-- The navigation2 metapackage covers every server, plugin and message
+       package named in config/nav2_params.yaml (MPPI, navfn, behaviours,
+       route, docking, ...). nav2_bringup is deliberately NOT a dependency:
+       it hard-depends on Gazebo, RViz and slam_toolbox as a demo/tutorial
+       package, none of which this rover needs. navigation.launch.py and
+       localization.launch.py own their node lists directly instead of
+       including nav2_bringup's launch files. -->
+  <exec_depend>navigation2</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
+  <exec_depend>nav2_amcl</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
