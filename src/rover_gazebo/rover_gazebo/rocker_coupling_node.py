@@ -25,6 +25,23 @@ Three constraints, from config/rover_kinematics.yaml:
 
 Together they leave the suspension one degree of freedom, which is what the mechanism
 actually has.
+
+Two extra terms exist to tame ringing on Gazebo Harmonic (not seen on Fortress, where
+this was originally tuned). The loop closes over a ROS topic round trip rather than
+inside the physics step, so a correction always reacts to a slightly stale position; a
+stiff spring-damper doing that is a standard recipe for overshoot-and-decay. Both default
+to off, so shipped behaviour is unchanged unless they are tuned:
+
+  max_torque_rate      caps how fast the published torque may change, in N m per second,
+                       independent of how large it is allowed to get. This is the more
+                       reliable of the two: it acts on the output, forcing a correction to
+                       ramp in over several cycles instead of arriving as one step, and it
+                       cannot make the lag itself worse.
+  velocity_filter_tau  a one-pole low-pass, time constant in seconds, on the velocity fed
+                       into the D term. Smooths a twitchy velocity reading, but a filter
+                       is itself a small extra delay, so on a loop whose problem is
+                       already too much delay this can make ringing worse rather than
+                       better. Measure before trusting it.
 """
 
 import os
@@ -63,6 +80,10 @@ class RockerCoupling(Node):
         # changes, which is what it is for. Unity's coupler does the same thing.
         self.declare_parameter("capture_rest", True)
         self.declare_parameter("rest_capture_delay", 2.5)   # s after the first sample
+        # Both off by default; see the module docstring for what each does and why
+        # the second one needs measuring rather than assuming it helps.
+        self.declare_parameter("max_torque_rate", 1.0e6)     # N m/s, effectively unlimited
+        self.declare_parameter("velocity_filter_tau", 0.0)   # s, 0 disables the filter
 
         with open(self.get_parameter("kinematics_file").value) as fh:
             cfg = yaml.safe_load(fh)["rover"]["coupling"]
@@ -81,6 +102,8 @@ class RockerCoupling(Node):
         self.first_seen = None
         self.pos = {}
         self.vel = {}
+        self.vel_filt = {}
+        self.prev_tau = dict.fromkeys(ORDER, 0.0)
         self.residuals = [0.0, 0.0, 0.0]
 
         self.pub = self.create_publisher(
@@ -120,18 +143,43 @@ class RockerCoupling(Node):
         k = self.get_parameter("stiffness").value
         d = self.get_parameter("damping").value
         lim = self.get_parameter("max_torque").value
+        dt = 1.0 / self.get_parameter("update_rate").value
+
+        # Filtered once per joint per cycle, not inline per constraint: three of the
+        # four joints each appear in two constraints, and updating a one-pole filter
+        # twice in the same cycle would quietly run it at double rate for those joints.
+        vel = self._filtered_velocities(dt)
 
         tau = dict.fromkeys(ORDER, 0.0)
         for i, (a, b, ratio) in enumerate(self.constraints):
             e = (self.pos[a] - ratio * self.pos[b]) - self.rest[i]
-            edot = self.vel[a] - ratio * self.vel[b]
+            edot = vel[a] - ratio * vel[b]
             g = k * e + d * edot
             self.residuals[i] = e
             tau[a] -= g
             tau[b] += g * ratio
 
-        data = [max(-lim, min(lim, tau[j])) for j in ORDER]
+        wanted = {j: max(-lim, min(lim, tau[j])) for j in ORDER}
+        max_delta = self.get_parameter("max_torque_rate").value * dt
+        data = []
+        for j in ORDER:
+            delta = max(-max_delta, min(max_delta, wanted[j] - self.prev_tau[j]))
+            self.prev_tau[j] = self.prev_tau[j] + delta
+            data.append(self.prev_tau[j])
         self.pub.publish(Float64MultiArray(data=data))
+
+    def _filtered_velocities(self, dt):
+        tau_f = self.get_parameter("velocity_filter_tau").value
+        if tau_f <= 0.0:
+            return self.vel
+        alpha = dt / (tau_f + dt)
+        out = {}
+        for name in ORDER:
+            raw = self.vel[name]
+            prev = self.vel_filt.get(name, raw)
+            out[name] = prev + alpha * (raw - prev)
+            self.vel_filt[name] = out[name]
+        return out
 
     def report(self):
         if self.rest is None:

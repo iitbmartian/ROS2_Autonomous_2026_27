@@ -16,6 +16,8 @@ Tests
     reverse_arc wheels turned, driving backwards; a car turns the other way
     crab        sideways without changing heading
     spot        spin in place; degrees turned and how far the body slid
+    explicit    aim the wheels at --aim degrees, then drive; does the body actually
+                travel along them, and does the heading hold
     obstacle    drive straight over whatever the world puts in the way
 
 Every test also reports chassis roll and pitch, the free rocker's travel, and the
@@ -36,7 +38,7 @@ from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from std_msgs.msg import String
+from std_msgs.msg import Float64, String
 
 ROCKERS = ("FLS_joint", "BLS_joint", "BRS_joint", "FRS_joint")
 
@@ -66,10 +68,16 @@ class Measure(Node):
         self.odom = None
         self.joints = {}
         self.samples = []
+        self.aim = None             # rad, echoed by rover_kinematics in explicit mode
+        self.aim_at_start = 0.0     # rad, what the aim actually was when driving began
+        self.create_subscription(Float64, "rover/steer_aim", self.on_aim, 10)
         self.create_subscription(Odometry, "odom", self.on_odom, 20)
         self.create_subscription(JointState, "joint_states", self.on_joints, 20)
         self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
         self.mode = self.create_publisher(String, "rover/steer_mode", 10)
+
+    def on_aim(self, msg):
+        self.aim = msg.data
 
     def on_odom(self, msg):
         self.odom = msg
@@ -140,6 +148,9 @@ class Measure(Node):
         self.record()
         start = dict(self.samples[0])
 
+        if a.test == "explicit":
+            return self.run_explicit()
+
         t = Twist()
         mode = "ackermann"
         if a.test == "settle":
@@ -169,6 +180,71 @@ class Measure(Node):
         self.spin(0.5)
 
         return self.summarise(start, mode)
+
+    def run_explicit(self):
+        """Aim the wheels, then drive along them, and see whether the rover agrees.
+
+        This is the only test that needs two phases, because explicit mode separates
+        aiming from driving. The wheels are swept first with the drive at zero, and the
+        start pose is taken again afterwards, so whatever the steering scrubs on its way
+        round is not counted against the run.
+        """
+        a = self.args
+        self.mode.publish(String(data="explicit"))
+
+        # Entering the mode sweeps the wheels to straight ahead. Publish nothing while
+        # that runs, so the command timeout leaves the sweep alone to finish.
+        self.spin(1.5)
+        if self.aim is None:
+            print(json.dumps({"error": "no rover/steer_aim; is rover_kinematics running, "
+                                       "and new enough to know the explicit mode?"}))
+            return 1
+
+        if not self.sweep_aim(math.radians(a.aim)):
+            print(json.dumps({"error": f"aim stalled at {math.degrees(self.aim):.1f} deg, "
+                                       f"wanted {a.aim:.1f}; check explicit_max_steer_angle"}))
+            return 1
+        self.aim_at_start = self.aim
+
+        # Start the measurement here, with the wheels already pointed.
+        self.samples.clear()
+        self.record()
+        start = dict(self.samples[0])
+
+        t = Twist()
+        t.linear.x = a.speed
+        self.spin(a.duration, t)
+        self.cmd.publish(Twist())
+        self.spin(0.5)
+
+        return self.summarise(start, "explicit")
+
+    def sweep_aim(self, target, tol=0.01, timeout=60.0):
+        """Hold a steering rate until the echoed aim reaches target. True if it got there.
+
+        Driving the rate against the node's own echo rather than timing the sweep means
+        the test lands on the angle the node actually reached, clamp and all.
+        """
+        end = time.time() + timeout
+        t = Twist()
+        stalled_since, last = time.time(), self.aim
+        while time.time() < end and rclpy.ok():
+            err = target - self.aim
+            if abs(err) < tol:
+                self.cmd.publish(Twist())
+                self.spin(0.5)
+                return True
+            t.angular.z = math.copysign(self.args.steer_rate, err)
+            self.cmd.publish(t)
+            rclpy.spin_once(self, timeout_sec=0.02)
+            # The aim stops moving once it hits the node's clamp. Give up rather than
+            # pushing at it for the full timeout.
+            if abs(self.aim - last) > 1e-4:
+                stalled_since, last = time.time(), self.aim
+            elif time.time() - stalled_since > 2.0:
+                break
+        self.cmd.publish(Twist())
+        return False
 
     def summarise(self, start, mode):
         s = self.samples
@@ -237,6 +313,18 @@ class Measure(Node):
                 sum(x["pitch"] for x in tail) / len(tail)), 3),
             "samples": len(s),
         }
+
+        if mode == "explicit":
+            # Where the body actually went, against where the wheels were pointed.
+            # Both are in the rover's own start frame, positive to the left.
+            track = math.atan2(lat, fwd)
+            err = track - self.aim_at_start
+            out["aim_commanded_deg"] = round(self.args.aim, 2)
+            out["aim_reached_deg"] = round(math.degrees(self.aim_at_start), 2)
+            out["track_angle_deg"] = round(math.degrees(track), 2)
+            out["track_error_deg"] = round(math.degrees(
+                math.atan2(math.sin(err), math.cos(err))), 2)
+
         print(json.dumps(out))
         return 0
 
@@ -250,6 +338,13 @@ def main():
     ap.add_argument("--settle", type=float, default=3.0)
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--yaw-rate", type=float, default=1.0)
+    ap.add_argument("--aim", type=float, default=45.0,
+                    help="explicit test: degrees to point the wheels at before driving. "
+                         "Positive is left. Clamped by the node's explicit_max_steer_angle")
+    ap.add_argument("--steer-rate", type=float, default=0.5,
+                    help="explicit test: rad/s to sweep the aim at. Faster than the "
+                         "teleop's 0.2618 so the test is not all waiting, and under the "
+                         "node's explicit_max_steer_rate ceiling")
     ap.add_argument("--coupling-damping", type=float, default=None,
                     help="set with --coupling-stiffness; zero both to switch the "
                          "suspension coupling off entirely")

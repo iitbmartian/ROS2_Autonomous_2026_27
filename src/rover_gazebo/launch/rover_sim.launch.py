@@ -112,8 +112,12 @@ def generate_launch_description():
         output="screen", parameters=[control_params],
     )
 
+    # The params file carries the keyboard feel, including the explicit-mode sweep
+    # rate. Run teleop_rover.py by hand in a second terminal and it falls back to the
+    # defaults declared in the script.
     teleop = ExecuteProcess(
-        cmd=["ros2", "run", PKG, "teleop_rover.py"],
+        cmd=["ros2", "run", PKG, "teleop_rover.py",
+             "--ros-args", "--params-file", control_params],
         output="screen", condition=IfCondition(LaunchConfiguration("teleop")),
     )
 
