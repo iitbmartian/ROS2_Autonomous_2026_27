@@ -219,10 +219,34 @@ nothing in x, y or yaw, so on `flat.sdf` it drifts freely. Section 6 has the pai
 | `Grid/MaxGroundHeight` | `0.15` | clears the 10 cm ledge in `ledge.sdf` |
 | `Grid/MaxObstacleHeight` | `1.0` | ignore anything the rover can drive under |
 | `Grid/Footprint*` | 1.0 × 0.8 × 0.5 | do not map the rover's own wheels as obstacles |
+| `Grid/RangeMax` | `8.0` | well inside the sensor's 30 m, because of how few rings reach the ground; see below |
 
 The normals-versus-height choice matters for this rover specifically. `ledge.sdf` is a 10 cm
 step the suspension is designed to climb, and a normals-based segmenter reads its vertical
 face as a wall. Height thresholding lets the rover plan over what it can actually drive over.
+
+#### Why the grid stops at 8 m
+
+The lidar is 16 rings over a ±15° fan at roughly 0.75 m above ground, so only the downward
+half ever lands, 2° apart. Within range the ground is sampled by seven concentric rings and
+nothing in between:
+
+| Ring | −15° | −13° | −11° | −9° | −7° | −5° | −3° |
+|---|---|---|---|---|---|---|---|
+| Ground radius | 2.80 m | 3.25 m | 3.86 m | 4.74 m | 6.11 m | 8.57 m | 14.31 m |
+
+The next ring up would touch down at 43 m, past the sensor's own 30 m limit. Because
+classification is height-only against `Grid/MaxGroundHeight`, a whole ring flips from ground
+to obstacle as soon as the chassis pitches by `atan(0.15 / radius)`: 0.6° at 14.31 m, 1.0° at
+8.57 m, 1.4° at 6.11 m. The rover pitches well past that on Gazebo Harmonic, which painted a
+false red obstacle ring around the edge of everything explored. Capping at 8 m drops the two
+worst rings and keeps five.
+
+That ring structure is also why the 3D Map view in `rtabmap_viz` looks like scattered points
+rather than a surface. That pane assembles `/mapData`, not `/cloud_map`, and draws each
+occupancy cell as a single point on the 5 cm `Grid/CellSize` lattice. Along the outermost
+kept ring the samples are 15 cm apart, three cells. Nothing in this path is meshed, so it
+cannot render as a surface.
 
 ### Attitude, not flat-floor
 

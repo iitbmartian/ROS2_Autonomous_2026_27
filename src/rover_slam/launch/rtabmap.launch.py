@@ -203,7 +203,16 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         "Grid/3D": "false",
         "Grid/CellSize": "0.05",
         "Grid/RangeMin": "0.5",
-        "Grid/RangeMax": "15.0",
+        # 8 m, not the sensor's 30 m, because of how few rings reach the ground.
+        # The lidar is 16 rings over a +/- 15 degree fan at 0.75 m, so only the
+        # downward half ever lands, at 2 degrees apart: rings touch down at 2.80,
+        # 3.25, 3.86, 4.74, 6.11, 8.57 and 14.31 m, and the next would be at 43 m.
+        # Classification is height-only against Grid/MaxGroundHeight below, so a
+        # ring flips to obstacle once the chassis pitches by atan(0.15 / radius):
+        # 0.6 degrees at 14.31 m, 1.0 at 8.57, 1.4 at 6.11. The rover pitches well
+        # past that on Harmonic, which painted a false red obstacle ring around
+        # the whole explored area. 8.0 drops the two worst rings and keeps five.
+        "Grid/RangeMax": "8.0",
         "Grid/RayTracing": "true",     # fill known-free space between rover and hits
         # Height segmentation rather than normals. ledge.sdf is a 10 cm step the
         # rover is supposed to climb; a normals-based segmenter reads its face
