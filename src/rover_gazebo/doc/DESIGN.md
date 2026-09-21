@@ -99,10 +99,15 @@ namespace, and Gazebo refuses to load the model. Every joint therefore carries a
 
 ## How the constraints are enforced
 
-Gazebo has no solver-level way to enforce a joint constraint like this: sdformat's
-`<mimic>` element either does not exist or is not carried through to the physics engine,
-depending on the version. That was tried and confirmed unworkable, so this package
-enforces the coupling itself instead.
+DART, the physics engine this package runs on, has no solver-level way to enforce a
+joint constraint like this: on Fortress sdformat's `<mimic>` element does not exist at
+all, and on Harmonic, where it does exist, DART explicitly refuses it and logs that it
+does not support mimic constraints. So this package enforces the coupling itself
+instead. A different engine, Bullet-Featherstone, was confirmed on an isolated two-joint
+model to enforce `<mimic>` correctly, to six decimal places, but it comes with real open
+questions for a model this shape (a free-floating chassis, four wheel branches, and
+wheel-ground contact this package's driving depends on), none of which have been
+checked. `doc/VERIFICATION.md` has the detail.
 
 The four rockers get effort interfaces, and `rocker_coupling_node` applies each
 constraint as a stiff spring and damper, pushing equally and oppositely on the two
@@ -121,8 +126,20 @@ front rockers carrying nothing.
 
 This closes a stiff loop over ROS topics at 500 Hz rather than inside the physics step,
 so the constraint is held to a degree or two rather than exactly, and the gains cannot
-be raised much before the loop delay makes it ring. `doc/VERIFICATION.md` has the
-measured residuals.
+be raised much before the loop delay makes it ring. On Gazebo Harmonic that same loop
+was isolated as the dominant cause of a continuous speed and yaw jitter, present even
+driving straight with no steering involved at all; zeroing its gains all but removes the
+jitter, at the cost of the suspension no longer being held together at all.
+
+Two more parameters, `max_torque_rate` and `velocity_filter_tau`, exist to try to tame
+that ringing without zeroing the gains outright: a ceiling on how fast the published
+torque may change, and a low-pass on the velocity feeding the D term. Both default to
+off. Neither turned out to be a clean fix when measured: a tight rate limit can crash
+jitter to nearly nothing but pushes the settled residual up by roughly an order of
+magnitude, and one setting even let the suspension settle into a wrong pose that did not
+recover on its own; the velocity filter, at the one value tried, made both the jitter and
+the residual worse rather than better. `doc/VERIFICATION.md` has the measured residuals,
+the jitter numbers, and the full tuning results.
 
 ## What became decoration
 
