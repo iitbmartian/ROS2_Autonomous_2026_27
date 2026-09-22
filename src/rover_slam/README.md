@@ -44,6 +44,7 @@ plane plus at most two boxes:
 | `bars.sdf` | `ground_truth` or `lidar` |
 | `ledge.sdf` | `ground_truth` or `lidar` |
 | `husarion_world.sdf` | `ground_truth` or `lidar` |
+| `marsyard.sdf` | `ground_truth`, `lidar` or `visual` |
 
 `husarion_world.sdf` is Husarion's open world. Its logo is not the floor decal it looks
 like: it is 24.6 x 24.6 m and stands 1.80 m tall, and it covers the world origin. Spawn

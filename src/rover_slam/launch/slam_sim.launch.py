@@ -54,8 +54,10 @@ def generate_launch_description():
     return LaunchDescription([
         # rover_gazebo arguments
         DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="flat.sdf, ledge.sdf, bars.sdf or "
-                                          "husarion_world.sdf"),
+                              description="flat.sdf, ledge.sdf, bars.sdf, "
+                                          "husarion_world.sdf or marsyard.sdf; "
+                                          "marsyard is the only one odom_source:=visual "
+                                          "works on"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               choices=["harmonic", "fortress"]),
         DeclareLaunchArgument("gui", default_value="true"),
