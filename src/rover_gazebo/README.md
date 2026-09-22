@@ -67,6 +67,21 @@ The ground plane is 60 m here rather than Husarion's 25 m, because their plane i
 than the logo standing on it and left nowhere to put the rover. A plane collision is
 infinite either way, so only the visible square changes.
 
+`world:=marsyard.sdf` is a textured, rock-strewn yard, and the only world here with
+anything for a camera to track. The other four carry flat colours, which is fine for
+suspension and driving work but leaves `rover_slam`'s visual path unable to initialise.
+It holds 110 rocks, deliberately low: the tallest is 24 cm and the median 10 cm, matching
+the ledge the suspension is built to climb, because an earlier draft used 0.4 m boulders
+and the rover wedged itself.
+
+Both the world and its texture are generated, so edit the script and not the output:
+
+```bash
+python3 src/rover_gazebo/tools/make_marsyard.py
+```
+
+The layout is seeded, so anyone running it gets the same yard.
+
 ## Sensors
 
 Three onboard sensors, bridged from Gazebo to ROS 2 topics:
