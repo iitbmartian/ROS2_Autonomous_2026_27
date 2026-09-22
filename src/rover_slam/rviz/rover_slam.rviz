@@ -1,145 +1,498 @@
-# Displays for watching RTAB-Map build the map. Deliberately minimal, in the
-# style of rover_gazebo/rviz/rover.rviz; RViz fills in the rest of the defaults.
+# Displays for watching RTAB-Map build the map.
+#
+# RViz rewrites this file wholesale whenever you save from the GUI, and its
+# writer drops comments. If this block is missing, that is what happened; the
+# displays themselves survive. Put it back rather than assuming it was removed
+# on purpose.
 #
 # Topic names carry no /rtabmap prefix. RTAB-Map's own documentation writes
 # /rtabmap/cloud_map because its upstream launch files put the node in an
 # 'rtabmap' namespace; rtabmap.launch.py sets none, so that /map lands where
 # Nav2 looks for it. /rtabmap/anything does not exist here.
 #
-# Only the Camera display ships disabled, and only because the image panel
-# crowds the 3D view. Everything else has data under a default launch, with one
-# documented exception: Dense Cloud Map needs dense_map:=true.
+# What each cloud is, since they are easy to confuse:
+#   Cloud Map          /cloud_map, occupancy cells as points. Flat by
+#                      construction, because Grid/3D is false so every cell
+#                      sits at one height. This is what Nav2 is handed.
+#   Dense Cloud Map    /dense_map/cloud_map, the real 3D map. Needs
+#                      dense_map:=true, which starts map_assembler; empty
+#                      without it.
+#   Lidar              /lidar/points with a 60 s decay, the rawest and densest
+#                      view. Those points are placed by the TF at arrival and
+#                      do not move on loop closure, so trust Dense Cloud Map
+#                      for map geometry.
+#
+# Two displays ship disabled on purpose: Camera, because the image panel
+# crowds the 3D view, and Estimated Odometry, because nothing publishes
+# /rtabmap/odom under the default odom_source:=ground_truth, where
+# gt_odom_tf.py broadcasts a transform and no Odometry message at all.
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 138
     Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Lidar (60 s trail)1
+        - /Camera1
+      Splitter Ratio: 0.5
+    Tree Height: 810
 Visualization Manager:
+  Class: ""
   Displays:
-    - Class: rviz_default_plugins/Grid
-      Name: Grid
-      Enabled: true
+    - Alpha: 0.5
       Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
       Plane Cell Count: 40
-    - Class: rviz_default_plugins/RobotModel
-      Name: RobotModel
-      Enabled: true
-      Description Topic:
-        Value: /robot_description
-      Visual Enabled: true
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        BLD:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        BLE:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        BLS:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        BRD:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        BRE:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        BRS:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Differential:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        FLD:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FLE:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FLS:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FRD:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FRE:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FRS:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LCON:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Ldiff:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Ldiffcon:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Ldiffcon2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Link Tree Style: Links in Alphabetic Order
+        RCON:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Rdiff:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Rdiffcon:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Rdiffcon2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        chassis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar3d_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
     - Class: rviz_default_plugins/TF
-      Name: TF
       Enabled: false
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
       Marker Scale: 0.5
-    # The 2D squish of the 3D map. This is what Nav2 plans on.
-    - Class: rviz_default_plugins/Map
-      Name: Occupancy Grid
-      Enabled: true
-      Topic:
-        Value: /map
-        Durability Policy: Transient Local
-        Reliability Policy: Reliable
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Alpha: 0.699999988079071
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
       Color Scheme: map
-      Alpha: 0.7
-    # The same grid as a point cloud, and flat for the same reason: MapsManager
-    # builds /cloud_map out of occupancy cells, not out of raw scans, and
-    # Grid/3D is false so every cell sits at one height. Measured at 325 points
-    # spanning 8 cm, which is the red outline rather than a 3D scene. Kept
-    # because it is exactly what Nav2 is being handed.
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Cloud Map (flat, Nav2 view)
+      Draw Behind: false
       Enabled: true
+      Name: Occupancy Grid
       Topic:
-        Value: /cloud_map
+        Depth: 5
+        Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
         Reliability Policy: Reliable
-      Size (m): 0.05
-      Style: Points
-      Color Transformer: FlatColor
+        Value: /map
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_updates
+      Use Timestamp: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
       Color: 255; 80; 80
+      Color Transformer: FlatColor
       Decay Time: 0
-    # The real 3D map, and the one to look at. Needs dense_map:=true, which
-    # starts map_assembler: it re-derives the local grids in 3D off the mapping
-    # loop, so this is the same scene rtabmap_viz shows without slowing the
-    # mapper down. Empty if you launched without that argument.
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Dense Cloud Map (dense_map:=true)
       Enabled: true
-      Topic:
-        Value: /dense_map/cloud_map
-        Reliability Policy: Reliable
-      Size (m): 0.08
-      Style: Boxes
-      Color Transformer: AxisColor
-      Axis: Z
-      Autocompute Value Bounds: true
-      Decay Time: 0
-    # Live lidar return, the rawest view of what the mapper is fed. Decay Time
-    # accumulates a minute of scans in the map frame, which is the densest 3D
-    # picture available here and costs the mapper nothing. Those points are
-    # placed by the TF at arrival and do not move on loop closure, so trust
-    # Dense Cloud Map over this one for map geometry.
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Lidar (60 s trail)
-      Enabled: true
-      Topic:
-        Value: /lidar/points
-        Reliability Policy: Reliable
-      Size (m): 0.02
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Cloud Map (flat, Nav2 view)
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.05000000074505806
       Style: Points
-      Color Transformer: AxisColor
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /cloud_map
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 1.814066767692566
+        Min Value: -0.0033786678686738014
+        Value: true
       Axis: Z
-      Autocompute Value Bounds: true
-      Decay Time: 60
-    # Ground truth straight from Gazebo. Always present, whichever odom_source
-    # is in use, so this is the track to compare an estimate against.
-    - Class: rviz_default_plugins/Odometry
-      Name: Odometry (ground truth)
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: AxisColor
+      Decay Time: 0
       Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Dense Cloud Map (dense_map:=true)
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.07999999821186066
+      Style: Boxes
       Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /dense_map/cloud_map
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 1.8367023468017578
+        Min Value: -0.07352685928344727
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: AxisColor
+      Decay Time: 60
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Lidar (60 s trail)
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.019999999552965164
+      Style: Points
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /lidar/points
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz_default_plugins/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: true
+      Keep: 200
+      Name: Odometry (ground truth)
+      Position Tolerance: 0.10000000149011612
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.07999999821186066
+        Head Radius: 0.05000000074505806
+        Shaft Length: 0.20000000298023224
+        Shaft Radius: 0.019999999552965164
+        Value: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
         Value: /odom
-        Reliability Policy: Reliable
-      Keep: 200
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz_default_plugins/Odometry
       Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
         Value: false
-      Shape:
-        Value: Arrow
-        Shaft Length: 0.2
-        Shaft Radius: 0.02
-        Head Length: 0.08
-        Head Radius: 0.05
-    # RTAB-Map's own estimate. Nothing publishes it under the default
-    # odom_source:=ground_truth, where gt_odom_tf.py broadcasts a transform and
-    # no Odometry message at all, so it ships disabled. Enable it alongside
-    # odom_source:=visual or :=lidar to see the estimate drift off the track
-    # above.
-    - Class: rviz_default_plugins/Odometry
+      Enabled: true
+      Keep: 200
       Name: Estimated Odometry (visual/lidar only)
-      Enabled: false
-      Topic:
-        Value: /rtabmap/odom
-        Reliability Policy: Reliable
-      Keep: 200
-      Covariance:
-        Value: false
+      Position Tolerance: 0.10000000149011612
       Shape:
-        Value: Arrow
-        Shaft Length: 0.2
-        Shaft Radius: 0.02
-        Head Length: 0.08
-        Head Radius: 0.05
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
         Color: 60; 200; 255
-    - Class: rviz_default_plugins/Image
-      Name: Camera
-      Enabled: false
+        Head Length: 0.07999999821186066
+        Head Radius: 0.05000000074505806
+        Shaft Length: 0.20000000298023224
+        Shaft Radius: 0.019999999552965164
+        Value: Arrow
       Topic:
-        Value: /camera/image_raw
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
         Reliability Policy: Reliable
+        Value: /rtabmap/odom
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Camera
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /camera/image_raw
+      Value: true
+  Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools: ~
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
       Distance: 20
-      Focal Point: {X: 0, Y: 0, Z: 0}
-      Pitch: 0.7
-      Yaw: 2.3
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.699999988079071
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 2.299999952316284
+    Saved: ~
+Window Geometry:
+  Camera:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1462
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001f400000516fc0200000002fb0000000c00430061006d0065007200610100000070000000e40000002800fffffffb000000100044006900730070006c0061007900730100000160000004260000018600ffffff0000077c0000051600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Width: 2428
+  X: 132
+  Y: 64
