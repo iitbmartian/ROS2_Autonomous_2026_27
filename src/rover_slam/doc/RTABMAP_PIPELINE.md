@@ -112,6 +112,42 @@ Gazebo
 `rgbd_sync` exists so RGB, depth and intrinsics are matched once into a single `RGBDImage`,
 rather than having the odometry node and the mapper each synchronise three topics separately.
 
+### Which topic carries what
+
+No topic here has an `/rtabmap` prefix. RTAB-Map's documentation writes `/rtabmap/cloud_map`
+because its upstream launch files put the node in an `rtabmap` namespace. This one sets none,
+so `/map` lands where Nav2 looks for it. `/rtabmap/cloud_map` does not exist.
+
+The outputs fall into two families, and confusing them is the single easiest mistake to make
+here.
+
+| Topic | Type | What it actually is |
+|---|---|---|
+| `/lidar/points`, `/camera/*`, `/imu/data` | raw | straight off the Gazebo bridge |
+| `/odom` | raw | Gazebo ground truth, always published, never an estimate |
+| `/rgbd_image` | raw | the three camera topics synced into one message |
+| `/map` | grid | the 2D OccupancyGrid Nav2 plans on |
+| `/cloud_map` | grid | **occupancy cells as points, not raw scans** |
+| `/cloud_ground`, `/cloud_obstacles` | grid | the same cells split by classification |
+| `/mapData` | graph | poses **plus each node's compressed raw scan** |
+| `/mapGraph`, `/mapPath`, `/info` | graph | pose graph, trajectory, loop-closure counters |
+| `/rtabmap/odom` | estimate | only exists under `odom_source:=visual` or `:=lidar` |
+
+The grid family is built by RTAB-Map's `MapsManager` out of occupancy cells. Since `Grid/3D`
+is false, those cells are all projected to one height, so `/cloud_map` is flat by
+construction: measured at 325 points spanning 8 cm on a real run. That is why RViz shows a
+red outline where `rtabmap_viz` shows a scene.
+
+The viewer is not reading any of those. Its 3D Map pane subscribes to `/mapData`, decompresses
+each node's raw scan, and assembles the result inside its own process. Nothing republishes
+that assembly, which is the whole reason the two look different.
+
+To get the same thing on a topic, launch with `dense_map:=true`. That starts `rtabmap_util`'s
+`map_assembler` in a `dense_map` namespace, where it re-derives the local grids in 3D from the
+raw scans in `/mapData` and publishes `/dense_map/cloud_map`. It runs in its own process
+deliberately, so the cost stays off the mapping loop. See the note below on why `Grid/3D` is
+not simply set to true on the mapper.
+
 ### Frames
 
 `rover_gazebo` publishes everything from `base_footprint` down and, deliberately, nothing
@@ -213,7 +249,7 @@ nothing in x, y or yaw, so on `flat.sdf` it drifts freely. Section 6 has the pai
 |---|---|---|
 | `RGBD/CreateOccupancyGrid` | `true` | **Defaults to false.** Without it no grid is built and `/map` never appears, with nothing in the log to say why |
 | `Grid/Sensor` | `2` | 0 is laser scan, 1 is depth image, 2 is both. The lidar gives 360° range, the camera gives close ground detail the roof lidar cannot see over the chassis |
-| `Grid/3D` | `false` | this is the squish: project the cloud onto xy and emit a plain `OccupancyGrid` |
+| `Grid/3D` | `false` | this is the squish: project the cloud onto xy and emit a plain `OccupancyGrid`; see below before changing it |
 | `Grid/RayTracing` | `true` | fill known-free space between the rover and each hit, instead of leaving it unknown |
 | `Grid/NormalsSegmentation` | `false` | height thresholds instead of surface normals, see below |
 | `Grid/MaxGroundHeight` | `0.15` | clears the 10 cm ledge in `ledge.sdf` |
@@ -224,6 +260,27 @@ nothing in x, y or yaw, so on `flat.sdf` it drifts freely. Section 6 has the pai
 The normals-versus-height choice matters for this rover specifically. `ledge.sdf` is a 10 cm
 step the suspension is designed to climb, and a normals-based segmenter reads its vertical
 face as a wall. Height thresholding lets the rover plan over what it can actually drive over.
+
+#### Why Grid/3D stays false, and what to use instead
+
+Setting `Grid/3D` to true is the obvious way to make `/cloud_map` three-dimensional, and it
+was measured on an identical drive rather than assumed. It is too expensive on the mapping
+loop:
+
+| | `/cloud_map` points | z span | RTAB-Map iteration | Resident memory |
+|---|---|---|---|---|
+| `Grid/3D` false | 325 | 0.08 m | 0.038 s | — |
+| `Grid/3D` true | 32726 | 1.05 m | **1.50 s** | 1.3 GB |
+| `dense_map:=true` | 7521 on `/dense_map/cloud_map` | **1.81 m** | 0.18 s | 410 MB + 307 MB |
+
+`Rtabmap/DetectionRate` is 1 Hz, so a 1.50 s iteration means the mapper stops keeping up:
+measured processing delay rose from 0.14 s to 0.85 s. A slower SLAM loop is a bad trade for a
+nicer picture.
+
+`dense_map:=true` gets the 3D cloud without that. `map_assembler` runs as a separate process,
+so its assembly cannot stall the mapper, and it is free to use a coarser 0.1 m cell since
+nothing plans on its output. It also reaches the logo plate's full 1.81 m, where the
+`Grid/3D` true run clipped at `Grid/MaxObstacleHeight`.
 
 #### Why the grid stops at 8 m
 

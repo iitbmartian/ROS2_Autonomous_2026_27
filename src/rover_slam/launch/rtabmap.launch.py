@@ -198,8 +198,19 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         # for range and coverage, the camera depth for close ground detail the
         # roof lidar cannot see over the chassis.
         "Grid/Sensor": "2",
-        # This is the 3D-to-2D squish. False projects the cloud onto xy and
-        # emits the plain OccupancyGrid Nav2 consumes.
+        # The 3D-to-2D squish. False projects the cloud onto xy and emits the
+        # plain OccupancyGrid Nav2 consumes.
+        #
+        # The side effect is that /cloud_map goes flat, because MapsManager
+        # assembles it out of grid cells rather than out of raw scans: squashed,
+        # it carries only the obstacle cells at one height, so RViz draws a red
+        # outline while rtabmap_viz looks correct off /mapData. Do not fix that
+        # here. Setting this true was measured on the identical drive and it
+        # costs the mapping loop far too much: RTAB-Map's own iteration went from
+        # 0.038 s to 1.5 s against a Rtabmap/DetectionRate of 1 Hz, so the mapper
+        # stops keeping up, and resident memory reached 1.3 GB. The 3D view is
+        # worth having but not at the cost of real-time mapping, so it is built
+        # off this loop by map_assembler under dense_map:=true instead.
         "Grid/3D": "false",
         "Grid/CellSize": "0.05",
         "Grid/RangeMin": "0.5",
@@ -358,6 +369,41 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
             parameters=[viz_parameters, shared_parameters, odom_input],
             remappings=remappings))
 
+    if arg("dense_map") == "true":
+        # A real 3D cloud for RViz, built off the mapping loop.
+        #
+        # map_assembler subscribes to the same /mapData rtabmap_viz does, which
+        # carries each graph node's raw scan alongside its pose, and runs its own
+        # MapsManager over it. regenerate_local_grids makes it rebuild every
+        # local grid from those raw scans using the parameters below rather than
+        # reusing the flat ones the mapper stored, which is what makes a 3D cloud
+        # possible while the mapper itself stays 2D and real time.
+        #
+        # It publishes the same topic names, so it goes in its own namespace or
+        # its /cloud_map fights the mapper's. RViz reads /dense_map/cloud_map.
+        #
+        # Cell size is 0.1 here, not the mapper's 0.05. This node is for looking
+        # at, not for planning on, and the 3D grid cost scales with the cube of
+        # the resolution. Nothing downstream consumes /dense_map/map, so the
+        # coarser number costs nothing that matters.
+        nodes.append(Node(
+            package="rtabmap_util", executable="map_assembler",
+            namespace="dense_map", output="screen",
+            parameters=[{
+                "use_sim_time": True,
+                "regenerate_local_grids": True,
+                "Grid/3D": "true",
+                "Grid/CellSize": "0.1",
+                "Grid/Sensor": "2",
+                "Grid/RangeMin": "0.5",
+                "Grid/RangeMax": "8.0",
+                "Grid/RayTracing": "true",
+                "Grid/NormalsSegmentation": "false",
+                "Grid/MaxGroundHeight": "0.15",
+                "Grid/MaxObstacleHeight": "2.0",
+            }],
+            remappings=[("mapData", "/mapData")]))
+
     if arg("rviz") == "true":
         nodes.append(Node(
             package="rviz2", executable="rviz2", output="screen",
@@ -386,6 +432,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "delete_db_on_start", default_value="true", choices=["true", "false"],
             description="start each mapping run from an empty database"),
+        DeclareLaunchArgument(
+            "dense_map", default_value="false", choices=["true", "false"],
+            description="run map_assembler to publish a real 3D cloud on "
+                        "/dense_map/cloud_map for RViz. Off by default because "
+                        "it rebuilds every local grid in 3D; it runs in its own "
+                        "process so a slow assembly cannot hold up the mapper"),
         DeclareLaunchArgument(
             "viz", default_value="true", choices=["true", "false"],
             description="launch rtabmap_viz, RTAB-Map's own inspector: camera "

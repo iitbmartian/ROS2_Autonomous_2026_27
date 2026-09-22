@@ -1,5 +1,14 @@
 # Displays for watching RTAB-Map build the map. Deliberately minimal, in the
 # style of rover_gazebo/rviz/rover.rviz; RViz fills in the rest of the defaults.
+#
+# Topic names carry no /rtabmap prefix. RTAB-Map's own documentation writes
+# /rtabmap/cloud_map because its upstream launch files put the node in an
+# 'rtabmap' namespace; rtabmap.launch.py sets none, so that /map lands where
+# Nav2 looks for it. /rtabmap/anything does not exist here.
+#
+# Only the Camera display ships disabled, and only because the image panel
+# crowds the 3D view. Everything else has data under a default launch, with one
+# documented exception: Dense Cloud Map needs dense_map:=true.
 Panels:
   - Class: rviz_common/Displays
     Name: Displays
@@ -31,42 +40,93 @@ Visualization Manager:
         Reliability Policy: Reliable
       Color Scheme: map
       Alpha: 0.7
-    # The assembled 3D map. /cloud_map, not /rtabmap/cloud_map: RTAB-Map's
-    # topics sit under its node's namespace, and rtabmap.launch.py sets none
-    # so that /map lands where Nav2 looks for it.
+    # The same grid as a point cloud, and flat for the same reason: MapsManager
+    # builds /cloud_map out of occupancy cells, not out of raw scans, and
+    # Grid/3D is false so every cell sits at one height. Measured at 325 points
+    # spanning 8 cm, which is the red outline rather than a 3D scene. Kept
+    # because it is exactly what Nav2 is being handed.
     - Class: rviz_default_plugins/PointCloud2
-      Name: Cloud Map
+      Name: Cloud Map (flat, Nav2 view)
       Enabled: true
       Topic:
         Value: /cloud_map
         Reliability Policy: Reliable
-      Size (m): 0.03
+      Size (m): 0.05
       Style: Points
-      Color Transformer: RGB8
+      Color Transformer: FlatColor
+      Color: 255; 80; 80
       Decay Time: 0
-    # Live lidar return, to see what the mapper is actually being fed.
+    # The real 3D map, and the one to look at. Needs dense_map:=true, which
+    # starts map_assembler: it re-derives the local grids in 3D off the mapping
+    # loop, so this is the same scene rtabmap_viz shows without slowing the
+    # mapper down. Empty if you launched without that argument.
     - Class: rviz_default_plugins/PointCloud2
-      Name: Lidar
-      Enabled: false
+      Name: Dense Cloud Map (dense_map:=true)
+      Enabled: true
+      Topic:
+        Value: /dense_map/cloud_map
+        Reliability Policy: Reliable
+      Size (m): 0.08
+      Style: Boxes
+      Color Transformer: AxisColor
+      Axis: Z
+      Autocompute Value Bounds: true
+      Decay Time: 0
+    # Live lidar return, the rawest view of what the mapper is fed. Decay Time
+    # accumulates a minute of scans in the map frame, which is the densest 3D
+    # picture available here and costs the mapper nothing. Those points are
+    # placed by the TF at arrival and do not move on loop closure, so trust
+    # Dense Cloud Map over this one for map geometry.
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Lidar (60 s trail)
+      Enabled: true
       Topic:
         Value: /lidar/points
         Reliability Policy: Reliable
       Size (m): 0.02
       Style: Points
-      Color Transformer: Intensity
+      Color Transformer: AxisColor
+      Axis: Z
+      Autocompute Value Bounds: true
+      Decay Time: 60
+    # Ground truth straight from Gazebo. Always present, whichever odom_source
+    # is in use, so this is the track to compare an estimate against.
     - Class: rviz_default_plugins/Odometry
-      Name: Visual Odometry
+      Name: Odometry (ground truth)
       Enabled: true
       Topic:
-        Value: /rtabmap/odom
+        Value: /odom
         Reliability Policy: Reliable
       Keep: 200
+      Covariance:
+        Value: false
       Shape:
         Value: Arrow
         Shaft Length: 0.2
         Shaft Radius: 0.02
         Head Length: 0.08
         Head Radius: 0.05
+    # RTAB-Map's own estimate. Nothing publishes it under the default
+    # odom_source:=ground_truth, where gt_odom_tf.py broadcasts a transform and
+    # no Odometry message at all, so it ships disabled. Enable it alongside
+    # odom_source:=visual or :=lidar to see the estimate drift off the track
+    # above.
+    - Class: rviz_default_plugins/Odometry
+      Name: Estimated Odometry (visual/lidar only)
+      Enabled: false
+      Topic:
+        Value: /rtabmap/odom
+        Reliability Policy: Reliable
+      Keep: 200
+      Covariance:
+        Value: false
+      Shape:
+        Value: Arrow
+        Shaft Length: 0.2
+        Shaft Radius: 0.02
+        Head Length: 0.08
+        Head Radius: 0.05
+        Color: 60; 200; 255
     - Class: rviz_default_plugins/Image
       Name: Camera
       Enabled: false

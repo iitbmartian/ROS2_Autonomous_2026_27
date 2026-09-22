@@ -48,6 +48,7 @@ def generate_launch_description():
             "delete_db_on_start": LaunchConfiguration("delete_db_on_start"),
             "viz": LaunchConfiguration("viz"),
             "rviz": LaunchConfiguration("rviz"),
+            "dense_map": LaunchConfiguration("dense_map"),
         }.items())
 
     return LaunchDescription([
@@ -79,6 +80,8 @@ def generate_launch_description():
         DeclareLaunchArgument("viz", default_value="true",
                               choices=["true", "false"]),
         DeclareLaunchArgument("rviz", default_value="false",
+                              choices=["true", "false"]),
+        DeclareLaunchArgument("dense_map", default_value="false",
                               choices=["true", "false"]),
 
         sim,
