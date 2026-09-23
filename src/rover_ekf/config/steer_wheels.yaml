@@ -1,0 +1,47 @@
+# Per-wheel encoder settings for the rover_gazebo four-wheel-steer rover.
+# Each steer_wheel_relay instance is its own node, so noise can be tuned
+# per wheel independently for testing, as with wheel_fl.py .. wheel_rr.py.
+#
+# noise_stddev        rad/s of Gaussian noise on the drive encoder (0.5 m/s / radius)
+# steer_noise_stddev  rad of Gaussian noise on the steer angle
+# wheel_radius        m, from rover_gazebo config/rover_kinematics.yaml
+
+steer_wheel_splitter:
+  ros__parameters:
+    use_sim_time: true
+
+wheel_fl:
+  ros__parameters:
+    use_sim_time: true
+    wheel: wheel_fl
+    noise_mean: 0.0
+    noise_stddev: 3.3367
+    steer_noise_stddev: 0.0
+    wheel_radius: 0.14985
+
+wheel_fr:
+  ros__parameters:
+    use_sim_time: true
+    wheel: wheel_fr
+    noise_mean: 0.0
+    noise_stddev: 3.3367
+    steer_noise_stddev: 0.0
+    wheel_radius: 0.14985
+
+wheel_rl:
+  ros__parameters:
+    use_sim_time: true
+    wheel: wheel_rl
+    noise_mean: 0.0
+    noise_stddev: 3.3367
+    steer_noise_stddev: 0.0
+    wheel_radius: 0.14985
+
+wheel_rr:
+  ros__parameters:
+    use_sim_time: true
+    wheel: wheel_rr
+    noise_mean: 0.0
+    noise_stddev: 3.3367
+    steer_noise_stddev: 0.0
+    wheel_radius: 0.14985
