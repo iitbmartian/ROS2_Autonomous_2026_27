@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- Texture carrier only. worlds/marsyard.sdf declares its own ground and reads the
+     albedo map out of this model's materials/textures directory; nothing spawns this.
+     model.config requires an <sdf> target, so this is that target. -->
+<sdf version="1.8">
+  <model name="MarsyardGround">
+    <static>true</static>
+    <link name="link"/>
+  </model>
+</sdf>

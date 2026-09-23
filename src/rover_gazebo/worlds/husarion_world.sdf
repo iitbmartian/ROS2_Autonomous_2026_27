@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!--
+  Husarion's open world: a grey ground plane with the Husarion logo standing on
+  it. Vendored from the husarion/rosbot-ros simulation assets.
+
+  The logo is not a floor decal. It is 24.6 x 24.6 m and stands 1.80 m tall,
+  covering x -11.96..12.66 and y -12.32..12.31, origin included. Read the comment
+  at the mesh link before changing anything there, and spawn the rover clear of
+  it with x:=-13, a metre off its western edge. That plate and its raised
+  letters are the only 3D structure in this world, so it is the one thing here
+  worth mapping.
+
+  Changed from the upstream file: the ground plane is 60 m rather than 25 m,
+  because Husarion's plane is smaller than the logo standing on it; the
+  mesh URI now uses the standard model:// scheme; the four TriggeredPublisher
+  blocks that fired gz.msgs.Twist at /cmd_vel were dropped because that topic is
+  not bridged and this rover is driven by rover_kinematics_node instead; the
+  duplicate collision name was fixed; and the sun was hoisted out of the ground
+  model's link to world level.
+-->
+<sdf version="1.8">
+  <world name="husarion_world">
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+
+    <physics name="1ms" type="dart">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <gravity>0 0 -9.80665</gravity>
+
+    <!-- Husarion's office is in Krakow. Harmless here, but it is what fixes the
+         world origin if anything downstream ever wants a global reference. -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>50.088384</latitude_deg>
+      <longitude_deg>19.939128</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+
+    <!-- Upstream declares this inside the ground model's link, which works but
+         is not how the other worlds here do it. Hoisted to world level to match
+         them, and the attenuation block dropped because it means nothing for a
+         directional light. This is structural only: measured at the rover's
+         camera, scene brightness is unchanged either way. -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.25 0.25 0.25 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="husarion_world">
+      <static>true</static>
+
+      <!-- This is not the floor decal it looks like. Every node in
+           husarion_logo.dae carries a x100 scale matrix, so with the
+           <scale>6</scale> below the logo is 24.6 x 24.6 m and stands 1.80 m
+           tall, spanning x -11.96..12.66 and y -12.32..12.31. Its 'rectangle'
+           element is a full plate, so it covers that whole area including the
+           world origin. Dropped from z=2.5 the rover settles at 1.791, on top
+           of it. Do not spawn the rover at the origin in this world: it starts
+           1.8 m inside solid collision geometry, invisible and unable to move.
+           Spawn it west of the plate instead, x:=-13, which the README gives as
+           a full command. Kept at full height on purpose, because the plate and
+           its raised letters are the only 3D structure here worth mapping. -->
+      <link name="mesh">
+        <pose>13.0 16.0 0 0 0 -1.57</pose>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>model://HusarionLogo/meshes/husarion_logo.dae</uri>
+              <scale>6.0 6.0 6.0</scale>
+            </mesh>
+          </geometry>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>model://HusarionLogo/meshes/husarion_logo.dae</uri>
+              <scale>6.0 6.0 6.0</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="map">
+        <collision name="collision">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>60 60</size></plane>
+          </geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <!-- 60 m, not Husarion's 25 m. Their plane is smaller than the logo
+             standing on it, so every metre of ground was under the plate and
+             there was nowhere to put the rover. A plane collision is infinite
+             whatever this says, so only the visible square changes. -->
+        <visual name="visual">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>60 60</size></plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

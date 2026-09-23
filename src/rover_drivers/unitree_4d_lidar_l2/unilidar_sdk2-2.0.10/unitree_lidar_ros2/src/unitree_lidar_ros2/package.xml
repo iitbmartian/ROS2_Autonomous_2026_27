@@ -17,7 +17,9 @@
   <depend>sensor_msgs</depend>
   
   <depend>pcl_conversions</depend>
-  <depend>pcl</depend>
+  <!-- Upstream declared <depend>pcl</depend>, which is not a rosdep key and makes
+       `rosdep install` fail. libpcl-all-dev is the key that resolves to libpcl-dev. -->
+  <depend>libpcl-all-dev</depend>
 
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
