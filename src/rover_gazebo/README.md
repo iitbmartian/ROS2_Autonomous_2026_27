@@ -68,6 +68,30 @@ from Gazebo rather than from any sensor. See `doc/INTEGRATION.md` for the full t
 list, including the driving and control topics. Sensor definitions live in
 `urdf/rover_sensors.xacro`, and the topic bridge in `config/bridge.yaml`.
 
+## EKF, SLAM and nav2
+
+These launch files do the same jobs as the ones in `rover_gazebosim`, but for this rover:
+
+    ros2 launch rover_ekf ekf_rover_gazebo.launch.py         # sim + wheel encoders + EKF
+    ros2 launch rover_gazebo pipeline_launch.launch.py       # the above + SLAM + nav2 + mission
+    ros2 launch rover_gazebo slam_and_rover.launch.py        # slam_toolbox + /scan only
+    ros2 launch rover_gazebo nav2_launch.launch.py           # nav2 only
+
+Wheel encoders account for steering. `steer_wheel_splitter` (rover_ekf) splits
+`/joint_states` into `/wheel_{fl,fr,rl,rr}/steer_encoder`. Each one carries the drive
+rate and the steer angle, with signs taken from `config/rover_kinematics.yaml`. Each
+`steer_wheel_relay` then publishes `v·cos(steer)` and `v·sin(steer)` on
+`/wheel_xx/odom_relayed`, and the EKF fuses both vx and vy. Crab and explicit steering
+therefore show up as sideways motion. Per-wheel noise is set in
+`rover_ekf/config/steer_wheels.yaml`. Heading comes from `wheel_body_velocity`, which
+fits one yaw rate to all four wheels and publishes it on `/wheel_odom/body`. Add
+`use_imu:=true` to also fuse the gyro, which gives much better heading.
+
+The EKF owns `odom -> base_footprint`, because `base_footprint` is this model's TF root.
+SLAM and the costmaps read `/scan`. `pointcloud_to_laserscan` produces it by flattening a
+band of `/lidar/points`. Install that package with
+`sudo apt install ros-jazzy-pointcloud-to-laserscan`.
+
 ## What this had to fix
 
 The SolidWorks export could not be loaded into Gazebo at all, for four separate reasons.

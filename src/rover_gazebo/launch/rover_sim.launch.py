@@ -30,8 +30,8 @@ def generate_launch_description():
     share = get_package_share_directory(PKG)
 
     args = [
-        DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf"),
+        DeclareLaunchArgument("world", default_value="empty_world.sdf",
+                              description="file in worlds/: empty_world.sdf, flat.sdf, ledge.sdf, bars.sdf"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               description="'harmonic' or 'fortress'; picks plugin names"),
         DeclareLaunchArgument("mass_scale", default_value="1.0"),

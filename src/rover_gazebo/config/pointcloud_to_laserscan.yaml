@@ -1,0 +1,21 @@
+# Flattens the 16-ring 3D lidar (/lidar/points) into the 2D /scan that
+# slam_toolbox and the nav2 costmaps consume.
+#
+# target_frame is left empty so the scan stays in the cloud's own frame,
+# lidar3d_link (X forward, Z up, ~0.75 m above ground). The height band then
+# keeps obstacles between ~0.25 m and ~1.25 m off the ground and throws away
+# the lower rings' ground returns, which start ~2.8 m out.
+pointcloud_to_laserscan:
+  ros__parameters:
+    use_sim_time: true
+    target_frame: ""
+    transform_tolerance: 0.05
+    min_height: -0.5
+    max_height: 0.5
+    angle_min: -3.14159
+    angle_max: 3.14159
+    angle_increment: 0.0174533   # 1 deg, matches the lidar's 360 horizontal samples
+    scan_time: 0.2               # 5 Hz lidar
+    range_min: 0.5
+    range_max: 30.0
+    use_inf: true

@@ -39,6 +39,13 @@
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>lifecycle_msgs</exec_depend>
+
+  <!-- SLAM / navigation pipeline (launch/pipeline_launch.launch.py). rover_ekf is
+       not listed: it already exec_depends on this package for its launch file. -->
+  <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>pointcloud_to_laserscan</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -1,0 +1,105 @@
+### ekf_rover_gazebo.yaml ###
+# rover_gazebo (four-wheel-steer) counterpart of ekf_rover.yaml.
+# EKF that fuses ONLY the 4 individual (noise-injected) wheel encoder
+# velocities - IMU is intentionally NOT included, for isolated wheel-odometry testing.
+# Each wheel reports vx AND vy: the relay projects the wheel's rolling speed along
+# its steer angle, so steered (explicit/crab) motion is sideways as well as forward.
+# Heading comes from odom4: wheel_body_velocity fits one rigid-body yaw rate to the
+# four wheels, so the filter stays wheel-only. Launch with use_imu:=true to also fuse
+# the gyro (ekf_rover_gazebo_imu.yaml).
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint  # TF root of rover.urdf.xacro; base_link hangs below it
+    world_frame: odom
+
+    publish_tf: true
+    publish_acceleration: false
+
+    # ---- Front-left wheel ----
+    odom0: /wheel_fl/odom_relayed
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_queue_size: 10
+
+    # ---- Front-right wheel ----
+    odom1: /wheel_fr/odom_relayed
+    odom1_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom1_differential: false
+    odom1_queue_size: 10
+
+    # ---- Rear-left wheel ----
+    odom2: /wheel_rl/odom_relayed
+    odom2_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom2_differential: false
+    odom2_queue_size: 10
+
+    # ---- Rear-right wheel ----
+    odom3: /wheel_rr/odom_relayed
+    odom3_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom3_differential: false
+    odom3_queue_size: 10
+
+    # ---- Yaw rate fitted to all four wheels (wheel_body_velocity) ----
+    # vx/vy are left to the per-wheel sources above; only vyaw is fused here.
+    odom4: /wheel_odom/body
+    odom4_config: [false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, true,
+                   false, false, false]
+    odom4_differential: false
+    odom4_queue_size: 10
+
+    process_noise_covariance: [0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.1, 0.0, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.1, 0.0, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,
+                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05]
+
+    initial_estimate_covariance: [1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,  0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9, 0.0,
+                                   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  1e-9]

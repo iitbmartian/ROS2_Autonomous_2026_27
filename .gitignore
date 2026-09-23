@@ -77,3 +77,6 @@ src/rover_drivers/zed2i_ws/src/zed-ros2-examples/
 # macOS
 .DS_Store
 *.bag
+
+# Backup archives
+*.tar.gz
