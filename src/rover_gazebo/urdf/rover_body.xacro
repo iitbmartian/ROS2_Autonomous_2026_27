@@ -471,6 +471,14 @@
       <axis xyz="0 0 1"/>
       <limit lower="-0.6" upper="0.6" effort="5000.0" velocity="20.0"/>
       <dynamics damping="5.0" friction="0.5"/>
+      <!-- suspension:=mimic only (rover.urdf.xacro); Bullet-Featherstone, DART
+           ignores this tag entirely; see rocker_hold_node.py. Ratio from
+           config/rover_kinematics.yaml's coupling.followers, chained onto
+           FLS_joint by tools/generate_description.py so it stays correct across
+           a CAD regeneration. -->
+      <xacro:if value="${suspension == 'mimic'}">
+        <mimic joint="FLS_joint" multiplier="-1.007737" offset="0.0"/>
+      </xacro:if>
   </joint>
 
   <!-- decorative; fixed so sdformat folds it into its parent. Nothing
@@ -509,6 +517,10 @@
       <axis xyz="0 0 -1"/>
       <limit lower="-0.6" upper="0.6" effort="5000.0" velocity="20.0"/>
       <dynamics damping="5.0" friction="0.5"/>
+      <!-- suspension:=mimic only; see FRS_joint's mimic above. -->
+      <xacro:if value="${suspension == 'mimic'}">
+        <mimic joint="FLS_joint" multiplier="0.577165" offset="0.0"/>
+      </xacro:if>
   </joint>
 
   <joint name="BRE_joint" type="revolute">
@@ -545,6 +557,10 @@
       <axis xyz="0 0 -1"/>
       <limit lower="-0.6" upper="0.6" effort="5000.0" velocity="20.0"/>
       <dynamics damping="5.0" friction="0.5"/>
+      <!-- suspension:=mimic only; see FRS_joint's mimic above. -->
+      <xacro:if value="${suspension == 'mimic'}">
+        <mimic joint="FLS_joint" multiplier="-0.577165" offset="0.0"/>
+      </xacro:if>
   </joint>
 
   <joint name="BLE_joint" type="revolute">

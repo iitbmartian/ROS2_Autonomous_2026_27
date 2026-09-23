@@ -5,6 +5,40 @@ reasoning behind the change; the "how" lives in the code and the other docs, not
 
 ## Summary
 
+- **2026-09-23** — Added explicit_pid steering mode (teleop key 5): identical movement
+  to explicit, but the 4 steer + 4 drive joints are each driven by a new node's own
+  independent PID (effort control) rather than the ideal `steer_controller`/
+  `wheel_controller`, with `rover_kinematics_node` handing off which ros2_control
+  controllers are active whenever the mode crosses the explicit/explicit_pid boundary.
+  Sanity-checked live against Gazebo: found the wheel-velocity loop's initial gains
+  genuinely unstable (oscillated through zero rather than tracking), fixed by dropping
+  the derivative term and lowering the remaining gains — steering tracks tightly,
+  wheel speed stably but loosely. Not measured the way the other modes are; see
+  VERIFICATION.md.
+- **2026-09-22 (4)** — Fixed `teleop_rover_gui.py` intermittently dropping a held key
+  (had to press it again to resume). The autorepeat debounce (added in 2026-09-22 (2))
+  was set to 40 ms, too close to a typical ~33-40 ms OS key-repeat interval to reliably
+  tell a real release from a repeat; raised the default to 150 ms and exposed it as
+  `key_release_debounce_ms`. Also gave `teleop_rover_gui` its own block in
+  `rover_control.yaml` — its node name never matched the existing `teleop_rover:` block,
+  so it had been silently running on script defaults only.
+- **2026-09-22 (3)** — Fixed every Python node in this package failing to start under a
+  shell with a conda (or other non-system) `python3` earlier on `PATH`
+  (`ModuleNotFoundError: No module named 'yaml'`, from `/opt/ros/jazzy`'s `rclpy` loading
+  under that interpreter instead of the system one) — previously logged as a known,
+  unfixed issue. Hardcoded every script's shebang to `/usr/bin/python3`.
+- **2026-09-22 (2)** — Added a Tkinter keyboard teleop window (`teleop_rover_gui.py`)
+  alongside the existing terminal one, sharing driving logic through a new
+  `teleop_common.py` so the two can't disagree. Fixes W+A-style simultaneous key holds
+  silently dropping one key, which a raw terminal can't reliably avoid.
+- **2026-09-22 (1)** — Fixed a second, independent bug in the same steering code
+  2026-09-21 (5) partly fixed: the fold-to-±90-degrees-and-reverse step ran on the
+  published angle only, one tick after the rate limit, so the internal angle could
+  overshoot toward its raw target and the published angle would jump ~179 degrees in a
+  single tick when that overshoot crossed 90 degrees — reproducing the reported jerk on
+  reversing exactly (live-measured peak yaw rate during a reversal: 2.04 rad/s before,
+  0.005 rad/s after). Folded before ramping instead of after. Also fixed ackermann's
+  yaw-rate ramp, which had been using spot's tuning constant instead of its own.
 - **2026-09-21 (5)** — Fixed a real bug behind crab mode's reported jerkiness: the
   solved wheel angle could snap 90 degrees in one tick even though body speed was still
   ramping up from zero. Rate-limited the angle and eased the driven speed off while
@@ -33,7 +67,325 @@ reasoning behind the change; the "how" lives in the code and the other docs, not
 
 ---
 
-## 2026-09-21 (5) — Fixed a real wheel-angle snap behind crab mode's jerkiness
+## 2026-09-23 — Explicit-PID steering mode (mode 5)
+
+**Why.** Requested directly: a fifth driving mode, identical in feel to explicit (A/D
+aim all four wheels together, W/S roll them along the aim, C sweeps to straight,
+Space stops without re-centring), but where the 4 steering joints and 4 drive joints
+are each closed over their own independent PID loop instead of ros2_control's ideal
+`steer_controller`/`wheel_controller`. The point isn't a different movement — it's a
+different, tunable, hand-written control path standing in for what a real per-joint
+motor controller will eventually do, the same role `rocker_coupling_node` already
+plays for the suspension instead of trusting a Gazebo-side constraint.
+
+**What.** `rover_kinematics_node` gained a fifth mode, `explicit_pid`, that runs
+through the *exact same* `explicit_step()` mode 4 uses (same aim integration, timeout,
+recentre sweep) — the only branch is the last one, which publishes the solved
+angle/speed as *targets* (`explicit_pid_control/steer_target`,
+`.../wheel_target`) instead of commands, when in this mode. A new node,
+`control_node.py`, subscribes to those targets and `/joint_states` and runs 8
+independent PID loops (4 position, steering; 4 velocity, drive), publishing effort
+commands to two new ros2_control controllers, `steer_pid_controller`/
+`wheel_pid_controller` (`effort_controllers/JointGroupEffortController`, spawned
+`--inactive`). Both joint groups gained a second, `effort`, command interface in
+`rover_ros2_control.xacro` alongside their existing position/velocity one. Since
+ros2_control will happily keep two controllers simultaneously active on the same
+joint's different command interfaces even though only one can actually be in charge
+in Gazebo, `rover_kinematics_node` now also calls the controller_manager's
+`switch_controller` service (fire-and-forget, via `add_done_callback` rather than a
+blocking call, since it fires from inside a subscription callback on a
+single-threaded executor) to deactivate the ideal pair and activate the PID pair —
+and reverse it — whenever the mode crosses the explicit/explicit_pid boundary. Added
+to `teleop_common.py` (key `5`, `MODE_KEYS`; `drive()`'s explicit branch now covers
+both modes, since the keys behave identically) and both frontends' aim readouts/help
+text. `control_node.py` is launched unconditionally alongside the other control
+nodes, like `rocker_coupling_node` — harmless while its controllers are inactive,
+since ros2_control drops commands sent to an inactive controller.
+
+**Files.** `urdf/rover_ros2_control.xacro` — added the `effort` command interface;
+`config/controllers.yaml` — registered `steer_pid_controller`/`wheel_pid_controller`;
+`rover_gazebo/control_node.py` — new, the 8-joint independent PID node;
+`rover_gazebo/rover_kinematics_node.py` — `explicit_pid` mode, target publishers, the
+`switch_controller` hand-off; `rover_gazebo/teleop_common.py` — key 5, shared
+explicit/explicit_pid branch; `rover_gazebo/teleop_rover.py`,
+`rover_gazebo/teleop_rover_gui.py` — help text, aim readout gating, `MODE_LABELS`;
+`launch/rover_sim.launch.py` — two `--inactive` spawners and the new node, always
+launched; `CMakeLists.txt`, `package.xml` — install the new script,
+`controller_manager_msgs` dependency; `config/rover_control.yaml` — new
+`explicit_pid_control:` parameter block; `rover_gazebo/measure_rover.py` — new
+`explicit_pid` `--test` case, sharing `run_explicit()`/`summarise()` with `explicit`.
+
+**Verified.** Live against a headless Gazebo Harmonic instance (`gui:=false`), not
+just read. `ros2 control list_controllers` confirmed the initial state
+(`steer_controller`/`wheel_controller` active, the PID pair inactive) and both
+directions of the hand-off (`ros2 topic pub .../rover/steer_mode` to `explicit_pid`
+and back). Read `/joint_states` directly against the published target to confirm the
+PID loops are doing real, physical work, not just updating internal state: steering
+settled within roughly 0.03-0.09 rad of a 0.354 rad (20 degree) target and held
+there, no oscillation. The wheel loop did not start that clean — the first gains
+tried (`kp=8, kd=0.5`) oscillated straight through zero, sign and all, never
+settling, traced to differentiating an already-noisy simulated velocity signal at
+200 Hz. Dropped `kd` to 0 and lowered `kp`/added `ki`; final shipped gains
+(`kp=0.4, ki=0.4, kd=0`) are stable and correctly signed but still carry real ripple,
+on the order of the commanded speed's own magnitude — there is real tuning headroom
+left, and it is not measured the way the other four modes are in the table below.
+Re-ran `measure_rover.py --test forward` on a freshly restarted simulator afterward
+to confirm the shared `rover_kinematics_node.py`/`teleop_common.py` edits did not
+regress the existing four modes (forward, indistinguishable from before: 0.01 degree
+yaw drift over 4 s).
+
+**Known follow-up.** The wheel velocity loop's gains are stable but loose; a proper
+tuning pass (or replacing plain PID with something that does not fight simulated
+velocity noise, e.g. filtering the measurement rather than the gains) is real
+follow-up work, not done here. `doc/VERIFICATION.md`'s explicit_pid section is
+deliberately left with an empty results table, the same as explicit mode's — the
+numbers above are a sanity check, not a measurement run.
+
+---
+
+## 2026-09-22 (4) — Fixed the GUI teleop intermittently dropping a held key
+
+**Why.** Reported directly, after 2026-09-22 (2) shipped: holding a key in the Tkinter
+window sometimes stopped registering, needing a fresh press to resume. Not cosmetic —
+`_tick()` republishes `cmd_vel` from live key state every 20 ms, so a key that reads as
+released for even one tick is a real gap in the command stream, not just a display
+glitch (usually invisible in the rover's actual motion, since `rover_kinematics_node`
+ramps speed over `speed_ramp_time`, but the dropped intent is real).
+
+Root cause: the autorepeat debounce that 2026-09-22 (2) added specifically to solve this
+class of problem was itself too tight. It schedules a `KeyRelease` to take effect 40 ms
+later, cancelling that if a same-key `KeyPress` (an autorepeat) arrives first, so a
+genuinely still-held key never reads as released — *if* the repeat arrives inside the
+window. Typical Linux autorepeat, once a key is held, fires every ~33-40 ms, right at
+that margin, so ordinary Tk scheduling jitter was enough to occasionally miss a repeat
+and register a false release.
+
+Separately, re-checking the parameter wiring while diagnosing this found a second,
+latent bug: `teleop_rover_gui`'s actual ROS node name (set via the launch file's
+`name=` and the class's own `super().__init__(...)`) never matched any block in
+`rover_control.yaml` — only `teleop_rover:` existed, which is a different node. The
+window had been running entirely on its Python-declared defaults since 2026-09-22 (2);
+they happen to match `teleop_rover:`'s values, so nothing looked broken, but any future
+edit to that file would silently never have reached it.
+
+**What.** Raised the debounce default from 40 ms to 150 ms — comfortably clear of a slow
+repeat-rate setting while still reading as instant on a genuine release — and exposed it
+as a declared parameter, `key_release_debounce_ms`, so a particular machine's repeat
+rate can be tuned without a code change. Added a `teleop_rover_gui:` block to
+`rover_control.yaml`, mirroring `teleop_rover:`'s driving-feel parameters plus the new
+one, so the window actually reads its configuration file from now on.
+
+**Files.** `rover_gazebo/teleop_rover_gui.py` (the parameter, `_schedule_release()`
+reading it), `config/rover_control.yaml` (the new block).
+
+**Verified.** Directly against the live `TeleopGUI` class, with real elapsed time (not
+mocked): a repeat gap of 100 ms — comfortably inside the new 150 ms window, and enough
+to have failed under the old 40 ms one — now correctly keeps a key held, re-run through
+the same four-part debounce/e-stop suite 2026-09-22 (2) used (plain press, autorepeat
+within the window, genuine release, the Space e-stop sequence including suppression and
+its release) — all pass. Confirmed the node reads `key_release_debounce_ms` as `150`
+from the installed `rover_control.yaml` via a real `rclpy.init(args=[--params-file...])`
+load, the same mechanism `ros2 launch` uses. Live: relaunched with `teleop_gui:=true`,
+confirmed `teleop_rover_gui.py` starts cleanly with the fix in place.
+
+## 2026-09-22 (3) — Fixed every node failing to start under a conda-shadowed `python3`
+
+**Why.** Reported directly: the GUI teleop window wasn't appearing at all. Traced to
+`teleop_rover_gui.py` dying immediately on `import rclpy` with `ModuleNotFoundError: No
+module named 'yaml'` — and so were `rover_kinematics_node.py` and
+`rocker_coupling_node.py`, silently, every time, independent of anything added today.
+Cause: `#!/usr/bin/env python3` resolves via `PATH`, and a shell with conda (or another
+non-system Python) active puts that `python3` first — one that `/opt/ros/jazzy`'s
+`rclpy` was never built against and that lacks `yaml`. This had already been noted as a
+known, unfixed issue in this log's 2026-09-20 entry ("`ros2 run` under an active conda
+environment fails to start these nodes at all... pre-existing, unrelated to this change,
+not fixed here"); it was worth fixing properly once it was actively blocking real usage
+rather than leaving it as a "remember to `conda deactivate`" gotcha.
+
+With `rocker_coupling_node.py` among the crashed nodes, nothing was holding the
+suspension's free rocker joint, which plausibly compounds the separate, already-known
+Harmonic jitter (see "A jitter that Fortress never showed" and the fold-boundary/jitter
+sections of `doc/VERIFICATION.md`) into something worse — investigated as a candidate
+cause of a `robot_state_publisher` "Moved backwards in time" warning reported alongside
+this, but ruled out: that warning was confirmed, by temporarily `git stash`ing every
+change in this package back to the exact original code and relaunching, to be present
+on the completely unmodified package too, with or without any node crashing. It is not
+addressed here; see `doc/VERIFICATION.md`'s jitter sections for what is already known
+about it.
+
+**What.** Changed every installed script's shebang from `#!/usr/bin/env python3` to
+`#!/usr/bin/python3` — a fixed path to the system interpreter, bypassing `PATH` (and so
+bypassing conda) entirely. Ubuntu 24.04, this package's ROS 2 Jazzy target, ships
+`/usr/bin/python3` by default, matching the Python `rclpy` is actually built against.
+
+**Files.** `rover_gazebo/rover_kinematics_node.py`, `rover_gazebo/rocker_coupling_node.py`,
+`rover_gazebo/teleop_rover.py`, `rover_gazebo/teleop_rover_gui.py`,
+`rover_gazebo/measure_rover.py`, `tools/derive_ratios.py`,
+`tools/generate_description.py` (shebang line only, in each).
+
+**Verified.** Live, in the exact shell environment that reproduced the failure
+(confirmed `python3` resolved to a conda interpreter lacking `yaml` first on `PATH`):
+relaunched `rover_sim.launch.py teleop_gui:=true` with no manual `PATH` override and no
+other workaround, and confirmed `rover_kinematics_node.py`, `rocker_coupling_node.py`
+and `teleop_rover_gui.py` all start with no traceback, where they previously crashed
+every time.
+
+## 2026-09-22 (2) — Added a Tkinter keyboard teleop window, sharing logic with the terminal one
+
+**Why.** Reported directly: holding W and A together to drive a left arc in Ackermann
+mode did not produce a clean arc — it behaved as if only A were doing anything, and a
+fresh W given shortly after sometimes appeared to be ignored. The mechanism is a real
+limitation of raw-terminal keyboard input, not something `hold_time` tuning fully
+solves: most terminals only keep auto-repeating one held key at a time, and a terminal
+never sends a real key-release event at all — `teleop_rover.py` already has to guess a
+key is still held by timing its last repeat against `hold_time` (0.4 s) for exactly this
+reason. When a second key is pressed and the terminal stops repeating the first one, that
+first key silently ages out of `held` even though it is still physically down, dropping
+it from whatever combination was being driven.
+
+Checked what would actually work on this machine before picking a fix: `python3-evdev`
+(true hardware N-key-rollover, reading `/dev/input/eventX` directly) is not installed and
+this user account is not in the `input` group that device would need; `joy` and
+`teleop_twist_joy` are installed, but no gamepad is connected; `tkinter` is already
+installed, needs no new dependency or permission, and — like any GUI toolkit under
+X11/Wayland — delivers real, independent press and release events per key, which is the
+actual property needed here.
+
+**What.** Two new files. `teleop_common.py` pulls everything out of `teleop_rover.py`'s
+`Teleop` class that was not actually terminal-specific into a shared base,
+`TeleopCore(Node)`: the declared parameters, the `cmd_vel`/`rover/steer_mode` publishers,
+the `rover/steer_aim` subscription, `set_mode()`/`stop()`/`recentre_on()`, and `drive()` —
+the exact mode-branching Twist-building logic that used to live directly in
+`teleop_rover.py`'s `step()`, now taking a plain `(fwd, turn, boost_active)` snapshot
+instead of reading a terminal-specific `held` dict. `teleop_rover.py` now subclasses it,
+keeping only the raw-terminal reading, the `hold_time` expiry sweep, and the on-screen aim
+printout — behavior unchanged, about 60 fewer lines.
+
+`teleop_rover_gui.py` is the new window: same keys, same modes, same topics, but reading
+real Tk `<KeyPress>`/`<KeyRelease>` events instead. One gotcha had to be handled, not
+skipped: a physically-held key's OS autorepeat still delivers a release immediately
+followed by a new press for every repeat, which would otherwise make a genuinely-held
+key's tracked state flicker. A release is not applied immediately; it is scheduled 40 ms
+out, and a same-key press arriving before that fires cancels it — only a release with no
+following press within that window is treated as real. Space and the mode keys (1–4) use
+the same real-state tracking to give a genuine e-stop: they force-clear W/A/S/D immediately
+and suppress the *next* autorepeat press for each (there will be one, since the physical
+key is still down), so the drive stays stopped until an actual release is observed, not
+just until the next repeat — unlike the terminal, where the equivalent (`held.clear()`)
+gets silently re-populated by the very next repeat event.
+
+Both frontends are kept, not one replacing the other: `teleop_rover.py` for a plain SSH
+session with no display, `teleop_rover_gui.py` otherwise. `launch/rover_sim.launch.py`
+gained a `teleop_gui` argument (default off, matching `teleop`) that spawns the window as
+an ordinary `Node` action (it needs a display, not a TTY, so it does not need
+`ExecuteProcess`'s terminal-attached handling the way `teleop` does).
+
+**Files.** `rover_gazebo/teleop_common.py` (new), `rover_gazebo/teleop_rover_gui.py`
+(new), `rover_gazebo/teleop_rover.py` (refactored onto the shared base),
+`CMakeLists.txt` (installs both new files — `teleop_rover_gui.py` as a program,
+`teleop_common.py` as a plain file since it is imported, not run), `package.xml` (declares
+the `python3-tk` dependency), `launch/rover_sim.launch.py` (the `teleop_gui` argument and
+`Node` action), `README.md` (the "Run it" section now covers all three ways to start
+driving).
+
+**Verified.** Live, against a running Gazebo Harmonic instance launched with
+`teleop_gui:=true`: the window comes up and its node appears in `ros2 node list`;
+`ros2 topic hz /cmd_vel` shows it publishing at ~46.6 Hz, matching the configured
+50 Hz `update_rate` closely enough to account for normal Tk/executor overhead. Caught and
+fixed a real packaging bug in the process — the new file had been written without the
+executable bit, which is not itself part of what `install(PROGRAMS ...)` sets under
+`--symlink-install`, so `ros2 launch` failed with `executable 'teleop_rover_gui.py' not
+found`; `chmod +x` on the source file and a rebuild fixed it, confirmed by the same launch
+succeeding afterward. The autorepeat-debounce and Space/mode-switch e-stop logic
+(`_mark`/`_schedule_release`/`_confirm_release`/`_clear_drive_keys`) was exercised
+directly, with real elapsed time (not mocked), against the live `TeleopGUI` instance: a
+plain press, an autorepeat release-then-press pair within the 40 ms window (stays held), a
+genuine release with nothing following (releases), and the full Space e-stop sequence
+(clears and suppresses immediately, ignores a simulated continued-autorepeat press,
+releases and un-suppresses on a genuine release, registers a fresh press normally
+afterward) — all as expected. Not exercised: an actual physical keyboard through a window
+manager (no `xdotool`/`wmctrl` available in this session to synthesize real X11 key
+events), so the Tk-level `<KeyPress>`/`<KeyRelease>` binding itself, as opposed to the
+logic that consumes those events, is unverified live and worth a manual check.
+
+## 2026-09-22 (1) — Fixed a second wheel-angle-fold bug in the same code, plus ackermann's yaw-rate ramp
+
+**Why.** Reported directly: driving in Ackermann mode, pressing S to reverse (or coming
+to a stop after reversing) made the steering wheels jump to roughly +90 degrees and then
+to roughly -90 degrees in what looked like one physical jerk, changing the chassis's
+heading in the process. 2026-09-21 (5) already rate-limited the *solved* wheel angle
+(`self.wheel_angle[i]`) so it cannot snap to a fresh target in one tick — but it never
+touched the separate "past a quarter turn, point the wheel the other way and roll it
+backwards" fold that runs immediately after that rate limit, on the *local* `angle`
+variable only, for publishing. That fold is exactly where the jerk was still coming from:
+`self.wheel_angle[i]` is free to keep ramping smoothly out past 90 degrees toward its
+raw, unfolded target — which can be as far as 180 degrees away, since `atan2(0, vx)` is
+exactly 0 for `vx>0` and exactly pi for `vx<0`, a hard discontinuity in the *target* the
+instant a reversal crosses zero speed — and the moment that internal, still-ramping value
+crosses the ±90 degree line, the *published* angle jumps by the fold amount (~180
+degrees) in that single tick, even though the internal value only moved by one ordinary
+tick's worth. Confirmed by direct simulation of the real ramp/fold code before touching
+anything, across four scenarios (straight reversal, reverse-while-turning,
+reverse-then-stop, spot spin-up from a stop): every one showed a 178.85 degree jump in a
+single 10 ms tick.
+
+Separately, re-reading the surrounding code while diagnosing this turned up a related but
+independent issue: ackermann's commanded yaw rate ramps at a rate computed from
+`max_spin_rate`/`steer_ramp_time` unconditionally, even though ackermann's actual range
+comes from a different limit, `max_yaw_rate` (only known to `teleop_rover.py` until now).
+Ackermann's real lock-to-lock ramp time came out to ~1.02 s, not the documented 0.8 s.
+
+Two further questions came up in discussion and were decided, not acted on as code
+changes: A/D alone (no W/S) intentionally does nothing in Ackermann — curvature is
+capped by current speed, which is zero at rest, so no steering angle is defined without
+some forward or backward speed, mirroring a real Ackermann vehicle; explicit mode (key 4)
+already exists to aim the wheels by hand with the drive at zero, so this was left as-is.
+
+**What.** `rover_kinematics_node.py`'s per-station loop now folds the raw solved angle to
+whichever of itself or its reverse (wheel pointed the other way, rolling backwards) sits
+closer to wherever the wheel's ramped state *already is*, before rate-limiting toward that
+folded target — not after. The fold decision is re-made fresh every tick from the wheel's
+actual current position, so crossing the ±90 degree boundary now costs one ordinary
+`max_wheel_turn_rate * dt` step like any other tick, never a jump. The old post-ramp
+`if angle > pi/2` fold block is gone; the sign the driven speed needs falls out of the
+projection on its own, since `angle` is already the optimal one by the time it is used.
+Also added a `max_yaw_rate` parameter to `rover_kinematics_node.py` (mirroring
+`teleop_rover`'s own) and made the yaw-rate ramp use it for ackermann/crab, keeping
+`max_spin_rate` only for spot.
+
+**Files.** `rover_gazebo/rover_kinematics_node.py` (the fold-then-ramp rewrite, the new
+`max_yaw_rate` parameter, the mode-aware `ang_step`, a docstring addition describing the
+fold), `config/rover_control.yaml` (the new parameter, documented).
+
+**Verified.** Standalone, against the real `RoverKinematics` class with no Gazebo (same
+technique as 2026-09-21 (5)): re-ran the same four scenarios that showed the 178.85
+degree jump before the fix, this time with the fix applied. Max single-tick
+published-angle change across all four: reverse-while-turning and
+spot-spin-up-from-cold each show exactly one 1.146 degree tick (the ordinary
+`max_wheel_turn_rate * dt` step, right at the boundary crossing itself); straight
+reversal and reverse-then-stop show zero — no discontinuity anywhere, in any scenario,
+where the pre-fix code reproduced the reported jerk exactly every time.
+
+Live, against a running Gazebo Harmonic instance, launched fresh both times (parameters
+and code only ever compared between fresh launches, never live-patched, matching how
+2026-09-21 (5) measured its own fix): a throwaway `/odom`-subscribing probe commanded the
+rover straight in Ackermann mode (`linear.x` +0.8 for 2 s, then flipped straight to -0.8
+for 2 s, `angular.z` 0 throughout — reproducing "press S while driving straight") and
+recorded `twist.twist.angular.z` around the flip. Pre-fix (the pre-2026-09-22 (1) file,
+temporarily swapped back in, rebuilt, and measured from a fresh launch): peak |angular.z|
+2.043 rad/s, at 1.82 s after the command flip — a real, large yaw kick, consistent with
+the wheels overshooting out toward the raw 180 degree target before the discontinuous
+fold. Post-fix (the same file restored, rebuilt, fresh launch): peak |angular.z| 0.005
+rad/s over the same window — a 99.7% cut, down to the same low-single-digit-mrad/s level
+as the package's already-documented contact-solver jitter baseline, i.e. no longer
+distinguishable from noise. Also ran `measure_rover.py --test forward` (sane: -0.01 degree
+yaw drift, no lateral drift) and `--test arc_left` (a sustained 197.6 degree turn over 5 s
+with real forward and lateral displacement throughout, not a degenerate
+steering-only response) post-fix, as a broader regression check alongside the targeted
+measurement. Full package rebuild (`colcon build --paths src/rover_gazebo`) succeeds
+throughout.
+
+
 
 **Why.** Reported directly: crab mode's wheel turning was very quick and visibly
 changed the chassis's orientation while it happened. Unlike the previous two entries,

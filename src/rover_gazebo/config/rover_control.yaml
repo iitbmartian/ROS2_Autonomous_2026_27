@@ -7,6 +7,10 @@ rover_kinematics:
     max_speed: 1.0             # m/s
     min_turn_radius: 0.8       # m, tightest Ackermann arc measured from the rover centre
     max_steer_angle: 1.5708    # rad, leave at a quarter turn so spot mode can reach it
+    max_yaw_rate: 1.0          # rad/s, ackermann/crab yaw-rate range. Calibrates
+                               # steer_ramp_time for those modes; mirrors teleop_rover's
+                               # own max_yaw_rate below so the ramp time it documents
+                               # (lock to lock) is actually the range being ramped
     max_spin_rate: 0.7854      # rad/s, 45 deg/s in spot mode
     max_wheel_turn_rate: 2.0   # rad/s, ~115 deg/s. Caps how fast the solved wheel angle
                                # may change in ackermann/crab/spot, so a command that
@@ -46,6 +50,117 @@ teleop_rover:
     hold_time: 0.4             # s a key stays live after its last repeat
     update_rate: 50.0          # Hz
 
+# The Tkinter window (teleop_gui:=true). A separate block because its node name is
+# "teleop_rover_gui", not "teleop_rover" -- a ROS params file only applies to a node
+# whose name matches its block, so without this the window would silently run on
+# nothing but its script defaults (they happen to match the block above, but future
+# edits here wouldn't reach it). use_sim_time is left at the rclpy default (false):
+# unlike teleop_rover this frontend has no hold_time-style guess to age out against the
+# wrong clock, since it reads real key press/release events, not repeat timing.
+teleop_rover_gui:
+  ros__parameters:
+    max_speed: 1.0             # m/s
+    max_yaw_rate: 1.0          # rad/s, what A/D ask for in Ackermann
+    max_spin_rate: 0.7854      # rad/s, what A/D ask for in spot
+    max_steer_rate: 0.2618     # rad/s, ~15 deg/s, explicit mode A/D
+    boost: 2.5                 # Shift multiplier, drive speed only
+    update_rate: 50.0          # Hz
+    key_release_debounce_ms: 250  # ms a KeyRelease is held pending before it's treated
+                               # as real, so a same-key autorepeat KeyPress arriving
+                               # within that window cancels it instead of the key
+                               # falsely reading as let go. Needs to comfortably exceed
+                               # both the OS's key-repeat interval (~33-40 ms typically)
+                               # and whatever scheduling delay the machine itself adds
+                               # under load, since Tk's after() timers and the real key
+                               # events race against the same pressure -- 150 ms was not
+                               # enough on a loaded machine. If a held key still drops
+                               # occasionally, raise this further; if release feels
+                               # laggy on a machine that never has the problem, it can
+                               # come back down.
+
+explicit_pid_control:
+  ros__parameters:
+    use_sim_time: true
+    # Every gain and limit below is a conservative starting point, not a measured
+    # value -- unlike rover_kinematics.yaml's geometry, there is no CAD-derived source
+    # for how much torque a steering knuckle or a wheel actually needs. Sanity-checked
+    # in a headless Gazebo run for stability (no continuous saturation, no runaway
+    # oscillation), not tuned. See doc/VERIFICATION.md's explicit_pid section.
+    # Steering commands real torque, and by Newton's third law that torque reacts on
+    # the chassis -- all four steering joints share one axis convention and one
+    # steer_sign (see control_node.py's module docstring), so the four reactions add
+    # instead of cancelling. kp=40/kd=4 (no rate limit) made the whole rover body
+    # visibly spin while A/D was held. kp=8/kd=1 (with the rate limiter) cut that a
+    # lot while actively steering, but uncovered a worse problem on release: holding
+    # a nonzero angle against a chassis disturbance is a real feedback path (the
+    # disturbance twists the joint off target, the PID corrects, that correction's
+    # own reaction twists the chassis further the same way), and at kp=8/kd=1 it was
+    # an outright instability -- unbounded, accelerating rotation well after the key
+    # was released and the aim had stopped moving, confirmed live. Lowering kp turned
+    # that into a bounded oscillation; raising kd on top damped it into actually
+    # settling. kp=1/kd=3 is the first combination tried that settles rather than
+    # spinning or ringing. See doc/VERIFICATION.md.
+    steer_kp: 1.0                # N m / rad of steering position error
+    steer_ki: 0.0                # N m / (rad s); 0 means no integral term at all, so
+                                  # the anti-windup logic in control_node.py is a no-op
+                                  # until this is raised
+    steer_kd: 3.0                # N m / (rad/s), against measured joint velocity
+                                  # (derivative-on-measurement, so it does not kick when
+                                  # the aim itself changes)
+    steer_max_effort: 20.0       # N m
+    steer_max_effort_rate: 40.0  # N m/s -- slews a step in demanded torque into a
+                                  # ramp instead of a kick, independent of kp/kd
+    steer_sync_kp: 5.0            # N m / rad of deviation from the other 3 steering
+                                   # joints' average position -- see control_node.py's
+                                   # module docstring for why this exists and why it
+                                   # is not the same thing as a mimic joint
+    # A genuinely different mechanism from steer_kd above, not a bigger version of
+    # it: reads real chassis yaw rate from /odom and applies a uniform correction
+    # across all four steering joints to oppose it, using the same reaction-torque
+    # path that was causing the problem, deliberately this time. Needed because
+    # neither raising steer_kd to 8 nor lowering steer_max_effort to a quarter of
+    # its value stopped the chassis from accelerating into a full, continuing
+    # rotation seconds after the steering target had already gone still -- ruled
+    # out as a magnitude problem, confirmed live as a loop closed entirely outside
+    # what steer_kp/steer_kd/steer_sync_kp can see (each joint's angle relative to
+    # the chassis, not the chassis's own absolute yaw). See control_node.py's
+    # module docstring and doc/VERIFICATION.md.
+    chassis_yaw_kd: 15.0          # N m / (rad/s) of measured chassis yaw rate.
+                                   # Sign not verified by inspection -- confirm live
+                                   # that enabling this measurably slows chassis
+                                   # rotation rather than speeding it up before
+                                   # trusting the sign; flip negative here if not
+    wheel_kp: 0.4                 # N m / (rad/s) of wheel speed error
+    wheel_ki: 0.4                 # N m / rad, with the same conditional-integration
+                                   # anti-windup as steering
+    wheel_kd: 0.0                 # N m / (rad/s^2). Deliberately off, not just an
+                                   # untuned default: differentiating a velocity error
+                                   # differentiates an already-once-differentiated,
+                                   # noisy simulated signal, and update_rate's 200 Hz
+                                   # amplifies that noise straight into torque.
+                                   # Measured directly in a headless Gazebo run:
+                                   # kp=8/kd=0.5 oscillated straight through zero and
+                                   # never settled; kp=2/ki=1/kd=0 was stable but
+                                   # overshot roughly 3x; the values shipped here are
+                                   # stable and correctly signed but still carry real
+                                   # ripple, on the order of the commanded speed
+                                   # itself -- there is real tuning headroom left. See
+                                   # doc/VERIFICATION.md.
+    wheel_max_effort: 60.0       # N m, well inside the xacro's 150 N m backstop
+    wheel_sync_kp: 2.0            # N m / (rad/s) of deviation from the other 3
+                                   # wheels' average speed -- this is the important
+                                   # one: four independently-tracking wheel loops that
+                                   # agree with their target but not quite with each
+                                   # other behave like a mismatched skid-steer rig and
+                                   # measurably yawed the chassis even driving dead
+                                   # straight, with no steering input at all
+    wheel_max_effort_rate: 1000.0  # N m/s -- generous on purpose; nothing measured
+                                  # so far points to the wheel loop needing its output
+                                  # slewed the way steering's does, this just gives it
+                                  # the same mechanism at a ceiling that doesn't change
+                                  # today's behaviour
+    update_rate: 200.0           # Hz
+
 rocker_coupling:
   ros__parameters:
     use_sim_time: true
@@ -72,3 +187,27 @@ rocker_coupling:
                                # made both the jitter and the residual worse, not
                                # better -- leave at 0 unless re-measured yourself,
                                # see doc/VERIFICATION.md
+
+# suspension:=mimic only (Bullet-Featherstone) -- rocker_hold_node.py, holding only
+# FLS_joint now that BLS/BRS/FRS are held by <mimic> tags instead. Gains are carried
+# over from rocker_coupling's own four-joint tuning above as a starting point only:
+# live-measured to hold FLS bounded rather than drifting to its hard stop, but with
+# real jitter (roughly +/-5 deg around the captured rest pose) that this single-joint
+# case has not yet been retuned for. See doc/VERIFICATION.md.
+rocker_hold:
+  ros__parameters:
+    use_sim_time: true
+    stiffness: 8000.0          # N m per rad of residual
+    damping: 1000.0            # N m per rad/s
+    max_torque: 400.0          # N m
+    update_rate: 400.0         # Hz
+    capture_rest: true         # same rationale as rocker_coupling's own: hold
+                               # against wherever FLS actually settles, not a
+                               # CAD-nominal pose it may never rest at
+    rest_capture_delay: 2.5    # s of settling before that reference is taken
+    max_torque_rate: 1000000.0 # N m/s, effectively unlimited; not yet re-measured
+                               # for this single-joint case the way rocker_coupling's
+                               # own value above was
+    velocity_filter_tau: 0.0   # s, 0 disables the one-pole low-pass on the D term's
+                               # velocity; not yet re-measured for this single-joint
+                               # case either

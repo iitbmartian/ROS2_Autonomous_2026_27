@@ -1,49 +1,179 @@
-# ROS2_Autonomous_2026_27
+# Rover in Gazebo
 
-Autonomous subsystem for the IITB Mars Rover Team, 2026-27 season. Successor to
-`ROS2_Autonomous_Subdivision`.
-
-This repository is a colcon workspace: cloning it gives you the workspace directly, with all
-packages under [`src/`](src/).
-
-
-## Packages
-
-| Package | Owner(s) | Scope |
-|---|---|---|
-| [`rover_interfaces`](src/rover_interfaces/) | (unassigned) | pub/sub, server-client, action, custom messages |
-| [`rover_perception`](src/rover_perception/) | Apratim + Pradyun | object detection, object classification, AR tag detection |
-| [`rover_nav2`](src/rover_nav2/) | Ram + Apratim | path planning, control, tuning, 3D navigation |
-| [`rover_slam`](src/rover_slam/) | Sohan (VO) | 3D SLAM, RTAB-Map, 3D→2D squishing, loop closures |
-| [`rover_strategy`](src/rover_strategy/) | Nishant + Sohan | exploration, task allocation, recovery |
-| [`rover_drivers`](src/rover_drivers/) | Ram | zed2i, 4D lidar, 2D lidar, sbg |
-| [`rover_ekf`](src/rover_ekf/) | Nishant + Sohan | 4x explicit + 4x drive → KF; 4 KF + sbg + VO + IMU(zed2) → EKF adaptive matrices |
-| [`rover_gazebo`](src/rover_gazebo/) | Pradyun | URDF, high-quality Gazebo environments |
-| [`rover_unity`](src/rover_unity/) | Ram + Apratim | Unity simulation environments |
-| [`rover_bringup`](src/rover_bringup/) | (unassigned) | launch files, config files, bashfile |
-| [`rover_controls`](src/rover_controls/) | (unassigned) | input: wheel encoders, IMU, etc → output: ROS2 odometry topic |
-
-All eleven are currently **placeholder directories** — each holds only a README stating its scope
-and owner. Build files are added by each owner in their first implementation PR.
-
-The architecture diagram shows Gazebo and Unity as one node; they are split into two packages here
-because they have different owners and very different dependency trees.
-
-## Quickstart
+Everything needed to run the four-wheel-steer rocker-differential rover in Gazebo
+under ROS 2 Jazzy. Drop `rover_gazebo` into a workspace and build it.
 
 ```bash
-git clone https://github.com/iitbmartian/ROS2_Autonomous_2026_27.git
-cd ROS2_Autonomous_2026_27
-rosdep install --from-paths src --ignore-src -r -y
-colcon build --symlink-install
+cp -r rover_gazebo ~/your_ws/src/
+cd ~/your_ws && colcon build --packages-select rover_gazebo
 source install/setup.bash
 ```
 
-Until packages have `package.xml` files, `rosdep` and `colcon build` are no-ops — they will
-succeed but build nothing. The intended way to run all of this is inside the container defined in
-[`docker/`](docker/).
+## Run it
 
-## Contributing
+One command, window and sim together, no second terminal:
 
-Everyone works on their own branch, normally inside their own `src/<package>/`, and merges into
-`main` via pull request. Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first PR.
+```bash
+ros2 launch rover_gazebo rover_sim.launch.py teleop_gui:=true
+```
+
+Click into that small window once and drive with WASD.
+
+Prefer a terminal instead (handy over plain SSH with no display)? Same driving logic, no
+window:
+
+```bash
+ros2 launch rover_gazebo rover_sim.launch.py teleop:=true
+```
+
+Or leave both off (the default) and start one by hand once the sim is up, in your own
+terminal:
+
+```bash
+ros2 run rover_gazebo teleop_rover_gui.py    # window
+ros2 run rover_gazebo teleop_rover.py        # terminal
+```
+
+Both read the same keys and drive identically -- they share their driving logic
+(`teleop_common.py`) rather than each having their own copy of it.
+
+| Key | Action |
+|---|---|
+| W / S | forward / reverse |
+| A / D | left / right, meaning depends on the mode |
+| C | explicit/explicit_pid only: sweep the wheels back to straight ahead |
+| Space | stop driving; the wheels stay pointed where they are |
+| Shift plus a letter | boost |
+| 1 / 2 / 3 / 4 / 5 | Ackermann / crab / spot / explicit / explicit_pid |
+
+Ackermann follows an arc, front and rear counter-steering. Crab slides the rover
+sideways without changing its heading. Spot turns it in place; W and S do nothing there.
+
+Two frontends exist because a raw terminal has real limits: it only reliably
+auto-repeats one held key at a time and never sends a key-release event at all, so
+holding two keys together (W+A for an arc, say) can silently drop one of them once a
+terminal decides to stop repeating it. `teleop_rover_gui.py` reads real per-key
+press/release events from the OS instead, so simultaneous holds are reliable. See
+`doc/updates.md` for the mechanism.
+
+Explicit is the odd one out. The other three ask for a body motion and work out what the
+wheels must do to deliver it. Explicit skips that step entirely. A and D sweep all four
+wheels together about their own vertical axes, slowly, and the wheels hold that angle
+when you let go. W and S then simply spin the wheels, and the rover goes wherever they
+drag it. C sweeps them back to straight, and the current angle is shown on screen as you
+steer. Nothing here works out where the rover will end up, which is rather the point: it
+is the mode for lining the rover up by hand. Shift boosts W and S but never the aiming,
+which stays at 15 degrees a second so you can stop where you meant to.
+
+Hold the aim near 90 degrees while driving and the chassis will creep and yaw on its own, worse the closer the aim sits to sideways. That is not a steering-joint limit: the joint has margin to spare at 90 degrees. It is the suspension coupling's own residual, already measured for crab mode in `doc/VERIFICATION.md`, finding nothing to resist it once the wheels stop pointing along the chassis.
+
+Explicit_PID (key 5) is the same movement as explicit, wheel for wheel and key for
+key -- the difference is invisible from the keyboard. Where explicit hands the solved
+angle and speed straight to ros2_control's ideal `steer_controller`/`wheel_controller`,
+explicit_pid hands them to `control_node.py` instead, which independently PID-controls
+each of the 8 steer/drive joints by commanded torque, reading `/joint_states` for
+feedback -- the same role `rocker_coupling_node` already plays for the suspension,
+rather than the ideal controllers' opaque, Gazebo-side gains. `rover_kinematics_node`
+switches which pair of controllers is actually active to match. Useful for testing
+control logic closer to what the real rover's per-joint motor controllers will
+eventually run, at the cost of needing real (and, right now, only lightly tuned) PID
+gains rather than a trusted ideal setpoint tracker. See `doc/VERIFICATION.md` -- the
+steering loop tracks tightly, the wheel-speed loop is stable but still loose.
+
+Other worlds: `world:=ledge.sdf` ramps the left-hand wheels onto a 10 cm ledge and
+keeps them there for four metres, and `world:=bars.sdf` lays two bars across the path,
+8 cm under the right and 12 cm under the left. Both exist to make the suspension work
+for its living.
+
+## Sensors
+
+Three onboard sensors, bridged from Gazebo to ROS 2 topics:
+
+| Topic | Type | Sensor | Rate |
+|---|---|---|---|
+| `/imu/data` | `sensor_msgs/Imu` | IMU, centre of the chassis | 100 Hz |
+| `/lidar/points` | `sensor_msgs/PointCloud2` | 3D GPU lidar, roof mount, 360 deg | 5 Hz |
+| `/lidar/scan` | `sensor_msgs/LaserScan` | same lidar, re-bridged as a 2D scan | 5 Hz |
+| `/camera/image_raw` | `sensor_msgs/Image` | RGBD camera, front mount, colour | 15 Hz |
+| `/camera/depth_image` | `sensor_msgs/Image` | same camera, depth | 15 Hz |
+| `/camera/points` | `sensor_msgs/PointCloud2` | same camera, coloured point cloud | 15 Hz |
+| `/camera/camera_info` | `sensor_msgs/CameraInfo` | same camera, intrinsics | 15 Hz |
+
+Ground-truth odometry is also bridged, on `/odom` (`nav_msgs/Odometry`), taken directly
+from Gazebo rather than from any sensor. See `doc/INTEGRATION.md` for the full topic
+list, including the driving and control topics. Sensor definitions live in
+`urdf/rover_sensors.xacro`, and the topic bridge in `config/bridge.yaml`.
+
+## What this had to fix
+
+The SolidWorks export could not be loaded into Gazebo at all, for four separate reasons.
+
+**The suspension has four closed loops.** A connector bar per side ties the front rocker
+to the rear one, and a differential bar reaches both rear rockers through pushrods.
+Between them they leave the suspension a single degree of freedom, a diagonal warp that
+keeps all four wheels loaded over uneven ground. URDF is a tree and cannot say any of
+it, so the exporter left the bars attached at one end, and without them the suspension
+folds up under the rover's own weight. The constraints are recovered here as arithmetic
+and enforced at runtime as joint torques, by `rocker_coupling_node`. The physics engine
+this package runs on, DART, has no solver-level way to enforce a constraint like this
+and explicitly refuses to, so this is the only coupling mechanism this package ships. A
+different engine, Bullet-Featherstone, was confirmed on an isolated test to enforce
+`<mimic>` constraints correctly and could in principle replace this, but it has real
+open questions for a model this shape; see `doc/VERIFICATION.md`.
+
+**The model is Y-up.** Spawned as exported, the rover lies on its side.
+
+**Every joint declares `effort="0"`,** which Gazebo reads as a zero force limit, so
+nothing could be driven.
+
+**Links and joints share names.** URDF allows it, SDF does not, and Gazebo refuses to
+load the model. Joints therefore carry a `_joint` suffix here; link and frame names are
+unchanged from the CAD.
+
+`doc/DESIGN.md` works through the mechanism and the arithmetic.
+`doc/INTEGRATION.md` covers topics, frames and how to fit this to an existing stack.
+`doc/VERIFICATION.md` says what was measured, and what could not be.
+`doc/updates.md` is the change log: what changed, in which files, and why.
+
+## Read this before trusting it
+
+Everything, including the suspension coupling, the driving, the steering modes and the
+obstacle behaviour, was run end to end on Gazebo Fortress, ROS 2 Humble. Numbers are in
+`doc/VERIFICATION.md`. The exceptions are explicit mode, which was added after those
+runs and has not been measured on Fortress (the harness for it is there, the numbers are
+not), and explicit_pid, added later still, which has not been measured at all -- only
+sanity-checked live on Harmonic, enough to catch and fix a real wheel-PID instability,
+not enough to call it a measurement. The `sim:=harmonic`/`sim:=fortress` argument was
+meant to only pick plugin names
+between the two Gazebo versions, on the assumption that nothing else about the model
+depends on which one you run. That assumption does not hold: Gazebo Harmonic, which is
+what `sim:=harmonic` actually targets and the only version this package has since been
+tested on, shows a real jitter that Fortress did not, visible even driving straight
+ahead. `doc/VERIFICATION.md` has the numbers for both versions side by side.
+
+The suspension coupling is a stiff torque loop closed over ROS topics at 500 Hz, not a
+physics-engine constraint, because DART, the physics engine this package runs on, has no
+solver-level way to enforce this kind of joint coupling. That means it holds the
+suspension to within a degree or two rather than exactly, and on Gazebo Harmonic that
+loop is also the confirmed dominant source of a continuous speed and yaw jitter present
+even driving straight. `doc/VERIFICATION.md` has the measured residuals, the jitter
+numbers, and where both show up.
+
+## Layout
+
+```
+rover_gazebo/
+  urdf/       rover.urdf.xacro is the entry point; rover_body.xacro is generated
+  meshes/     the 22 STLs, copied from the export unchanged
+  config/     controllers, driving limits, generated geometry, topic bridge
+  launch/     rover_sim.launch.py
+  worlds/     flat, one-sided step, two-bar course
+  tools/      derive_ratios.py, generate_description.py
+  doc/        design notes, integration guide, verification results, change log
+reference/    the original export, untouched, for provenance
+```
+
+Nothing in `urdf/rover_body.xacro` or `config/rover_kinematics.yaml` is hand-written.
+Both come out of `tools/`, which reads the original export in `reference/`. After a CAD
+change, re-run the two generators and the ratios, joint signs and driving geometry all
+follow.

@@ -3,10 +3,26 @@
   ros2_control interfaces.
 
   Eight driven joints: four steering knuckles under position control and four wheels
-  under velocity control. All four rockers, the free suspension joint and its three
-  dependent followers, get effort interfaces: rocker_coupling_node applies the
-  suspension's closed-loop constraints through them, since Gazebo has no
-  solver-level way to enforce those constraints itself.
+  under velocity control. Both also carry an effort command interface, unused by
+  steer_controller/wheel_controller but claimed by steer_pid_controller/
+  wheel_pid_controller (see controllers.yaml) when explicit_pid mode (control_node.py)
+  is active. Only one of the two controllers on a joint is ever *active* at a time,
+  since rover_kinematics_node switches between them via the controller_manager, so
+  this is never two control laws actually fighting over the joint, just two possible
+  ones. The effort limits below are a hard backstop, not a tuned value: control_node.py's
+  own steer_max_effort/wheel_max_effort parameters (config/rover_control.yaml) are
+  the meaningful, software-side clamp and are set noticeably tighter than these.
+
+  The rockers depend on the suspension arg (rover.urdf.xacro). suspension:=torque
+  (default, every engine including DART): all four get an effort interface, and
+  rocker_coupling_node applies the suspension's closed-loop constraints through them
+  every cycle, since Gazebo has no solver-level way to enforce those constraints
+  itself. suspension:=mimic (Bullet-Featherstone only): BLS/BRS/FRS get no command
+  interface at all; they're held by real <mimic> joints instead
+  (rover_body.xacro), physics-solver-enforced, and only FLS_joint, the mechanism's
+  one genuinely free coordinate, keeps an effort interface, held by
+  rocker_hold_node.py's single-joint hold. See doc/VERIFICATION.md for why DART
+  can't take the mimic path at all.
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -19,6 +35,12 @@
         <param name="min">-1.75</param>
         <param name="max">1.75</param>
       </command_interface>
+      <!-- Backstop only; see the file header. Unmeasured: nothing about this
+           knuckle's real inertia or friction has been characterised yet. -->
+      <command_interface name="effort">
+        <param name="min">-150.0</param>
+        <param name="max">150.0</param>
+      </command_interface>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -30,6 +52,11 @@
       <command_interface name="velocity">
         <param name="min">-30.0</param>
         <param name="max">30.0</param>
+      </command_interface>
+      <!-- Backstop only; see the file header. Unmeasured, same as the steer joints'. -->
+      <command_interface name="effort">
+        <param name="min">-150.0</param>
+        <param name="max">150.0</param>
       </command_interface>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
@@ -52,10 +79,6 @@
     <xacro:drive_joint name="BLD_joint"/>
     <xacro:drive_joint name="BRD_joint"/>
 
-    <!-- Suspension. All four rockers become torque-driven, because a constraint has
-         to push on both joints it ties together. Holding only the followers would
-         let the rear wheels carry load the front rockers never feel, which is not
-         the mechanism the CAD describes. -->
     <xacro:macro name="coupled_rocker" params="name">
       <joint name="${name}">
         <command_interface name="effort">
@@ -67,10 +90,26 @@
         <state_interface name="effort"/>
       </joint>
     </xacro:macro>
-    <xacro:coupled_rocker name="FLS_joint"/>
-    <xacro:coupled_rocker name="BLS_joint"/>
-    <xacro:coupled_rocker name="BRS_joint"/>
-    <xacro:coupled_rocker name="FRS_joint"/>
+    <xacro:macro name="mimic_follower" params="name">
+      <joint name="${name}">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    </xacro:macro>
+
+    <xacro:if value="${suspension == 'mimic'}">
+      <xacro:coupled_rocker name="FLS_joint"/>
+      <xacro:mimic_follower name="BLS_joint"/>
+      <xacro:mimic_follower name="BRS_joint"/>
+      <xacro:mimic_follower name="FRS_joint"/>
+    </xacro:if>
+    <xacro:unless value="${suspension == 'mimic'}">
+      <xacro:coupled_rocker name="FLS_joint"/>
+      <xacro:coupled_rocker name="BLS_joint"/>
+      <xacro:coupled_rocker name="BRS_joint"/>
+      <xacro:coupled_rocker name="FRS_joint"/>
+    </xacro:unless>
 
   </ros2_control>
 

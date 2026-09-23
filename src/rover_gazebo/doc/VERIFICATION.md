@@ -104,6 +104,51 @@ unrelated cause to the jitter section below: this is a solved-angle discontinuit
 the suspension coupling. Both can be present at once, and this fix does not touch or
 depend on the coupling loop.
 
+## A fold-boundary snap, left behind by the rate-limit fix above
+
+Reported directly: driving in Ackermann mode, pressing S to reverse (or coming to a stop
+after reversing) snapped the steering wheels to roughly +90 degrees and then to roughly
+-90 degrees, one physical jerk, changing the chassis's heading. The rate-limit fix above
+stops the *solved* wheel angle from snapping straight to a fresh target, but it never
+touched a second, separate step that runs immediately afterward: past 90 degrees, the
+wheel is folded to point the other way and roll backwards instead, so it never has to
+swing through the far side. That fold ran on the *published* value only, one tick after
+the rate limit, so the internal angle stayed free to keep ramping smoothly out past 90
+degrees toward its raw, unfolded target -- which can be a full 180 degrees away, since
+`atan2(0, vx)` is exactly 0 for `vx>0` and exactly pi for `vx<0`, a hard discontinuity in
+the *target* the instant a reversal crosses zero speed. The moment that still-ramping
+internal value crossed the ±90 degree line, the published angle jumped by the fold
+amount in that single tick, even though the internal value had only moved by one
+ordinary tick's worth.
+
+The fix folds the solved angle to whichever of itself or its reverse sits closer to
+wherever the wheel's ramped state *already is*, before rate-limiting toward that folded
+target, not after. The choice is re-made fresh every tick from the wheel's actual current
+position, so crossing the boundary now costs one ordinary rate-limited step like any
+other tick.
+
+Standalone, against the real kinematics node with no Gazebo: the same four scenarios
+(straight reversal, reverse-while-turning, reverse-then-stop, spot spin-up from a stop)
+that all showed a 178.85 degree single-tick jump before this fix show a maximum of 1.146
+degrees after -- the ordinary per-tick rate-limit step, at the boundary crossing itself,
+and zero in the two scenarios that never needed to cross it.
+
+Measured live in Gazebo, both times from a fresh launch, commanding the rover straight in
+Ackermann mode and reversing (`linear.x` +0.8 to -0.8, `angular.z` 0 throughout --
+reproducing "press S while driving straight"), peak `|angular.z|` in the ~2 s window
+around the reversal:
+
+| | Peak `angular.z` during the reversal |
+|---|---|
+| Before this fix | 2.043 rad/s |
+| After this fix | 0.005 rad/s |
+
+A 99.7% cut -- down to the same low-single-digit-mrad/s level as the contact-solver
+jitter baseline measured elsewhere in this document, i.e. no longer distinguishable from
+noise. `measure_rover.py --test forward` and `--test arc_left` afterward showed no
+regression (near-zero yaw/lateral drift driving straight; a sustained, continuous turn
+with real forward and lateral displacement throughout driving an arc).
+
 ## A jitter that Fortress never showed
 
 The Harmonic forward number above is not a fluke. Recording `/odom` continuously through
@@ -231,6 +276,47 @@ much like the crab row, and an aim of 0 should be indistinguishable from driving
 straight.
 
 This has nothing to do with the steering joint's own travel. Ninety degrees commanded sits comfortably inside its 100 degree hard stop, with no saturation and no fight against a limit going on. The badness tracks how far the wheel's own heading has turned away from the chassis's fore-aft axis, not how close the command sits to anything mechanical: a wheel aligned with the chassis absorbs the suspension's fore-aft residual by simply rolling with it, and a wheel turned across the chassis cannot, so the residual pushes the chassis instead.
+
+## Explicit_PID mode, which has not been measured either
+
+Same caveat as explicit mode above, and for the same reason: added afterward,
+**nothing in this section is filled in from a proper run**, and the table is
+deliberately left empty. What *did* happen was a live sanity check against a headless
+Gazebo instance while building the mode, which is not the same thing as the measured
+runs elsewhere on this page — no repeated trials, no varied aim angles, no fresh
+simulator per data point — but it found a real bug, so it is worth recording here
+rather than only in `doc/updates.md`.
+
+The harness is the same procedure as explicit mode's, run against `explicit_pid`
+instead:
+
+```bash
+ros2 run rover_gazebo measure_rover.py --test explicit_pid --aim 45 --speed 0.5 --duration 5
+```
+
+The same two numbers decide whether it works: `track_angle_deg` should match
+`aim_reached_deg`, and `yaw_deg` should be near zero.
+
+| Aim, deg | Track angle, deg | Track error, deg | Yaw drift, deg | Distance, m |
+|---|---|---|---|---|
+| 0 | | | | |
+| 45 | | | | |
+| 90 | | | | |
+
+Expect this mode's numbers to be *worse* than explicit mode's at the same aim, on top
+of whatever the suspension-residual mechanism above already costs explicit mode: this
+mode adds a second source of tracking error, the PID loop itself. Steering tracked
+tightly in the sanity check (settled within roughly 0.03-0.09 rad of a 20 degree
+target, no oscillation), but the wheel-speed loop did not: its first gains tried
+(`kp=8, kd=0.5`) oscillated straight through zero rather than converging, traced to
+differentiating an already-noisy simulated velocity signal at the loop's 200 Hz update
+rate. The shipped gains (`kp=0.4, ki=0.4, kd=0`, `config/rover_control.yaml`) are
+stable and correctly signed but still carry real ripple, on the order of the commanded
+speed's own magnitude — real tuning headroom is left there. A single exploratory run
+at a 45 degree aim, one fresh simulator, no repeats, read `track_error_deg` around
+-75 degrees, which is consistent with that wheel-speed ripple dominating the run
+rather than the steering loop or the suspension residual; take that as a sign of where
+the problem lives, not as a number for the table above.
 
 ## The suspension, with the coupling and without
 

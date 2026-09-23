@@ -1,0 +1,37 @@
+# ros2_control setup. Loaded by the gz_ros2_control system plugin, which runs the
+# controller manager inside the simulator so commands land at the physics rate.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 1000         # Hz, matched to the physics step
+    use_sim_time: true
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    steer_controller:
+      type: position_controllers/JointGroupPositionController
+
+    wheel_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+    # Gives the rockers effort commands; rocker_coupling_node drives them to hold
+    # the suspension's closed-loop constraints, since Gazebo has no solver-level
+    # way to enforce them itself.
+    rocker_coupling_controller:
+      type: effort_controllers/JointGroupEffortController
+
+steer_controller:
+  ros__parameters:
+    joints: [FLE_joint, FRE_joint, BLE_joint, BRE_joint]
+    interface_name: position
+
+wheel_controller:
+  ros__parameters:
+    joints: [FLD_joint, FRD_joint, BLD_joint, BRD_joint]
+    interface_name: velocity
+
+rocker_coupling_controller:
+  ros__parameters:
+    joints: [FLS_joint, BLS_joint, BRS_joint, FRS_joint]
+    interface_name: effort

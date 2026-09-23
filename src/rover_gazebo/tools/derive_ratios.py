@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Derive every geometric constant of the rover from the original SolidWorks export.
 
 The exported URDF describes a suspension with four closed kinematic loops that URDF

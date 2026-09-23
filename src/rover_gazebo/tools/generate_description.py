@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Generate urdf/rover_body.xacro from the original SolidWorks export.
 
 Link masses, inertia tensors and joint origins are transcribed straight from the

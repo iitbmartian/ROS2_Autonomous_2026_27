@@ -7,11 +7,13 @@
 
     1. The suspension contains four closed kinematic loops. URDF is a tree, so the
        loops cannot be written down and the suspension falls apart without them.
-       Fixed in rover_body.xacro: the loop-closing joints get effort interfaces and
-       are held together at runtime by rocker_coupling_node, which applies the
-       constraints as torques. Gazebo has no solver-level way to enforce them
-       (no <mimic> support), so this is the only coupling mechanism this package
-       ships.
+       Fixed in rover_body.xacro: by default (suspension:=torque) the loop-closing
+       joints get effort interfaces and are held together at runtime by
+       rocker_coupling_node, which applies the constraints as torques, since DART
+       (the default engine) has no solver-level way to enforce them (no <mimic>
+       support). suspension:=mimic uses real <mimic> joints instead, enforced by the
+       physics solver itself; Bullet-Featherstone only, see the suspension argument
+       below and doc/VERIFICATION.md.
 
     2. The export is Y-up. Spawned as-is the rover lies on its side.
        Fixed below, by a rotated fixed joint under a ROS-convention base_link.
@@ -26,6 +28,14 @@
     mesh_collision  false       true restores the exporter's mesh collision on the
                                 chassis, rockers and knuckles.
     ros2_control    true        false strips the hardware interface, for RViz-only use.
+    suspension      torque      'torque': the four rockers are held by
+                                rocker_coupling_node's virtual constraint torques (see
+                                rover_body.xacro/rover_ros2_control.xacro); works on
+                                every engine, including DART, the default. 'mimic':
+                                BLS/BRS/FRS are held by real <mimic> joints instead and
+                                FLS by rocker_hold_node.py; Bullet-Featherstone only,
+                                since DART silently ignores <mimic> and would leave
+                                the suspension uncontrolled; see doc/VERIFICATION.md.
 -->
 <robot name="rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -34,10 +44,12 @@
   <xacro:arg name="mesh_collision" default="false"/>
   <xacro:arg name="ros2_control"   default="true"/>
   <xacro:arg name="controllers_file" default="$(find rover_gazebo)/config/controllers.yaml"/>
+  <xacro:arg name="suspension"     default="torque"/>
 
   <xacro:property name="sim"            value="$(arg sim)"/>
   <xacro:property name="mass_scale"     value="$(arg mass_scale)"/>
   <xacro:property name="mesh_collision" value="$(arg mesh_collision)"/>
+  <xacro:property name="suspension"     value="$(arg suspension)"/>
 
   <!-- ================================================================= -->
   <!-- Frame fix.                                                        -->

@@ -1,0 +1,113 @@
+# Rover in Gazebo
+
+Everything needed to run the four-wheel-steer rocker-differential rover in Gazebo
+Harmonic under ROS 2 Jazzy. Drop `rover_gazebo` into a workspace and build it.
+
+```bash
+cp -r rover_gazebo ~/your_ws/src/
+cd ~/your_ws && colcon build --packages-select rover_gazebo
+source install/setup.bash
+```
+
+## Run this first
+
+```bash
+ros2 run rover_gazebo check_setup.sh     # or: src/rover_gazebo/tools/check_setup.sh
+```
+
+It takes under a minute and answers the one question that decides how you launch:
+**can your Gazebo enforce joint coupling in its solver?** The rover's suspension is held
+together by four closed kinematic loops that a URDF cannot express, and how those loops
+are replaced depends on the answer. The script tells you which of the two commands below
+to use.
+
+## Then
+
+```bash
+ros2 launch rover_gazebo rover_sim.launch.py                        # solver coupling
+ros2 launch rover_gazebo rover_sim.launch.py coupling:=controller   # torque coupling
+```
+
+and in another terminal:
+
+```bash
+ros2 run rover_gazebo teleop_rover.py
+```
+
+| Key | Action |
+|---|---|
+| W / S | forward / reverse |
+| A / D | left / right, meaning depends on the mode |
+| Space | stop |
+| Shift plus a letter | boost |
+| 1 / 2 / 3 | Ackermann / crab / spot |
+
+Ackermann follows an arc, front and rear counter-steering. Crab slides the rover
+sideways without changing its heading. Spot turns it in place; W and S do nothing there.
+
+Other worlds: `world:=ledge.sdf` ramps the left-hand wheels onto a 10 cm ledge and
+keeps them there for four metres, and `world:=bars.sdf` lays two bars across the path,
+8 cm under the right and 12 cm under the left. Both exist to make the suspension work
+for its living.
+
+## What this had to fix
+
+The SolidWorks export could not be loaded into Gazebo at all, for four separate reasons.
+
+**The suspension has four closed loops.** A connector bar per side ties the front rocker
+to the rear one, and a differential bar reaches both rear rockers through pushrods.
+Between them they leave the suspension a single degree of freedom, a diagonal warp that
+keeps all four wheels loaded over uneven ground. URDF is a tree and cannot say any of
+it, so the exporter left the bars attached at one end, and without them the suspension
+folds up under the rover's own weight. The constraints are recovered here as arithmetic
+and written back in as `<mimic>` tags.
+
+**The model is Y-up.** Spawned as exported, the rover lies on its side.
+
+**Every joint declares `effort="0"`,** which Gazebo reads as a zero force limit, so
+nothing could be driven.
+
+**Links and joints share names.** URDF allows it, SDF does not, and Gazebo refuses to
+load the model. Joints therefore carry a `_joint` suffix here; link and frame names are
+unchanged from the CAD.
+
+`doc/DESIGN.md` works through the mechanism and the arithmetic.
+`doc/INTEGRATION.md` covers topics, frames and how to fit this to an existing stack.
+`doc/VERIFICATION.md` says what was measured, and what could not be.
+
+## Read this before trusting it
+
+The target is Gazebo Harmonic. Harmonic was not available on the machine this was built
+on, so **the default `coupling:=mimic` path has never been run.** It was verified as far
+as it could be: the constraints are correct, they are present in the generated URDF, and
+`robot_state_publisher` resolves them, so moving the free suspension joint in RViz moves
+all four rockers and the differential bar together.
+
+What is unverified is whether Harmonic's URDF converter carries the `<mimic>` tags
+through to the solver. Older converters drop them silently. That is exactly what
+`check_setup.sh` and `tools/make_sdf.py` exist for: the first tells you whether your
+Gazebo supports them at all, and the second writes a model with them put in directly,
+going around the converter, and asks Gazebo to validate the result.
+
+Everything else, including the fallback coupling, the driving, the steering modes and
+the obstacle behaviour, was run end to end on Gazebo Fortress. Numbers are in
+`doc/VERIFICATION.md`.
+
+## Layout
+
+```
+rover_gazebo/
+  urdf/       rover.urdf.xacro is the entry point; rover_body.xacro is generated
+  meshes/     the 22 STLs, copied from the export unchanged
+  config/     controllers, driving limits, generated geometry, topic bridge
+  launch/     rover_sim.launch.py, and display.launch.py for RViz with no simulator
+  worlds/     flat, one-sided step, two-bar course
+  tools/      derive_ratios.py, generate_description.py, make_sdf.py, check_setup.sh
+  doc/        design notes, integration guide, verification results
+reference/    the original export, untouched, for provenance
+```
+
+Nothing in `urdf/rover_body.xacro` or `config/rover_kinematics.yaml` is hand-written.
+Both come out of `tools/`, which reads the original export in `reference/`. After a CAD
+change, re-run the two generators and the ratios, joint signs and driving geometry all
+follow.

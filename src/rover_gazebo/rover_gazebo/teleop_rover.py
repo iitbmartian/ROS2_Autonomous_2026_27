@@ -1,13 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Keyboard driving for the rover, with the same keys as the Unity build.
 
-    W / S            forward / reverse
-    A / D            left / right, meaning depends on the mode
-    C                explicit mode only: sweep the wheels back to straight ahead
-    Space            stop driving; the wheels stay pointed where they are
-    Shift            boost, hold shift with a letter key
-    1 / 2 / 3 / 4    Ackermann / crab / spot / explicit
-    Q or Ctrl-C      quit
+    W / S               forward / reverse
+    A / D               left / right, meaning depends on the mode
+    C                   explicit/explicit_pid only: sweep the wheels back to straight
+    Space               stop driving; the wheels stay pointed where they are
+    Shift               boost, hold shift with a letter key
+    1 / 2 / 3 / 4 / 5    Ackermann / crab / spot / explicit / explicit_pid
+    Q or Ctrl-C         quit
 
 What A and D do in each mode:
 
@@ -23,13 +23,26 @@ What A and D do in each mode:
                Expect to overshoot the angle you wanted by roughly hold_time times the
                sweep rate, about six degrees at the defaults, because a terminal key
                lapses rather than releasing. Trim it with a tap of the opposite key.
+    Explicit_PID  every key does exactly what it does in explicit mode above -- same
+               A/D/W/S/C/Space, same aim readout. The only difference is invisible from
+               here: rover_kinematics_node hands the solved angle/speed to
+               control_node.py's own independent per-joint PID loops (one per steering
+               joint, one per wheel joint) instead of straight to the ideal
+               steer_controller/wheel_controller, and switches which ros2_control
+               controllers are active to match. See rover_kinematics_node.py and
+               control_node.py.
 
 Publishes geometry_msgs/Twist on cmd_vel and std_msgs/String on rover/steer_mode, and
 subscribes to std_msgs/Float64 on rover/steer_aim to show and recentre the explicit
-angle. In explicit mode angular.z carries a steering rate rather than a body yaw rate;
-rover_kinematics_node integrates it, which is why the angle survives a key release.
-Terminal keyboards send no key-release event, so a key is held for hold_time seconds
-after the last repeat and then lapses.
+angle. In explicit/explicit_pid modes angular.z carries a steering rate rather than a
+body yaw rate, which rover_kinematics_node integrates, which is why the angle survives
+a key release. Terminal keyboards send no key-release event, so a key is held for
+hold_time seconds after the last repeat and then lapses -- and, since most terminals
+only auto-repeat one held key at a time, holding two keys together (e.g. W+A for an
+arc) can drop one of them early. teleop_rover_gui.py reads real per-key press/release
+events instead and does not have either limitation; use it if that shows up for you.
+Both share the exact same driving logic (teleop_common.TeleopCore), so the two never
+disagree about what a key does.
 """
 
 import math
@@ -41,64 +54,43 @@ import tty
 
 import rclpy
 from geometry_msgs.msg import Twist
-from rclpy.node import Node
-from std_msgs.msg import Float64, String
+from std_msgs.msg import String
 
-MODES = {"1": "ackermann", "2": "crab", "3": "spot", "4": "explicit"}
+from teleop_common import MODE_KEYS, TeleopCore
 
 HELP = __doc__.split("Publishes")[0]
 
 
-class Teleop(Node):
+class Teleop(TeleopCore):
 
     def __init__(self):
         super().__init__("teleop_rover")
-        self.declare_parameter("max_speed", 1.0)
-        self.declare_parameter("max_yaw_rate", 1.0)      # rad/s, Ackermann
-        self.declare_parameter("max_spin_rate", 0.7854)  # rad/s, spot
-        self.declare_parameter("max_steer_rate", 0.2618)  # rad/s, ~15 deg/s, explicit mode A/D
-        self.declare_parameter("boost", 2.5)
-        self.declare_parameter("hold_time", 0.4)         # s a key stays live
-        self.declare_parameter("update_rate", 50.0)
-
-        self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
-        self.mode_pub = self.create_publisher(String, "rover/steer_mode", 10)
-        self.create_subscription(Float64, "rover/steer_aim", self.on_aim, 10)
-        self.mode = "ackermann"
         self.held = {}
-        self.aim = 0.0          # rad, echoed back by the kinematics node
-        self.recentre = False   # C pressed, sweeping the aim to zero
         self.shown = None       # last aim printed, in whole degrees
-        self.dt = 1.0 / self.get_parameter("update_rate").value
         self.create_timer(self.dt, self.step)
-
-    def on_aim(self, msg: Float64):
-        self.aim = msg.data
 
     def press(self, ch):
         now = self.get_clock().now().nanoseconds * 1e-9
         boost = ch.isupper()
         low = ch.lower()
 
-        if low in MODES:
+        if low in MODE_KEYS:
             # Drop any held key rather than let it be reinterpreted under the new
             # mode's semantics for up to hold_time: a body-yaw rate is not a steering
             # rate, and vice versa.
             self.held.clear()
-            self.mode = MODES[low]
-            self.recentre = False
+            self.set_mode(MODE_KEYS[low])
             self.shown = None       # force the aim readout to redraw
-            self.mode_pub.publish(String(data=self.mode))
             print(f"\r  mode: {self.mode}          ")
             return
         if low == " ":
             # Stop means stop driving. It also calls off a sweep in progress, since a
             # sweep is something moving, but it leaves the wheels pointed where they are.
             self.held.clear()
-            self.recentre = False
+            self.stop()
             return
         if low == "c":
-            self.recentre = True
+            self.recentre_on()
             return
         if low in "wasd":
             if low in "ad":
@@ -111,39 +103,19 @@ class Teleop(Node):
         hold = p("hold_time").value
         self.held = {k: v for k, v in self.held.items() if now - v[0] < hold}
 
-        boost = p("boost").value if any(b for _, b in self.held.values()) else 1.0
-        speed = p("max_speed").value * boost
+        if self.mode in ("explicit", "explicit_pid"):
+            # Shift is a drive boost only here, so it is taken from the W/S keys alone
+            # rather than from any held key. The sweep rate is deliberately fixed.
+            boost_active = any(b for k, (_, b) in self.held.items() if k in "ws")
+        else:
+            boost_active = any(b for _, b in self.held.values())
+
         fwd = (1.0 if "w" in self.held else 0.0) - (1.0 if "s" in self.held else 0.0)
         turn = (1.0 if "a" in self.held else 0.0) - (1.0 if "d" in self.held else 0.0)
 
-        t = Twist()
-        if self.mode == "crab":
-            t.linear.x = fwd * speed
-            t.linear.y = turn * speed
-        elif self.mode == "spot":
-            t.angular.z = turn * p("max_spin_rate").value * boost
-        elif self.mode == "explicit":
-            # Shift is a drive boost only here, so it is taken from the W/S keys alone
-            # rather than from any held key. The sweep rate is deliberately fixed.
-            drive_boost = p("boost").value if any(
-                b for k, (_, b) in self.held.items() if k in "ws") else 1.0
-            rate = p("max_steer_rate").value
-            t.linear.x = fwd * p("max_speed").value * drive_boost
-            if self.recentre:
-                # Saturates at the sweep rate while the aim is large and lands exactly
-                # on zero as it closes, so it converges without hunting around straight.
-                want = -self.aim / self.dt
-                t.angular.z = max(-rate, min(rate, want))
-                if abs(self.aim) < 0.005:
-                    t.angular.z = 0.0
-                    self.recentre = False
-            else:
-                t.angular.z = turn * rate
+        self.drive(fwd, turn, boost_active)
+        if self.mode in ("explicit", "explicit_pid"):
             self.report_aim()
-        else:
-            t.linear.x = fwd * speed
-            t.angular.z = turn * p("max_yaw_rate").value
-        self.cmd.publish(t)
 
     def report_aim(self):
         """Show the live steering angle, redrawn only when the whole degree changes.

@@ -11,27 +11,50 @@ source install/setup.bash
 
 ## Run it
 
-```bash
-ros2 launch rover_gazebo rover_sim.launch.py
-```
-
-and in another terminal:
+One command, window and sim together, no second terminal:
 
 ```bash
-ros2 run rover_gazebo teleop_rover.py
+ros2 launch rover_gazebo rover_sim.launch.py teleop_gui:=true
 ```
+
+Click into that small window once and drive with WASD.
+
+Prefer a terminal instead (handy over plain SSH with no display)? Same driving logic, no
+window:
+
+```bash
+ros2 launch rover_gazebo rover_sim.launch.py teleop:=true
+```
+
+Or leave both off (the default) and start one by hand once the sim is up, in your own
+terminal:
+
+```bash
+ros2 run rover_gazebo teleop_rover_gui.py    # window
+ros2 run rover_gazebo teleop_rover.py        # terminal
+```
+
+Both read the same keys and drive identically -- they share their driving logic
+(`teleop_common.py`) rather than each having their own copy of it.
 
 | Key | Action |
 |---|---|
 | W / S | forward / reverse |
 | A / D | left / right, meaning depends on the mode |
-| C | explicit mode only: sweep the wheels back to straight ahead |
+| C | explicit/explicit_pid only: sweep the wheels back to straight ahead |
 | Space | stop driving; the wheels stay pointed where they are |
 | Shift plus a letter | boost |
-| 1 / 2 / 3 / 4 | Ackermann / crab / spot / explicit |
+| 1 / 2 / 3 / 4 / 5 | Ackermann / crab / spot / explicit / explicit_pid |
 
 Ackermann follows an arc, front and rear counter-steering. Crab slides the rover
 sideways without changing its heading. Spot turns it in place; W and S do nothing there.
+
+Two frontends exist because a raw terminal has real limits: it only reliably
+auto-repeats one held key at a time and never sends a key-release event at all, so
+holding two keys together (W+A for an arc, say) can silently drop one of them once a
+terminal decides to stop repeating it. `teleop_rover_gui.py` reads real per-key
+press/release events from the OS instead, so simultaneous holds are reliable. See
+`doc/updates.md` for the mechanism.
 
 Explicit is the odd one out. The other three ask for a body motion and work out what the
 wheels must do to deliver it. Explicit skips that step entirely. A and D sweep all four
@@ -43,6 +66,19 @@ is the mode for lining the rover up by hand. Shift boosts W and S but never the 
 which stays at 15 degrees a second so you can stop where you meant to.
 
 Hold the aim near 90 degrees while driving and the chassis will creep and yaw on its own, worse the closer the aim sits to sideways. That is not a steering-joint limit: the joint has margin to spare at 90 degrees. It is the suspension coupling's own residual, already measured for crab mode in `doc/VERIFICATION.md`, finding nothing to resist it once the wheels stop pointing along the chassis.
+
+Explicit_PID (key 5) is the same movement as explicit, wheel for wheel and key for
+key -- the difference is invisible from the keyboard. Where explicit hands the solved
+angle and speed straight to ros2_control's ideal `steer_controller`/`wheel_controller`,
+explicit_pid hands them to `control_node.py` instead, which independently PID-controls
+each of the 8 steer/drive joints by commanded torque, reading `/joint_states` for
+feedback -- the same role `rocker_coupling_node` already plays for the suspension,
+rather than the ideal controllers' opaque, Gazebo-side gains. `rover_kinematics_node`
+switches which pair of controllers is actually active to match. Useful for testing
+control logic closer to what the real rover's per-joint motor controllers will
+eventually run, at the cost of needing real (and, right now, only lightly tuned) PID
+gains rather than a trusted ideal setpoint tracker. See `doc/VERIFICATION.md` -- the
+steering loop tracks tightly, the wheel-speed loop is stable but still loose.
 
 Other worlds: `world:=ledge.sdf` ramps the left-hand wheels onto a 10 cm ledge and
 keeps them there for four metres, and `world:=bars.sdf` lays two bars across the path,
@@ -103,9 +139,12 @@ unchanged from the CAD.
 
 Everything, including the suspension coupling, the driving, the steering modes and the
 obstacle behaviour, was run end to end on Gazebo Fortress, ROS 2 Humble. Numbers are in
-`doc/VERIFICATION.md`. The one exception is explicit mode, which was added after those
-runs and has not been measured on Fortress: the harness for it is there, the numbers are
-not. The `sim:=harmonic`/`sim:=fortress` argument was meant to only pick plugin names
+`doc/VERIFICATION.md`. The exceptions are explicit mode, which was added after those
+runs and has not been measured on Fortress (the harness for it is there, the numbers are
+not), and explicit_pid, added later still, which has not been measured at all -- only
+sanity-checked live on Harmonic, enough to catch and fix a real wheel-PID instability,
+not enough to call it a measurement. The `sim:=harmonic`/`sim:=fortress` argument was
+meant to only pick plugin names
 between the two Gazebo versions, on the assumption that nothing else about the model
 depends on which one you run. That assumption does not hold: Gazebo Harmonic, which is
 what `sim:=harmonic` actually targets and the only version this package has since been
