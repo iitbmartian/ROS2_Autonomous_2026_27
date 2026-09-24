@@ -12,7 +12,7 @@
 #   - odom topic is /odom, not /odometry/filtered
 #   - slower, tighter tuning matched to the small simulated robot
 #
-# Selected by: ros2 launch rover_nav2 navigation.launch.py sim:=true
+# Selected by: ros2 launch rover_bringup navigation.launch.py sim:=true
 amcl:
   # Only used by localization.launch.py, i.e. replaying a map built earlier in
   # sim. Reads the simulated scan.

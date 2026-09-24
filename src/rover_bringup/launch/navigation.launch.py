@@ -1,8 +1,8 @@
 """Nav2 navigation stack for the rover.
 
 Starts planning, control, recovery and lifecycle management only. Localisation is
-*not* started here: rover_slam publishes /map and the map->odom transform. To run
-against a saved map instead, add localization.launch.py.
+*not* started here: RTAB-Map (rtabmap.launch.py) publishes /map and the map->odom
+transform, in mapping mode or, with localization:=true, against a saved database.
 
 Node list and the cmd_vel remap chain are copied from nav2_bringup's
 navigation_launch.py (Nav2 1.3.13) rather than included from it: nav2_bringup
@@ -11,8 +11,8 @@ itself pulls in Gazebo, RViz and slam_toolbox as hard package.xml dependencies
 package has no use for. Composition (use_composition) is dropped for the same
 reason it is unused upstream on this rover — single-process Nav2 is the norm.
 
-    ros2 launch rover_nav2 navigation.launch.py                 # real rover
-    ros2 launch rover_nav2 navigation.launch.py sim:=true       # Gazebo / Unity
+    ros2 launch rover_bringup navigation.launch.py              # real rover
+    ros2 launch rover_bringup navigation.launch.py sim:=true    # Gazebo / Unity
 """
 
 from ament_index_python.packages import get_package_share_directory

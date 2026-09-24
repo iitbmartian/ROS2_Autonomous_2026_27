@@ -1,7 +1,7 @@
 """Bring up the rover in Gazebo, with ros2_control and the driving node.
 
-    ros2 launch rover_gazebo rover_sim.launch.py
-    ros2 launch rover_gazebo rover_sim.launch.py world:=bars.sdf
+    ros2 launch rover_bringup rover_sim.launch.py
+    ros2 launch rover_bringup rover_sim.launch.py world:=bars.sdf
 
 Then drive it:
 
@@ -23,6 +23,8 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
+# URDF, worlds, configs and the control nodes still live in rover_gazebo; only
+# this launch file moved to rover_bringup.
 PKG = "rover_gazebo"
 
 
@@ -30,8 +32,9 @@ def generate_launch_description():
     share = get_package_share_directory(PKG)
 
     args = [
-        DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf, "
+        DeclareLaunchArgument("world", default_value="empty_world.sdf",
+                              description="file in rover_gazebo/worlds/: empty_world.sdf, "
+                                          "flat.sdf, ledge.sdf, bars.sdf, "
                                           "husarion_world.sdf, marsyard.sdf"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               description="'harmonic' or 'fortress'; picks plugin names"),

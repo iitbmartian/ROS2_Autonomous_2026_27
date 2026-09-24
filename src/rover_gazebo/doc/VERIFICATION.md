@@ -302,7 +302,7 @@ The harness is `rover_gazebo/measure_rover.py`. Point it at a running simulation
 manoeuvre, and it prints a line of JSON:
 
 ```bash
-ros2 launch rover_gazebo rover_sim.launch.py gui:=false &
+ros2 launch rover_bringup rover_sim.launch.py gui:=false &
 ros2 run rover_gazebo measure_rover.py --test forward --duration 5 --settle 6
 ```
 

@@ -14,13 +14,11 @@
        package named in config/nav2_params.yaml (MPPI, navfn, behaviours,
        route, docking, ...). nav2_bringup is deliberately NOT a dependency:
        it hard-depends on Gazebo, RViz and slam_toolbox as a demo/tutorial
-       package, none of which this rover needs. navigation.launch.py and
-       localization.launch.py own their node lists directly instead of
-       including nav2_bringup's launch files. -->
+       package, none of which this rover needs. navigation.launch.py (in
+       rover_bringup) owns its node list directly instead of including
+       nav2_bringup's launch files. -->
   <exec_depend>navigation2</exec_depend>
   <exec_depend>nav2_common</exec_depend>
-  <exec_depend>nav2_amcl</exec_depend>
-  <exec_depend>nav2_map_server</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
 
   <exec_depend>launch</exec_depend>

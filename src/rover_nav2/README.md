@@ -68,10 +68,9 @@ check it explicitly rather than assuming the default matches.
 |---|---|
 | `config/nav2_params.yaml` | Real rover. The file to tune. |
 | `config/nav2_params_sim.yaml` | Gazebo / Unity. Same structure, the values proven on the 2-D robot, reading a `LaserScan` on `/second_lidar/scan`. |
-| `launch/navigation.launch.py` | The Nav2 stack: planner, controller, smoother, behaviours, BT navigator, route server, velocity smoother, collision monitor, lifecycle manager. |
-| `launch/localization.launch.py` | `map_server` + AMCL against a saved map. Not part of the normal pipeline. |
+| `rover_bringup/launch/navigation.launch.py` | The Nav2 stack: planner, controller, smoother, behaviours, BT navigator, route server, velocity smoother, collision monitor, lifecycle manager. |
 
-Both launch files build their own node lists rather than including `nav2_bringup`'s. That package
+The launch file builds its own node list rather than including `nav2_bringup`'s. That package
 is a demo/tutorial bundle whose `package.xml` hard-depends on Gazebo, RViz and `slam_toolbox` —
 none of which this rover needs — so it is deliberately not a dependency of `rover_nav2` at all.
 The `navigation2` metapackage alone (declared in `package.xml`) covers every server and plugin
@@ -84,8 +83,8 @@ rosdep install --from-paths src --ignore-src -r -y     # installs Nav2 itself
 colcon build --symlink-install --packages-select rover_nav2
 source install/setup.bash
 
-ros2 launch rover_nav2 navigation.launch.py            # real rover
-ros2 launch rover_nav2 navigation.launch.py sim:=true  # simulator
+ros2 launch rover_bringup navigation.launch.py            # real rover
+ros2 launch rover_bringup navigation.launch.py sim:=true  # simulator
 ```
 
 `sim:=true` picks the sim parameter file and the simulated clock together. Override either on its
@@ -95,15 +94,12 @@ own with `params_file:=...` or `use_sim_time:=...`. The other arguments are `nam
 Launched alone, Nav2 activates and then waits: the costmaps stay empty until `rover_slam`
 publishes `/map` and the fusion node publishes `/obstacle_cloud`. That is expected, not a fault.
 
-Localisation normally comes from `rover_slam`, so AMCL stays off. To drive a course mapped
-earlier:
+Localisation comes only from RTAB-Map (`rover_bringup/launch/rtabmap.launch.py`); there is no
+AMCL path. To drive a course mapped earlier, run RTAB-Map against its saved database:
 
 ```bash
-ros2 launch rover_nav2 localization.launch.py map:=/path/to/map.yaml
+ros2 launch rover_bringup pipeline.launch.py localization:=true
 ```
-
-AMCL needs a 2-D `LaserScan` on `/scan`, which the fused-cloud pipeline does not produce on its
-own. Feed it one before relying on this path.
 
 ## Plugin choices
 
@@ -140,7 +136,7 @@ stand-ins for their outputs, not against the real pipeline:
   the fusion node — enough to satisfy `source_timeout`, not enough to represent a real obstacle.
 
 None of that scaffolding lives in this repo; it was run from `/tmp` and discarded. With it in
-place: `ros2 launch rover_nav2 navigation.launch.py`, all ten lifecycle nodes reached `active`
+place: `ros2 launch rover_bringup navigation.launch.py`, all ten lifecycle nodes reached `active`
 with no errors, every MPPI critic and costmap plugin loaded with the configured weights, and a
 `NavigateToPose` goal 2 m ahead planned, drove (`/cmd_vel` peaked around 0.18 m/s, under the 0.5
 m/s limit), and completed with `SUCCEEDED` and zero recoveries, stopping within the configured
