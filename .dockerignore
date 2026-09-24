@@ -1,0 +1,13 @@
+# Keep the build context small: only src/ and docker/ are used.
+.git
+.github
+build
+install
+log
+**/__pycache__
+**/*.pyc
+*.bag
+*.db
+*.mcap
+.vscode
+.idea

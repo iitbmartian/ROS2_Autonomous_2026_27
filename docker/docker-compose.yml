@@ -1,0 +1,96 @@
+# Usage (from anywhere in the repo):  ./docker/run.sh [dev|dev-nvidia|dev-zed]
+# The repo is mounted at /ws, so code edits on the host appear instantly inside.
+name: rover
+
+x-env: &env
+  DISPLAY: ${DISPLAY:-:0}
+  QT_X11_NO_MITSHM: "1"
+  HOST_UID: ${HOST_UID:-1000}
+  HOST_GID: ${HOST_GID:-1000}
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+
+x-common: &common
+  network_mode: host      # DDS discovery + talking to the rover / other machines
+  ipc: host               # DDS shared-memory transport
+  stdin_open: true
+  tty: true
+  working_dir: /ws
+  command: ["sleep", "infinity"]   # stays up; open shells with ./docker/exec.sh
+
+# NVIDIA laptops (hybrid graphics, e.g. ASUS TUF) render on the integrated GPU by
+# default; the PRIME offload variables send OpenGL to the NVIDIA GPU instead.
+x-nvidia-env: &nvidia-env
+  <<: *env
+  NVIDIA_DRIVER_CAPABILITIES: all
+  __NV_PRIME_RENDER_OFFLOAD: "1"
+  __GLX_VENDOR_LIBRARY_NAME: nvidia
+
+x-nvidia: &nvidia
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+services:
+  # ---------------------------------------------------------------------------
+  # Any Linux machine. Gazebo/RViz render through /dev/dri (Intel/AMD GPU or
+  # software). WSL2: remove the `devices:` block (WSL has no /dev/dri).
+  # ---------------------------------------------------------------------------
+  dev:
+    <<: *common
+    image: ghcr.io/iitbmartian/rover-dev:jazzy
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: env
+    environment: *env
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ..:/ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+  # ---------------------------------------------------------------------------
+  # Same CPU image, but rendering on an NVIDIA GPU (fast Gazebo). No ZED SDK.
+  # Needs the NVIDIA Container Toolkit on the host.
+  # ---------------------------------------------------------------------------
+  dev-nvidia:
+    <<: [*common, *nvidia]
+    image: ghcr.io/iitbmartian/rover-dev:jazzy
+    environment: *nvidia-env
+    volumes:
+      - ..:/ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+  # ---------------------------------------------------------------------------
+  # ZED SDK + CUDA image, NVIDIA GPU, and access to real hardware
+  # (ZED 2i over USB, SBG on /dev/ttyUSB*, Unitree L2 over Ethernet via host net).
+  # ---------------------------------------------------------------------------
+  dev-zed:
+    <<: [*common, *nvidia]
+    image: ghcr.io/iitbmartian/rover-dev:jazzy-zed
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: env
+      args:
+        BASE_IMAGE: stereolabs/zed:5.4-gl-devel-cuda12.8-ubuntu24.04
+    environment: *nvidia-env
+    volumes:
+      - ..:/ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev:/dev                              # hot-plugged USB / serial devices
+      - zed_resources:/usr/local/zed/resources # downloaded AI models, kept between runs
+      - zed_settings:/usr/local/zed/settings   # camera calibration files
+    device_cgroup_rules:
+      - "c 81:* rmw"    # video4linux
+      - "c 188:* rmw"   # ttyUSB (SBG)
+      - "c 166:* rmw"   # ttyACM
+      - "c 189:* rmw"   # raw USB (ZED)
+
+volumes:
+  zed_resources:
+  zed_settings:

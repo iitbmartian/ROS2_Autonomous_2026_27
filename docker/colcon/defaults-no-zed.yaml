@@ -1,0 +1,7 @@
+# Active inside the CPU image, which has no ZED SDK / CUDA. The ZED wrapper
+# packages need both, so they are skipped; zed_msgs still builds.
+# Note: passing your own --packages-skip on the command line REPLACES this list.
+build:
+  symlink-install: true
+  cmake-args: ["-DCMAKE_BUILD_TYPE=RelWithDebInfo"]
+  packages-skip: [zed_components, zed_debug, zed_wrapper, zed_ros2]

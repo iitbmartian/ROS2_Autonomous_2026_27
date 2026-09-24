@@ -1,0 +1,142 @@
+# Builds the dev images, publishes them to GHCR, and checks that the workspace
+# builds inside the CPU image.
+#
+#   Pull request touching src/ or docker/ : build CPU image (from cache), run colcon build
+#   Push to main changing deps or docker/ : same, then publish :jazzy and :jazzy-zed
+#   Weekly (Monday)                       : full rebuild without cache (ROS apt updates)
+#   Manual                                : Actions tab -> docker -> Run workflow
+name: docker
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "docker/**"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**/package.xml"
+      - "src/**/COLCON_IGNORE"
+      - "docker/**"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/iitbmartian/rover-dev
+  PUBLISH: ${{ github.event_name != 'pull_request' }}
+  # Packages colcon skips in CI. The four zed_* need the ZED SDK (not in the CPU
+  # image). rover_ekf is TEMPORARY: it imports rover_interfaces, which has no
+  # package.xml yet. Remove it from this list once that is fixed.
+  SKIP_PACKAGES: zed_components zed_debug zed_wrapper zed_ros2 rover_ekf
+
+jobs:
+  cpu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build CPU image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: env
+          load: true
+          tags: |
+            ${{ env.IMAGE }}:jazzy
+            ${{ env.IMAGE }}:jazzy-${{ github.sha }}
+          no-cache: ${{ github.event_name == 'schedule' }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache-cpu
+          cache-to: ${{ env.PUBLISH == 'true' && format('type=registry,ref={0}:buildcache-cpu,mode=max', env.IMAGE) || '' }}
+
+      - name: Publish CPU image
+        if: env.PUBLISH == 'true'
+        run: |
+          docker push "$IMAGE:jazzy"
+          docker push "$IMAGE:jazzy-${{ github.sha }}"
+
+      - name: colcon build inside the image
+        run: |
+          docker run --rm \
+            -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+            -v "$PWD:/ws" "$IMAGE:jazzy" \
+            bash -c "colcon build --event-handlers console_cohesion+ \
+                       --packages-skip $SKIP_PACKAGES"
+
+  zed:
+    # Heavy image (CUDA + ZED SDK), so only built when publishing or when a PR
+    # changes docker/ itself.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docker:
+              - "docker/**"
+
+      - name: Decide whether to build
+        id: gate
+        run: |
+          if [ "$PUBLISH" = "true" ] || [ "${{ steps.changes.outputs.docker }}" = "true" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Free disk space (the ZED base image is large)
+        if: steps.gate.outputs.build == 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af
+          df -h /
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.gate.outputs.build == 'true'
+
+      - uses: docker/login-action@v3
+        if: steps.gate.outputs.build == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and on main, publish) ZED image
+        if: steps.gate.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: env
+          build-args: |
+            BASE_IMAGE=stereolabs/zed:5.4-gl-devel-cuda12.8-ubuntu24.04
+          push: ${{ env.PUBLISH == 'true' }}
+          tags: |
+            ${{ env.IMAGE }}:jazzy-zed
+            ${{ env.IMAGE }}:jazzy-zed-${{ github.sha }}
+          no-cache: ${{ github.event_name == 'schedule' }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache-zed
+          cache-to: ${{ env.PUBLISH == 'true' && format('type=registry,ref={0}:buildcache-zed,mode=max', env.IMAGE) || '' }}

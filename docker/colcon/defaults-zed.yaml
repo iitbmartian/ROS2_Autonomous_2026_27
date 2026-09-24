@@ -1,0 +1,4 @@
+# Active inside the ZED/NVIDIA image. Flags given on the command line override these.
+build:
+  symlink-install: true
+  cmake-args: ["-DCMAKE_BUILD_TYPE=RelWithDebInfo"]
