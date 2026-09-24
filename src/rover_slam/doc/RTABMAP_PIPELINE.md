@@ -180,8 +180,8 @@ So the odometry output is remapped to `/rtabmap/odom`, and `/odom` stays ground 
 
 | File | What it does |
 |---|---|
-| `launch/rtabmap.launch.py` | the SLAM stack; attaches to an already-running simulation |
-| `launch/slam_sim.launch.py` | simulation and SLAM in one command |
+| `rover_bringup/launch/rtabmap.launch.py` | the SLAM stack; attaches to an already-running simulation |
+| `rover_bringup/launch/pipeline.launch.py` | simulation, EKF, SLAM and Nav2 in one command |
 | `rover_slam/gt_odom_tf.py` | rebroadcasts Gazebo's `/odom` as TF, for `odom_source:=ground_truth` |
 | `rviz/rover_slam.rviz` | map, cloud map, odometry, TF, camera |
 | `package.xml`, `CMakeLists.txt` | `ament_cmake`, install-only, matching `rover_gazebo` |
@@ -344,9 +344,9 @@ ignored...". Do not add it back without dropping one of the two sensors.
 ## 6. Running it
 
 ```bash
-colcon build --symlink-install --packages-select rover_gazebo rover_slam
+colcon build --symlink-install --packages-select rover_gazebo rover_slam rover_bringup
 source install/setup.bash
-ros2 launch rover_slam slam_sim.launch.py rviz:=true
+ros2 launch rover_bringup pipeline.launch.py odom_source:=ground_truth rviz:=true
 ros2 run rover_gazebo teleop_rover.py     # another terminal, keep it focused
 ```
 
@@ -370,6 +370,7 @@ a bare ground plane plus at most two boxes.
 
 | World | Works with | Why |
 |---|---|---|
+| `empty_world.sdf` | `ground_truth`; `lidar` untested | the default world, a 9 m walled box |
 | `flat.sdf` | `ground_truth` only | no texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth`, `lidar` | two bars give ICP something to bite on |
 | `ledge.sdf` | `ground_truth`, `lidar` | ramp and step, likewise |
@@ -383,7 +384,7 @@ told apart from an estimator fault, and it is the only source that works on `fla
 it uses a sensor the real rover carries:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py world:=bars.sdf odom_source:=lidar rviz:=true
+ros2 launch rover_bringup pipeline.launch.py world:=bars.sdf odom_source:=lidar rviz:=true
 ```
 
 `visual` runs `rgbd_odometry`. It needs 15 tracked features and finds about 8 against
@@ -400,7 +401,7 @@ ground truth.
 Localise against a map you already built:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py localization:=true
+ros2 launch rover_bringup pipeline.launch.py odom_source:=ground_truth localization:=true
 ```
 
 Shut down with Ctrl-C and let it finish. A leftover `rtabmap` process fights the next run,

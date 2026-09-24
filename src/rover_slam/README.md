@@ -12,11 +12,14 @@
 
 ## Run it
 
-Simulator and SLAM together:
+The full simulated stack (Gazebo, EKF, SLAM, Nav2), all from `rover_bringup`:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py rviz:=true
+ros2 launch rover_bringup pipeline.launch.py odom_source:=ground_truth rviz:=true
 ```
+
+The pipeline defaults to `odom_source:=ekf`; the commands here pass `ground_truth` to
+match `rtabmap.launch.py`'s own default.
 
 then drive it, in another terminal:
 
@@ -32,7 +35,7 @@ moves: watch `WM=` climb in the SLAM log.
 
 Run by hand like this, teleop uses the defaults built into the script. The tuned
 keyboard feel in `rover_gazebo`'s `config/rover_control.yaml` is only read when the
-simulator is launched with `teleop:=true`, which `slam_sim.launch.py` leaves off by
+simulator is launched with `teleop:=true`, which `pipeline.launch.py` leaves off by
 default so the SLAM log stays readable.
 
 Pick the odometry source to match the world, because every world so far is a bare ground
@@ -40,6 +43,7 @@ plane plus at most two boxes:
 
 | World | Works with |
 |---|---|
+| `empty_world.sdf` | `ground_truth`. The default world: a 9 m walled box. `lidar` untested |
 | `flat.sdf` | `ground_truth` only. No texture for vision, no geometry for ICP |
 | `bars.sdf` | `ground_truth` or `lidar` |
 | `ledge.sdf` | `ground_truth` or `lidar` |
@@ -51,7 +55,7 @@ like: it is 24.6 x 24.6 m and stands 1.80 m tall, and it covers the world origin
 the rover clear of it, a metre off its western edge, or it starts 1.8 m underground:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py world:=husarion_world.sdf x:=-13.0
+ros2 launch rover_bringup pipeline.launch.py odom_source:=ground_truth world:=husarion_world.sdf x:=-13.0
 ```
 
 That plate and its raised letters are the only 3D structure in this world, which makes it
@@ -69,7 +73,7 @@ like `x:=-16.0` if you want room to approach it head on.
 `lidar` is the honest test, since it uses a real sensor rather than the simulator's answer:
 
 ```bash
-ros2 launch rover_slam slam_sim.launch.py world:=bars.sdf odom_source:=lidar rviz:=true
+ros2 launch rover_bringup pipeline.launch.py world:=bars.sdf odom_source:=lidar rviz:=true
 ```
 
 Shut down with Ctrl-C and let it finish. A leftover `rtabmap` process fights the next run
@@ -79,8 +83,8 @@ and makes the clock jump backwards. If a run behaves oddly, clear it with
 To restart SLAM without restarting Gazebo, run the two halves separately:
 
 ```bash
-ros2 launch rover_gazebo rover_sim.launch.py
-ros2 launch rover_slam rtabmap.launch.py rviz:=true
+ros2 launch rover_bringup rover_sim.launch.py
+ros2 launch rover_bringup rtabmap.launch.py rviz:=true
 ```
 
 ## Arguments
@@ -94,8 +98,8 @@ ros2 launch rover_slam rtabmap.launch.py rviz:=true
 | `rviz` | `false` | RViz, with the map, cloud and odometry preloaded |
 | `viz` | `true` | `rtabmap_viz`, RTAB-Map's own inspector: camera feeds, cloud, pose graph, loop closures. Pass `viz:=false` for a headless run |
 
-`slam_sim.launch.py` also takes `world`, `sim`, `gui` and `teleop`, and passes them to
-`rover_gazebo`.
+`pipeline.launch.py` also takes `world`, `sim`, `gui` and `teleop`, and passes them to
+`rover_sim.launch.py`, the only launch file that starts Gazebo.
 
 ## What it puts on the graph
 

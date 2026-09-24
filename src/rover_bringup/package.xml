@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rover_bringup</name>
+  <version>0.0.0</version>
+  <description>
+    Launch files for the rover: the Gazebo simulation, EKF, RTAB-Map SLAM and Nav2,
+    each on its own, plus pipeline.launch.py, which starts all of them together.
+    Configs, RViz layouts and nodes stay in the packages that own them.
+  </description>
+  <maintainer email="software.mrt.iitb@gmail.com">Nishant</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Configs, URDF, worlds and nodes the launch files reference -->
+  <exec_depend>rover_gazebo</exec_depend>
+  <exec_depend>rover_ekf</exec_depend>
+  <exec_depend>rover_slam</exec_depend>
+  <exec_depend>rover_nav2</exec_depend>
+
+  <!-- rover_sim.launch.py -->
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+
+  <!-- ekf_rover_gazebo.launch.py -->
+  <exec_depend>robot_localization</exec_depend>
+
+  <!-- rtabmap.launch.py -->
+  <exec_depend>rtabmap_slam</exec_depend>
+  <exec_depend>rtabmap_odom</exec_depend>
+  <exec_depend>rtabmap_sync</exec_depend>
+  <exec_depend>rtabmap_util</exec_depend>
+  <exec_depend>rtabmap_viz</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <!-- navigation.launch.py -->
+  <exec_depend>navigation2</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

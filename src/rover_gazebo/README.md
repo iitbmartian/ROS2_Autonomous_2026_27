@@ -12,7 +12,7 @@ source install/setup.bash
 ## Run it
 
 ```bash
-ros2 launch rover_gazebo rover_sim.launch.py
+ros2 launch rover_bringup rover_sim.launch.py
 ```
 
 and in another terminal:
@@ -60,7 +60,7 @@ so **spawn the rover clear of the plate or it starts 1.8 m underground**, invisi
 unable to move:
 
 ```bash
-ros2 launch rover_gazebo rover_sim.launch.py world:=husarion_world.sdf x:=-13.0
+ros2 launch rover_bringup rover_sim.launch.py world:=husarion_world.sdf x:=-13.0
 ```
 
 The ground plane is 60 m here rather than Husarion's 25 m, because their plane is smaller
@@ -160,7 +160,6 @@ rover_gazebo/
   urdf/       rover.urdf.xacro is the entry point; rover_body.xacro is generated
   meshes/     the 22 STLs, copied from the export unchanged
   config/     controllers, driving limits, generated geometry, topic bridge
-  launch/     rover_sim.launch.py
   worlds/     flat, one-sided step, two-bar course
   tools/      derive_ratios.py, generate_description.py
   doc/        design notes, integration guide, verification results, change log

@@ -1,10 +1,10 @@
 """RTAB-Map SLAM for the rover, against a running rover_gazebo simulation.
 
 This brings up the SLAM stack only. Start the simulator separately, or use
-slam_sim.launch.py, which starts both.
+pipeline.launch.py, which starts everything.
 
-    ros2 launch rover_gazebo rover_sim.launch.py
-    ros2 launch rover_slam rtabmap.launch.py rviz:=true
+    ros2 launch rover_bringup rover_sim.launch.py
+    ros2 launch rover_bringup rtabmap.launch.py rviz:=true
 
 Inputs, all published by rover_gazebo's ros_gz_bridge:
 
@@ -33,6 +33,8 @@ so that /map reaches Nav2 where Nav2 looks for it, and the rest follow.
 Pick the odometry source to match the world. The rover_gazebo worlds are a bare
 ground plane plus at most two boxes, which is why the default is ground truth:
 
+    empty_world.sdf     ground_truth. A 9 m walled box; the walls give ICP some
+                        geometry, but lidar has not been measured here.
     flat.sdf            ground_truth only. No texture for vision, no geometry for ICP.
     bars.sdf            ground_truth or lidar.
     ledge.sdf           ground_truth or lidar.
@@ -58,6 +60,8 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+# Config, RViz layout and gt_odom_tf.py still live in rover_slam; only this
+# launch file moved to rover_bringup.
 PKG = "rover_slam"
 
 
@@ -69,8 +73,8 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     def arg(name):
         return LaunchConfiguration(name).perform(context)
 
-    # odom_source is a string rather than a bool because a third source (wheel
-    # odometry from rover_controls) is expected to land here later.
+    # odom_source is a string rather than a bool because there are more than two
+    # sources: 'ekf' reads odom -> base_footprint from rover_ekf's filter.
     odom_source = arg("odom_source")
     localization = arg("localization") == "true"
     delete_db = arg("delete_db_on_start") == "true"
@@ -293,7 +297,8 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
             remappings=remappings),
     ]
 
-    # odom -> base_footprint. Exactly one of these publishes it.
+    # odom -> base_footprint. Exactly one of these publishes it, or under
+    # odom_source:=ekf, rover_ekf's ekf_filter_node does.
     if odom_source == "visual":
         nodes.append(Node(
             package="rtabmap_odom", executable="rgbd_odometry", output="screen",
@@ -307,7 +312,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
             parameters=[shared_parameters, icp_odom_parameters],
             remappings=remappings,
             arguments=["--ros-args", "--log-level", "warn"]))
-    else:
+    elif odom_source == "ground_truth":
         nodes.append(Node(
             package=PKG, executable="gt_odom_tf.py", name="gt_odom_tf",
             output="screen",
@@ -317,9 +322,11 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     # The two estimator paths publish a real odometry topic on /rtabmap/odom, so
     # the mapper subscribes to it and gets the per-link confidence with it. The
     # ground-truth path only rebroadcasts TF and has no such topic, and naming
-    # odom_frame_id is what switches the mapper over to reading TF instead.
+    # odom_frame_id is what switches the mapper over to reading TF instead. The
+    # ekf path is the same: robot_localization publishes the TF, and nothing
+    # here starts an odometry node.
     odom_input = ({"odom_frame_id": "odom"}
-                  if odom_source == "ground_truth" else {})
+                  if odom_source in ("ground_truth", "ekf") else {})
 
     if localization:
         # Keep the existing map, do not extend it.
@@ -421,9 +428,11 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "odom_source", default_value="ground_truth",
-            choices=["visual", "lidar", "ground_truth"],
+            choices=["visual", "lidar", "ground_truth", "ekf"],
             description="'ground_truth' rebroadcasts Gazebo's /odom as TF and is "
-                        "the only source that works on flat.sdf; 'lidar' runs "
+                        "the only source that works on flat.sdf; 'ekf' starts no "
+                        "odometry node and reads odom -> base_footprint from "
+                        "rover_ekf's filter, which must be running; 'lidar' runs "
                         "icp_odometry, which needs geometry so use bars.sdf or "
                         "ledge.sdf; 'visual' runs rgbd_odometry and needs a "
                         "textured scene, which no world currently provides"),

@@ -15,7 +15,7 @@ from sensor_msgs.msg import JointState
 #   ros2 run rover_ekf steer_wheel_relay --ros-args -p wheel:=wheel_fl -p noise_stddev:=0.05
 NOISE_MEAN = 0.0
 WHEEL_RADIUS = 0.14985   # meters - rover_gazebo config/rover_kinematics.yaml
-NOISE_STDDEV = 0.5 / WHEEL_RADIUS  # rad/s of injected Gaussian noise on the raw encoder reading
+NOISE_STDDEV = 0.0 / WHEEL_RADIUS  # rad/s of injected Gaussian noise on the raw encoder reading
 STEER_NOISE_STDDEV = 0.0  # rad of injected Gaussian noise on the steer angle
 
 # Output clamp applied to the published linear velocity while in pure-noise mode.

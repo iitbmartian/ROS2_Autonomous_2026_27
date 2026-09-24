@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<!--
+  Near-empty arena for testing (e.g. the rover_strategy package): flat ground, a sun, a
+  perimeter wall (see the comment above the walls for why).
+
+  Based on Gazebo's stock empty.sdf, but that world is too bare for this rover. It has no
+  Sensors or Imu system, so the lidar, cameras and IMU declared in the URDF would never publish.
+  Those two systems are added here, matching husarion_world.sdf.
+
+  The world is deliberately named "husarion_world": config/joint_names_mobility urdf adaptation.yaml
+  bridges /world/husarion_world/model/rover/joint_state, and Gazebo topic names embed the world name.
+-->
+<sdf version="1.6">
+  <world name="husarion_world">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics" />
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands" />
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster" />
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact" />
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu" />
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Perimeter wall, 9 m x 9 m, rover starts at the centre. Two reasons it exists:
+         1. A truly empty world returns inf on every lidar ray, so slam_toolbox publishes a 4x0-cell
+            map, nav2's global costmap rejects it as malformed and stays a 5 m box at the origin.
+         2. slam_mapping.yaml has max_laser_range: 5.0 and slam_toolbox ignores returns beyond it,
+            so the walls must be within 5 m of where the rover drives. To test a bigger area,
+            raise max_laser_range there and enlarge these walls together. -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 4.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>9.2 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>9.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.55 1</ambient><diffuse>0.5 0.5 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -4.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>9.2 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>9.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.55 1</ambient><diffuse>0.5 0.5 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static>
+      <pose>4.5 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 9.0 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 9.0 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.55 1</ambient><diffuse>0.5 0.5 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-4.5 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 9.0 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 9.0 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.55 1</ambient><diffuse>0.5 0.5 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

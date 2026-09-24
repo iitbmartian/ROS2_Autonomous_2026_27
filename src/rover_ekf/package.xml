@@ -17,7 +17,6 @@
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>ament_index_python</depend>
-  <exec_depend>rover_gazebosim</exec_depend>
   <exec_depend>rover_gazebo</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>python3-numpy</exec_depend>

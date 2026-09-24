@@ -1,24 +1,30 @@
 """EKF on the rover_gazebo four-wheel-steer rover.
 
-rover_gazebo counterpart of ekf_dummy.launch.py: brings the rover up in Gazebo
-(rover_gazebo/launch/rover_sim.launch.py) and runs the per-wheel steer-aware
-encoder chain into robot_localization.
+Runs the per-wheel steer-aware encoder chain into robot_localization, against a
+simulation that is already running. It does not start Gazebo;
+rover_sim.launch.py does that.
+
+    ros2 launch rover_bringup rover_sim.launch.py
+    ros2 launch rover_bringup ekf_rover_gazebo.launch.py
 
     /joint_states -> steer_wheel_splitter -> /wheel_xx/steer_encoder
                   -> steer_wheel_relay (x4) -> /wheel_xx/odom_relayed -> ekf_filter_node (vx, vy)
                   -> wheel_body_velocity -> /wheel_odom/body          -> ekf_filter_node (yaw rate)
 
     use_imu:=true also fuses the gyro yaw rate from /imu_relay.
+
+    publish_tf:=false stops the filter publishing odom -> base_footprint, for
+    when something else owns that transform.
 """
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
 import os
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -30,11 +36,8 @@ def generate_launch_description():
     wheels_config_path = os.path.join(pkg_share, 'config', 'steer_wheels.yaml')
     kinematics_file = os.path.join(
         get_package_share_directory('rover_gazebo'), 'config', 'rover_kinematics.yaml')
-    rover_launch_path = os.path.join(
-        get_package_share_directory('rover_gazebo'),
-        'launch',
-        'rover_sim.launch.py'
-    )
+    # Overrides publish_tf in ekf_rover_gazebo.yaml.
+    publish_tf = {'publish_tf': ParameterValue(LaunchConfiguration('publish_tf'), value_type=bool)}
 
     def wheel_relay(wheel):
         # One instance per wheel, each with its own block in steer_wheels.yaml
@@ -48,21 +51,8 @@ def generate_launch_description():
         )
 
     return LaunchDescription([
-        # Forwarded to rover_sim.launch.py, which owns the default world.
-        DeclareLaunchArgument('world', default_value='empty_world.sdf',
-                              description='file in rover_gazebo/worlds: empty_world.sdf, flat.sdf, ledge.sdf, bars.sdf'),
-        DeclareLaunchArgument('gui', default_value='true'),
-        DeclareLaunchArgument('teleop', default_value='false',
-                              description='launch keyboard teleop in this terminal'),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(rover_launch_path),
-            launch_arguments={
-                'world': LaunchConfiguration('world'),
-                'gui': LaunchConfiguration('gui'),
-                'teleop': LaunchConfiguration('teleop'),
-            }.items(),
-        ),
-
+        DeclareLaunchArgument('publish_tf', default_value='true',
+                              description='publish odom -> base_footprint from the filter'),
         DeclareLaunchArgument('use_imu', default_value='false',
                               description='also fuse the gyro yaw rate from /imu_relay'),
 
@@ -71,7 +61,7 @@ def generate_launch_description():
             package='robot_localization',
             executable='ekf_node',
             name='ekf_filter_node',
-            parameters=[ekf_config_path, {'use_sim_time': True}],
+            parameters=[ekf_config_path, {'use_sim_time': True}, publish_tf],
             condition=UnlessCondition(LaunchConfiguration('use_imu')),
         ),
         # Same, plus the gyro
@@ -79,7 +69,7 @@ def generate_launch_description():
             package='robot_localization',
             executable='ekf_node',
             name='ekf_filter_node',
-            parameters=[ekf_config_path, ekf_imu_config_path, {'use_sim_time': True}],
+            parameters=[ekf_config_path, ekf_imu_config_path, {'use_sim_time': True}, publish_tf],
             condition=IfCondition(LaunchConfiguration('use_imu')),
         ),
 
