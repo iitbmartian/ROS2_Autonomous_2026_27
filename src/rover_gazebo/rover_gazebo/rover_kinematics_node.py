@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a Twist into steering angles and wheel speeds for a four-wheel-steer rover.
+"""Turn a TwistStamped into steering angles and wheel speeds for a four-wheel-steer rover.
 
 This is the Gazebo counterpart of Unity's RoverDriveController. Four driving modes.
 Three of them ask for a body motion and solve for the wheels, and all three reduce to
@@ -30,6 +30,13 @@ real yaw kick on the chassis. So the solved angle is itself rate-limited per whe
 projected onto wherever the wheel is actually pointed rather than its full magnitude,
 so a wheel mid-turn drives less hard rather than scrubbing sideways at full speed.
 
+A wheel aimed one way and a wheel aimed the opposite way, spinning backwards, are the
+same thing, so each tick every wheel takes whichever of the two is nearer where it
+already points. Changing between forward and reverse then needs no steering at all.
+Rate-limiting the raw direction instead would ask for a 180 degree turn at every
+reversal, and the wheels would sweep through sideways on the way, crabbing the rover
+off its line.
+
 The fourth mode inverts the relationship. You aim the wheels and the body goes wherever
 they take it, instead of asking for a body motion and solving for the wheels.
 
@@ -51,7 +58,7 @@ import os
 import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
 from std_msgs.msg import Float64, Float64MultiArray, String
 
@@ -64,6 +71,11 @@ def ramp(current, target, max_delta):
     if target > current:
         return min(current + max_delta, target)
     return max(current - max_delta, target)
+
+
+def wrap(angle):
+    """Normalise an angle to (-pi, pi]."""
+    return (angle + math.pi) % (2 * math.pi) - math.pi
 
 
 def angle_ramp(current, target, max_delta):
@@ -143,7 +155,9 @@ class RoverKinematics(Node):
         self.steer_pub = self.create_publisher(Float64MultiArray, "steer_controller/commands", 10)
         self.wheel_pub = self.create_publisher(Float64MultiArray, "wheel_controller/commands", 10)
         self.aim_pub = self.create_publisher(Float64, "rover/steer_aim", 10)
-        self.create_subscription(Twist, "cmd_vel", self.on_cmd, 10)
+        # Stamped, to match Nav2, whose velocity chain runs with
+        # enable_stamped_cmd_vel and ends in collision_monitor publishing /cmd_vel.
+        self.create_subscription(TwistStamped, "cmd_vel", self.on_cmd, 10)
         self.create_subscription(String, "rover/steer_mode", self.on_mode, 10)
 
         rate = self.get_parameter("update_rate").value
@@ -151,8 +165,9 @@ class RoverKinematics(Node):
         self.create_timer(self.dt, self.step)
 
     # -- input ------------------------------------------------------------
-    def on_cmd(self, msg: Twist):
-        self.want = [msg.linear.x, msg.linear.y, msg.angular.z]
+    def on_cmd(self, msg: TwistStamped):
+        t = msg.twist
+        self.want = [t.linear.x, t.linear.y, t.angular.z]
         self.last_cmd = self.get_clock().now()
 
     def on_mode(self, msg: String):
@@ -222,26 +237,30 @@ class RoverKinematics(Node):
             # Solve the direction this station wants, then let the wheel catch up to
             # it at a bounded rate rather than snapping there this same tick.
             target_angle = math.atan2(wy, wx)
+            cur = self.wheel_angle[i]
+
+            # A wheel rolls either way, so a direction and its opposite are the same
+            # aim with the drive reversed. Take whichever is nearer to where the wheel
+            # already points. Picking after the ramp instead, as this once did, made
+            # every change between forward and reverse a 180 degree target, and the
+            # rate limit swept each wheel through sideways to reach it: the rover
+            # crabbed off its line for most of a second each time, which Nav2's
+            # three-point turns do constantly. Choosing first also keeps spot mode's
+            # wheels from jumping across the quarter-turn fold.
+            if abs(wrap(target_angle - cur)) > math.pi / 2:
+                target_angle = wrap(target_angle + math.pi)
+
             max_delta = p("max_wheel_turn_rate").value * self.dt
-            self.wheel_angle[i] = angle_ramp(self.wheel_angle[i], target_angle, max_delta)
-            angle = self.wheel_angle[i]
+            lim = p("max_steer_angle").value
+            angle = max(-lim, min(lim, angle_ramp(cur, target_angle, max_delta)))
+            self.wheel_angle[i] = angle
 
             # Drive at however much of the desired ground velocity actually lies along
             # the way the wheel is presently pointed, not its full magnitude, so a wheel
-            # still mid-turn eases off instead of scrubbing sideways at full speed.
+            # still mid-turn eases off instead of scrubbing sideways at full speed. It
+            # comes out negative when the wheel is aimed against the travel, which is
+            # what rolls it backwards.
             speed = wx * math.cos(angle) + wy * math.sin(angle)
-
-            # Past a quarter turn, point the wheel the other way and roll it backwards.
-            # Same result, and the steering never has to swing through the far side.
-            if angle > math.pi / 2:
-                angle -= math.pi
-                speed = -speed
-            elif angle < -math.pi / 2:
-                angle += math.pi
-                speed = -speed
-
-            lim = p("max_steer_angle").value
-            angle = max(-lim, min(lim, angle))
 
             if i == 0:
                 self.last_fl_angle = angle

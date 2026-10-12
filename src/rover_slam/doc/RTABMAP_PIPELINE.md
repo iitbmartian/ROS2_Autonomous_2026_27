@@ -499,6 +499,26 @@ the focused one.
 `rtabmap` processes are alive at once on one `/clock`. `pkill -f rtabmap; pkill -f "gz sim"`
 and start again.
 
+**`TF_OLD_DATA ignoring data from the past for frame base_footprint`, thousands of times.** A
+Gazebo server from an earlier run is still alive. Interrupted launches can leave one behind: the
+launch log shows `failed to terminate ... escalating to 'SIGTERM'`, and `gz sim` keeps running
+after the launch has exited. Gazebo's own transport is shared by every server on the machine,
+and both worlds contain a model called `rover`. The new bridge therefore relays `/clock`, `/odom`
+and the sensors from both, interleaved. With a leftover server alive, the mapper managed 81
+updates in a 60 s drive instead of 119. Before starting, check that `pgrep -fa "gz sim"` prints
+nothing. While running, check that `ros2 topic info /clock` and `ros2 topic info /map` each report
+exactly one publisher.
+
+**Walls move when a loop closes.** Measure it before tuning anything. Under
+`odom_source:=ground_truth` the correct correction is zero, so `map` → `odom` should stay at the
+identity, and any movement is error the graph optimisation added. Measured on 2026-09-25 in a
+walled room and in open ground with isolated parallel walls, three laps each: `map` → `odom`
+stayed within 5 mm and 0.2° across loop closures and dozens of proximity links. Every occupied
+`/map` cell lay within 0.15 m of a real wall. `odom_source:=lidar` over the same drives stayed
+within about 0.1 m and 2° of ground truth. If walls do move, first rule out the duplicate
+processes above, then check whether `map` → `odom` jumps at the same moment as a
+`loop_closure_id` or `proximity_detection_id` on `/info`.
+
 ---
 
 ## 9. Pushing this

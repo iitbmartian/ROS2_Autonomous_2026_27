@@ -4,7 +4,7 @@
 
 | Topic | Type | Direction | Where it comes from |
 |---|---|---|---|
-| `/cmd_vel` | `geometry_msgs/Twist` | in | you, teleop, or a nav stack |
+| `/cmd_vel` | `geometry_msgs/TwistStamped` | in | you, teleop, or a nav stack |
 | `/rover/steer_mode` | `std_msgs/String` | in | `ackermann`, `crab`, `spot` or `explicit` |
 | `/joint_states` | `sensor_msgs/JointState` | out | `joint_state_broadcaster` |
 | `/odom` | `nav_msgs/Odometry` | out | Gazebo, bridged. Ground truth |
@@ -32,7 +32,11 @@ rocker joints.
 
 ## Driving it from your own code
 
-Publish a `Twist` on `/cmd_vel`. What the fields mean depends on the mode:
+Publish a `TwistStamped` on `/cmd_vel`, not a plain `Twist`. It is stamped to match
+Nav2, whose velocity chain runs with `enable_stamped_cmd_vel: true`. A plain `Twist`
+publisher on the same topic never connects, because ROS 2 does not match a publisher and
+subscriber of different types, and it logs nothing to say so. The header is not read;
+only `twist` is. What the fields mean depends on the mode:
 
 | Mode | `linear.x` | `linear.y` | `angular.z` |
 |---|---|---|---|
@@ -41,7 +45,7 @@ Publish a `Twist` on `/cmd_vel`. What the fields mean depends on the mode:
 | `spot` | ignored | ignored | spin rate |
 | `explicit` | wheel speed, all four | ignored | steering sweep rate |
 
-Ackermann is the mode a nav stack wants: it is ordinary differential-drive `Twist`
+Ackermann is the mode a nav stack wants: it is ordinary differential-drive twist
 semantics, with the yaw rate limited so the turn stays inside what the steering can
 reach. Crab and spot are there because the rover can do them and a planner might want
 them, not because anything needs them by default.

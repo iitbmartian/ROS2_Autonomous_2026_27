@@ -67,8 +67,11 @@ check it explicitly rather than assuming the default matches.
 | Path | Purpose |
 |---|---|
 | `config/nav2_params.yaml` | Real rover. The file to tune. |
-| `config/nav2_params_sim.yaml` | Gazebo / Unity. Same structure, the values proven on the 2-D robot, reading a `LaserScan` on `/second_lidar/scan`. |
-| `rover_bringup/launch/navigation.launch.py` | The Nav2 stack: planner, controller, smoother, behaviours, BT navigator, route server, velocity smoother, collision monitor, lifecycle manager. |
+| `config/nav2_params_sim.yaml` | Gazebo. Same structure, retargeted at `rover_gazebo` + `rover_slam`: see [Simulation](#simulation). |
+| `behavior_trees/*_ackermann.xml` | Jazzy's default navigate-to-pose / through-poses trees minus the Spin recovery. Used by the sim params. |
+| `rviz/nav2_sim.rviz` | Map, costmaps, plans, footprint, lidar, and the "Nav2 Goal" tool. |
+| `rover_bringup/launch/navigation.launch.py` | The Nav2 stack: planner, controller, smoother, behaviours, BT navigator, route server, waypoint follower, velocity smoother, collision monitor, lifecycle manager. No docking server (see Plugin choices). |
+| `rover_bringup/launch/pipeline.launch.py` | The whole sim stack: Gazebo, the EKF, RTAB-Map, a depth-image obstacle cloud and `navigation.launch.py sim:=true`. `nav_rviz:=true` opens `rviz/nav2_sim.rviz`. |
 
 The launch file builds its own node list rather than including `nav2_bringup`'s. That package
 is a demo/tutorial bundle whose `package.xml` hard-depends on Gazebo, RViz and `slam_toolbox` —
@@ -84,7 +87,8 @@ colcon build --symlink-install --packages-select rover_nav2
 source install/setup.bash
 
 ros2 launch rover_bringup navigation.launch.py            # real rover
-ros2 launch rover_bringup navigation.launch.py sim:=true  # simulator
+ros2 launch rover_bringup navigation.launch.py sim:=true  # simulator, Nav2 only
+ros2 launch rover_bringup pipeline.launch.py nav_rviz:=true  # Gazebo + EKF + RTAB-Map + Nav2 + RViz
 ```
 
 `sim:=true` picks the sim parameter file and the simulated clock together. Override either on its
@@ -101,7 +105,92 @@ AMCL path. To drive a course mapped earlier, run RTAB-Map against its saved data
 ros2 launch rover_bringup pipeline.launch.py localization:=true
 ```
 
+## Simulation
+
+`rover_bringup`'s `pipeline.launch.py` runs the whole stack against `rover_gazebo`:
+
+```bash
+ros2 launch rover_bringup pipeline.launch.py nav_rviz:=true                       # empty_world.sdf, EKF odom
+ros2 launch rover_bringup pipeline.launch.py world:=flat.sdf odom_source:=ground_truth nav_rviz:=true
+ros2 launch rover_bringup pipeline.launch.py world:=marsyard.sdf odom_source:=visual nav_rviz:=true
+```
+
+It starts Nav2 15 s in, once `/map` and `map` → `odom` exist. Send goals with **Nav2 Goal** in RViz.
+Where `map` sits depends on `odom_source`. Under `ground_truth` (the default), odometry comes
+straight from Gazebo, so `map` is the Gazebo world frame and a rover spawned with `x:=-13` sits at
+(−13, 0). Under `lidar` or `visual`, `map` starts wherever the rover spawned.
+In `husarion_world.sdf`, spawn with `x:=-13` and send goals west, north or south. The Husarion
+logo is a solid plate 1.8 m tall that spans x −11.96…12.66, directly in front of the rover. Any
+`x` above about −12.6 (for example `x:=-10`) puts part of the rover inside it.
+Goals have to lie inside the map RTAB-Map has built so far. The global costmap is sized to
+`/map`, and Smac rejects a goal outside it with "Goal Coordinates ... was outside bounds".
+
+What the sim wiring depends on, and why `nav2_params_sim.yaml` differs from the real file:
+
+- **`/cmd_vel` is `TwistStamped` end to end.** `rover_gazebo`'s `rover_kinematics` subscribes to
+  `TwistStamped`, as do its teleop and measurement scripts. A `Twist` publisher and a
+  `TwistStamped` subscriber on one topic never connect, and nothing logs it.
+- **Frames: `base_footprint`, not `base_link`.** `odom` → `base_footprint` comes from the EKF (or the chosen `odom_source`),
+  and `rover_gazebo`'s `base_link` sits 0.7225 m up at the chassis origin. Obstacle heights in the
+  collision monitor are measured in its base frame, so it has to be the one on the ground.
+- **Obstacles come from sensors that exist.** `/lidar/points` feeds both costmaps and the
+  collision monitor. `/camera/depth_points` feeds the local costmap; `pipeline.launch.py` builds it
+  from the depth image with `rtabmap_util/point_cloud_xyz`. Every source keeps points 0.15–1.0 m
+  above the ground, which matches `rover_slam`'s `Grid/MaxGroundHeight` and
+  `Grid/MaxObstacleHeight`.
+  **Do not use `rover_gazebo`'s `/camera/points`**: Gazebo publishes that cloud in the camera's
+  body axes but stamps it `camera_optical_frame`, so the ground ahead shows up as a phantom wall
+  beside the rover and pins it in place.
+- **Ackermann.** `rover_kinematics` runs in ackermann mode, which caps yaw rate at
+  |vx| / 0.8 m, so a spin in place produces no motion. MPPI therefore uses `motion_model: Ackermann`
+  with `min_turning_r: 0.8`, the planner is Smac hybrid-A* (Reeds-Shepp, 0.8 m radius), and the
+  behaviour trees leave out Spin.
+- **Inflation radii** (0.85 m local, 1.0 m global) are above the footprint's 0.78 m circumscribed
+  radius. Below that, Smac and MPPI fall back to slow full-footprint checks.
+- **MPPI checks the whole footprint** (`CostCritic.consider_footprint: true`). Checking only
+  the centre point let it choose trajectories whose corners clipped walls.
+- **`wait_for_service_timeout` is 5 s**, and `default_server_timeout` is 100 ms. At the
+  defaults (1 s and 20 ms), a planner_server still busy starting Smac could make bt_navigator
+  abort the whole bringup, or abort a goal before planning began.
+- **`/odom` is Gazebo ground truth.** Nav2 reads only its twist; the pose comes from TF, so this
+  holds for every `odom_source`.
+
+Verified on 2026-09-24 (Jazzy, Gazebo Harmonic, headless). With `world:=flat.sdf
+odom_source:=ground_truth`, two goals were sent one after the other from the spawn point:
+(5, 1.5) and then (7, −2). Both `SUCCEEDED`, in 26 s and 22 s, with zero progress-checker
+failures, and the ground-truth pose finished within 8 cm of each goal.
+
+Tuning pass, same day. Ground truth was recorded at 2 Hz during each run, with sideways slip
+taken from `/odom`'s body-frame twist.
+
+- **Sideways "crabbing" came from `rover_kinematics`, not Nav2.** At every change between forward
+  and reverse, which Ackermann three-point turns do all the time, the wheels swept through
+  sideways (up to 89°), and the rover slid 40–50° off its heading. That's fixed in
+  `rover_gazebo/rover_kinematics_node.py` (see its docstring). Afterwards, sideways slip above
+  15° appeared only momentarily, at near-zero speed while reversing: 4 of 197 samples in the
+  husarion run below, 1 of 203 in marsyard.
+- **husarion_world.sdf, `x:=-13`.** Three legs in sequence: a three-point turn off the plate
+  with the nose 0.5 m from it, 7 m north along the wall, then a right turn around the plate's
+  corner to (−9, 14.3). All `SUCCEEDED` (46, 32 and 22 s), with 0 progress failures and 0
+  recoveries.
+- **marsyard.sdf.** Three goals through the rock field: (7.5, 0.5), (5, 6.5) and (−2, 7). All
+  `SUCCEEDED` (37, 39 and 33 s), with 0 recoveries. The closest the wheels came to any of the 19
+  rocks taller than 0.15 m was 0.73 m (median 2.83 m).
+
+Known limits, not fixed here:
+
+- **bars.sdf.** The rover plans and drives, and once past the first bar it reached (10, 2). Coming
+  from the spawn point, though, it hit the 8 cm bar at an angle at crawl speed and stalled with a
+  front wheel on the bar's corner. The same bars are climbed at 1.0 m/s in `rover_gazebo`'s
+  VERIFICATION.md.
+- **`odom_source:=lidar`** diverged in both bars.sdf and husarion_world.sdf while Nav2 drove.
+  icp_odometry logged "structural complexity is too low" hundreds of times, and the odom frame
+  drifted tens of metres from ground truth. That is a limit of `rover_slam`'s odometry in these
+  sparse worlds, not of the Nav2 wiring.
+
 ## Plugin choices
+
+Real rover (`nav2_params.yaml`). The simulator differs where the section above says so.
 
 - **Controller: MPPI** (`nav2_mppi_controller`), differential-drive motion model. Six-wheel skid
   steer is differential drive as far as Nav2 is concerned. The critic weights carry over from the
@@ -120,8 +209,10 @@ ros2 launch rover_bringup pipeline.launch.py localization:=true
   the controller failed.
 - **Costmap filters** (keepout, speed) are configured but disabled, and no filter-mask server is
   launched. Enable them once a mask for the arena exists.
-- **Docking** is unused. The `docking_server` block exists only because `navigation_launch.py`
-  starts that node, so it is given frames the rover actually publishes.
+- **Docking** is not launched. Nothing on the rover docks, and `opennav_docking` 1.3.x
+  intermittently segfaults while configuring (seen 1 in 8 sim runs). When it does, the
+  lifecycle manager leaves every other Nav2 node `inactive`. The `docking_server` parameter blocks
+  stay in both files, so adding the node back to `navigation.launch.py` is all it takes.
 
 ## How this was verified
 
