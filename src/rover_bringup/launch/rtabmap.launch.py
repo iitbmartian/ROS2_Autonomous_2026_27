@@ -146,7 +146,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
         # which look like the motion model. Rather than fail, reset after 10
         # dead frames and carry on.
         "Odom/ResetCountdown": "10",
-        "Vis/MinInliers": "15",        # 640x360 is a small image; 20 is too strict
+        "Vis/MinInliers": "20",        # 640x360 is a small image; 20 is too strict
         "Vis/EstimationType": "1",     # 3D->2D PnP
     }
 

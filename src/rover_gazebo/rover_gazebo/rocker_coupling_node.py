@@ -1,9 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Hold the rocker suspension on its kinematic constraints using joint torques.
 
-Gazebo has no solver-level way to enforce these constraints (no <mimic> support), so
-this is the only coupling mechanism this package ships. It is the direct descendant of
-Unity's RockerDifferentialCoupler.
+Used when suspension:=torque (the default; see rover.urdf.xacro), which is every
+engine except Bullet-Featherstone. Gazebo has no solver-level way to enforce these
+constraints (no <mimic> support) on those engines, so this is the only coupling
+mechanism available to them. It is the direct descendant of Unity's
+RockerDifferentialCoupler. suspension:=mimic replaces this whole node with a real
+<mimic> joint on BLS/BRS/FRS plus rocker_hold_node.py holding just FLS -- see that
+node's own docstring for why, and doc/VERIFICATION.md for the mimic-vs-DART finding.
 
 The real rover's suspension is held together by two connector bars and a differential.
 Those are closed loops, so they cannot be written in a URDF. Each one is replaced here
@@ -32,13 +36,13 @@ inside the physics step, so a correction always reacts to a slightly stale posit
 stiff spring-damper doing that is a standard recipe for overshoot-and-decay. Both default
 to off, so shipped behaviour is unchanged unless they are tuned:
 
-  max_torque_rate      caps how fast the published torque may change, in N m per second,
-                       independent of how large it is allowed to get. This is the more
+  max_torque_rate      caps how fast the published torque may change, in N m per
+                       second, independent of how large it is allowed to get. This is the more
                        reliable of the two: it acts on the output, forcing a correction to
                        ramp in over several cycles instead of arriving as one step, and it
                        cannot make the lag itself worse.
-  velocity_filter_tau  a one-pole low-pass, time constant in seconds, on the velocity fed
-                       into the D term. Smooths a twitchy velocity reading, but a filter
+  velocity_filter_tau  a one-pole low-pass, time constant in seconds, on the velocity
+                       fed into the D term. Smooths a twitchy velocity reading, but a filter
                        is itself a small extra delay, so on a loop whose problem is
                        already too much delay this can make ringing worse rather than
                        better. Measure before trusting it.

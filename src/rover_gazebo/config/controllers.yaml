@@ -17,8 +17,22 @@ controller_manager:
 
     # Gives the rockers effort commands; rocker_coupling_node drives them to hold
     # the suspension's closed-loop constraints, since Gazebo has no solver-level
-    # way to enforce them itself.
+    # way to enforce them itself. suspension:=mimic (Bullet-Featherstone only) uses
+    # config/controllers_mimic.yaml instead -- see rover.urdf.xacro.
     rocker_coupling_controller:
+      type: effort_controllers/JointGroupEffortController
+
+    # Explicit-PID mode's (teleop key 5) effort-controlled counterparts to
+    # steer_controller/wheel_controller above, driven by control_node.py's own
+    # per-joint PID instead of this controller's own ideal setpoint tracking.
+    # Spawned --inactive (see launch/rover_sim.launch.py) and only activated, with
+    # steer_controller/wheel_controller deactivated in the same call, while
+    # explicit_pid mode is selected -- rover_kinematics_node makes that switch, so
+    # exactly one of the two pairs is ever active on a given joint.
+    steer_pid_controller:
+      type: effort_controllers/JointGroupEffortController
+
+    wheel_pid_controller:
       type: effort_controllers/JointGroupEffortController
 
 steer_controller:
@@ -34,4 +48,16 @@ wheel_controller:
 rocker_coupling_controller:
   ros__parameters:
     joints: [FLS_joint, BLS_joint, BRS_joint, FRS_joint]
+    interface_name: effort
+
+# Same joint order as steer_controller/wheel_controller above -- control_node.py's
+# command arrays are index-aligned with these lists.
+steer_pid_controller:
+  ros__parameters:
+    joints: [FLE_joint, FRE_joint, BLE_joint, BRE_joint]
+    interface_name: effort
+
+wheel_pid_controller:
+  ros__parameters:
+    joints: [FLD_joint, FRD_joint, BLD_joint, BRD_joint]
     interface_name: effort

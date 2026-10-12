@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Drive the rover through one scripted manoeuvre and report what it did.
 
 This is the harness behind doc/VERIFICATION.md. Each run launches nothing itself: point
@@ -18,6 +18,9 @@ Tests
     spot        spin in place; degrees turned and how far the body slid
     explicit    aim the wheels at --aim degrees, then drive; does the body actually
                 travel along them, and does the heading hold
+    explicit_pid  identical procedure to explicit, but in explicit_pid mode (teleop
+                key 5) -- control_node.py's independent per-joint PID drives the
+                joints instead of the ideal steer_controller/wheel_controller
     obstacle    drive straight over whatever the world puts in the way
 
 Every test also reports chassis roll and pitch, the free rocker's travel, and the
@@ -37,10 +40,22 @@ from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64, String
 
 ROCKERS = ("FLS_joint", "BLS_joint", "BRS_joint", "FRS_joint")
+
+# rover/steer_mode needs TRANSIENT_LOCAL durability on every publisher to it, this
+# one included, to match rover_kinematics_node.py's and control_node.py's
+# subscriptions -- a mismatched publisher (plain VOLATILE) simply never connects to
+# a TRANSIENT_LOCAL subscriber at all. See teleop_common.py's own copy of this
+# constant for the full explanation.
+MODE_QOS = QoSProfile(
+    depth=1,
+    reliability=QoSReliabilityPolicy.RELIABLE,
+    durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+)
 
 # The constraints the suspension is meant to satisfy, as (a, b, ratio) meaning
 # a - ratio * b should stay at zero. Mirrors config/rover_kinematics.yaml.
@@ -74,7 +89,7 @@ class Measure(Node):
         self.create_subscription(Odometry, "odom", self.on_odom, 20)
         self.create_subscription(JointState, "joint_states", self.on_joints, 20)
         self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
-        self.mode = self.create_publisher(String, "rover/steer_mode", 10)
+        self.mode = self.create_publisher(String, "rover/steer_mode", MODE_QOS)
 
     def on_aim(self, msg):
         self.aim = msg.data
@@ -148,8 +163,8 @@ class Measure(Node):
         self.record()
         start = dict(self.samples[0])
 
-        if a.test == "explicit":
-            return self.run_explicit()
+        if a.test in ("explicit", "explicit_pid"):
+            return self.run_explicit(a.test)
 
         t = Twist()
         mode = "ackermann"
@@ -181,23 +196,25 @@ class Measure(Node):
 
         return self.summarise(start, mode)
 
-    def run_explicit(self):
+    def run_explicit(self, mode):
         """Aim the wheels, then drive along them, and see whether the rover agrees.
 
-        This is the only test that needs two phases, because explicit mode separates
-        aiming from driving. The wheels are swept first with the drive at zero, and the
-        start pose is taken again afterwards, so whatever the steering scrubs on its way
-        round is not counted against the run.
+        This is the only test that needs two phases, because explicit mode (and
+        explicit_pid, which shares the exact same procedure -- only what actually
+        drives the joints underneath differs) separates aiming from driving. The
+        wheels are swept first with the drive at zero, and the start pose is taken
+        again afterwards, so whatever the steering scrubs on its way round is not
+        counted against the run.
         """
         a = self.args
-        self.mode.publish(String(data="explicit"))
+        self.mode.publish(String(data=mode))
 
         # Entering the mode sweeps the wheels to straight ahead. Publish nothing while
         # that runs, so the command timeout leaves the sweep alone to finish.
         self.spin(1.5)
         if self.aim is None:
             print(json.dumps({"error": "no rover/steer_aim; is rover_kinematics running, "
-                                       "and new enough to know the explicit mode?"}))
+                                       "and new enough to know this mode?"}))
             return 1
 
         if not self.sweep_aim(math.radians(a.aim)):
@@ -217,7 +234,7 @@ class Measure(Node):
         self.cmd.publish(Twist())
         self.spin(0.5)
 
-        return self.summarise(start, "explicit")
+        return self.summarise(start, mode)
 
     def sweep_aim(self, target, tol=0.01, timeout=60.0):
         """Hold a steering rate until the echoed aim reaches target. True if it got there.
@@ -314,7 +331,7 @@ class Measure(Node):
             "samples": len(s),
         }
 
-        if mode == "explicit":
+        if mode in ("explicit", "explicit_pid"):
             # Where the body actually went, against where the wheels were pointed.
             # Both are in the rover's own start frame, positive to the left.
             track = math.atan2(lat, fwd)
