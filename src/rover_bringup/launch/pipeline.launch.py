@@ -73,6 +73,7 @@ def generate_launch_description():
 
     ekf = include("ekf_rover_gazebo.launch.py", {
         "use_imu": LaunchConfiguration("use_imu"),
+        "noisy_wheels": LaunchConfiguration("noisy_wheels"),
         "publish_tf": PythonExpression(["'true' if '", odom_source, "' == 'ekf' else 'false'"]),
     })
 
@@ -138,9 +139,17 @@ def generate_launch_description():
         DeclareLaunchArgument("yaw", default_value="0.0"),
 
         # ekf_rover_gazebo.launch.py
-        DeclareLaunchArgument("use_imu", default_value="false",
+        # On by default: the IMU supplies the roll and pitch RTAB-Map needs to
+        # keep tilted lidar rings off the occupancy grid, and a far steadier yaw
+        # rate than the wheels.
+        DeclareLaunchArgument("use_imu", default_value="true",
                               choices=["true", "false"],
-                              description="also fuse the gyro yaw rate into the EKF"),
+                              description="also fuse the IMU (roll, pitch, angular "
+                                          "rates) into the EKF"),
+        DeclareLaunchArgument("noisy_wheels", default_value="false",
+                              choices=["true", "false"],
+                              description="inject the EKF test noise into the wheel "
+                                          "encoders (rover_ekf steer_wheels_noisy.yaml)"),
 
         # rtabmap.launch.py
         DeclareLaunchArgument("odom_source", default_value="ekf",

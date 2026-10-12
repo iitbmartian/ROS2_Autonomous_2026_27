@@ -18,6 +18,13 @@ WHEEL_RADIUS = 0.14985   # meters - rover_gazebo config/rover_kinematics.yaml
 NOISE_STDDEV = 0.0 / WHEEL_RADIUS  # rad/s of injected Gaussian noise on the raw encoder reading
 STEER_NOISE_STDDEV = 0.0  # rad of injected Gaussian noise on the steer angle
 
+# Wheel-speed variance (m/s)^2 reported even with no injected noise: the sim's
+# wheels still slip and scrub, so a perfectly trusted encoder would be a lie.
+VELOCITY_VARIANCE_FLOOR = 0.01
+# A ground vehicle does not move along its own z axis. Fusing vz = 0 holds the
+# 3D filter's height steady; without it z would random-walk.
+VZ_VARIANCE = 0.01
+
 # Output clamp applied to the published linear velocity while in pure-noise mode.
 NOISY_MODE_MIN_VEL = -2.0
 NOISY_MODE_MAX_VEL = 2.0
@@ -59,15 +66,6 @@ class SteerWheelRelay(Node):
         )
         self.pub = self.create_publisher(Odometry, relayed_topic, 10)
 
-        # Twist covariance injected into the outgoing Odometry message.
-        # [vx, vy, vz, vroll, vpitch, vyaw] x 6, row-major
-        self.twist_cov = [0.05, 0.0, 0.0, 0.0, 0.0, 0.0,
-                          0.0, 0.05, 0.0, 0.0, 0.0, 0.0,
-                          0.0, 0.0, 0.05, 0.0, 0.0, 0.0,
-                          0.0, 0.0, 0.0, 0.05, 0.0, 0.0,
-                          0.0, 0.0, 0.0, 0.0, 0.05, 0.0,
-                          0.0, 0.0, 0.0, 0.0, 0.0, 0.05]
-
         self.get_logger().info(
             f"{self.wheel_name} steer relay started: {raw_topic} -> {relayed_topic} "
             f"(noise stddev={self.get_parameter('noise_stddev').value}); "
@@ -96,6 +94,7 @@ class SteerWheelRelay(Node):
         if self.noisy_mode:
             wheel_speed = random.gauss(self.noisy_mean, self.noisy_stddev)
             wheel_speed = max(NOISY_MODE_MIN_VEL, min(NOISY_MODE_MAX_VEL, wheel_speed))
+            speed_stddev = self.noisy_stddev
         else:
             mean = self.get_parameter('noise_mean').value
             stddev = self.get_parameter('noise_stddev').value
@@ -104,6 +103,7 @@ class SteerWheelRelay(Node):
             # Drive encoder value is angular velocity (rad/s).
             noisy_angular_vel = drive_rate + random.gauss(mean, stddev)
             wheel_speed = noisy_angular_vel * radius
+            speed_stddev = stddev * radius
 
         out = Odometry()
         out.header.stamp = msg.header.stamp
@@ -115,7 +115,18 @@ class SteerWheelRelay(Node):
         # part of the motion is sideways, so vy is populated as well as vx.
         out.twist.twist.linear.x = wheel_speed * math.cos(steer_angle)
         out.twist.twist.linear.y = wheel_speed * math.sin(steer_angle)
-        out.twist.covariance = self.twist_cov
+        out.twist.twist.linear.z = 0.0
+
+        # Report the noise actually injected, so the EKF weighs each wheel by
+        # what it is really worth. A fixed 0.05 here understated the 0.5 m/s test
+        # noise fivefold, and the filter chased it. [vx, vy, vz, vroll, vpitch,
+        # vyaw] x 6, row-major; only vx, vy and vz are fused from a wheel.
+        var = speed_stddev ** 2 + VELOCITY_VARIANCE_FLOOR
+        cov = [0.0] * 36
+        cov[0] = cov[7] = var
+        cov[14] = VZ_VARIANCE
+        cov[21] = cov[28] = cov[35] = 1e3
+        out.twist.covariance = cov
 
         self.pub.publish(out)
 

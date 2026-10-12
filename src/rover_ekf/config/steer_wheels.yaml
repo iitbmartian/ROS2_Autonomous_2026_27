@@ -2,6 +2,11 @@
 # Each steer_wheel_relay instance is its own node, so noise can be tuned
 # per wheel independently for testing, as with wheel_fl.py .. wheel_rr.py.
 #
+# No injected noise here: this is the file the SLAM/Nav2 pipeline runs on. The
+# EKF robustness test values (0.5 m/s per wheel) live in steer_wheels_noisy.yaml,
+# selected with noisy_wheels:=true. Run under SLAM they shook odom -> base_footprint
+# hard enough that the lidar walls flickered in the map frame.
+#
 # noise_stddev        rad/s of Gaussian noise on the drive encoder (0.5 m/s / radius)
 # steer_noise_stddev  rad of Gaussian noise on the steer angle
 # wheel_radius        m, from rover_gazebo config/rover_kinematics.yaml
@@ -15,7 +20,7 @@ wheel_fl:
     use_sim_time: true
     wheel: wheel_fl
     noise_mean: 0.0
-    noise_stddev: 3.3367
+    noise_stddev: 0.0
     steer_noise_stddev: 0.0
     wheel_radius: 0.14985
 
@@ -24,7 +29,7 @@ wheel_fr:
     use_sim_time: true
     wheel: wheel_fr
     noise_mean: 0.0
-    noise_stddev: 3.3367
+    noise_stddev: 0.0
     steer_noise_stddev: 0.0
     wheel_radius: 0.14985
 
@@ -33,7 +38,7 @@ wheel_rl:
     use_sim_time: true
     wheel: wheel_rl
     noise_mean: 0.0
-    noise_stddev: 3.3367
+    noise_stddev: 0.0
     steer_noise_stddev: 0.0
     wheel_radius: 0.14985
 
@@ -42,6 +47,6 @@ wheel_rr:
     use_sim_time: true
     wheel: wheel_rr
     noise_mean: 0.0
-    noise_stddev: 3.3367
+    noise_stddev: 0.0
     steer_noise_stddev: 0.0
     wheel_radius: 0.14985

@@ -4,6 +4,9 @@
 # velocities - IMU is intentionally NOT included, for isolated wheel-odometry testing.
 # Each wheel reports vx AND vy: the relay projects the wheel's rolling speed along
 # its steer angle, so steered (explicit/crab) motion is sideways as well as forward.
+# Each wheel also reports vz = 0 (a ground vehicle does not move along its own z),
+# which only matters once ekf_rover_gazebo_imu.yaml turns two_d_mode off; it then
+# keeps the filter's height from random-walking.
 # Heading comes from odom4: wheel_body_velocity fits one rigid-body yaw rate to the
 # four wheels, so the filter stays wheel-only. Launch with use_imu:=true to also fuse
 # the gyro (ekf_rover_gazebo_imu.yaml).
@@ -25,7 +28,7 @@ ekf_filter_node:
     odom0: /wheel_fl/odom_relayed
     odom0_config: [false, false, false,
                    false, false, false,
-                   true,  true,  false,
+                   true,  true,  true,
                    false, false, false,
                    false, false, false]
     odom0_differential: false
@@ -35,7 +38,7 @@ ekf_filter_node:
     odom1: /wheel_fr/odom_relayed
     odom1_config: [false, false, false,
                    false, false, false,
-                   true,  true,  false,
+                   true,  true,  true,
                    false, false, false,
                    false, false, false]
     odom1_differential: false
@@ -45,7 +48,7 @@ ekf_filter_node:
     odom2: /wheel_rl/odom_relayed
     odom2_config: [false, false, false,
                    false, false, false,
-                   true,  true,  false,
+                   true,  true,  true,
                    false, false, false,
                    false, false, false]
     odom2_differential: false
@@ -55,7 +58,7 @@ ekf_filter_node:
     odom3: /wheel_rr/odom_relayed
     odom3_config: [false, false, false,
                    false, false, false,
-                   true,  true,  false,
+                   true,  true,  true,
                    false, false, false,
                    false, false, false]
     odom3_differential: false
