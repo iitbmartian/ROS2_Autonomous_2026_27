@@ -11,7 +11,12 @@ rover_sim.launch.py does that.
                   -> steer_wheel_relay (x4) -> /wheel_xx/odom_relayed -> ekf_filter_node (vx, vy)
                   -> wheel_body_velocity -> /wheel_odom/body          -> ekf_filter_node (yaw rate)
 
-    use_imu:=true also fuses the gyro yaw rate from /imu_relay.
+    use_imu:=true also fuses the IMU from /imu_relay: roll and pitch, and the
+    angular rates. The filter then runs in 3D, so odom -> base_footprint carries
+    the chassis attitude that RTAB-Map needs to keep tilted lidar rings off its grid.
+
+    noisy_wheels:=true loads steer_wheels_noisy.yaml, the EKF robustness test with
+    0.5 m/s of noise per wheel. The default steer_wheels.yaml injects none.
 
     publish_tf:=false stops the filter publishing odom -> base_footprint, for
     when something else owns that transform.
@@ -23,7 +28,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.parameter_descriptions import ParameterValue
 
 
@@ -33,7 +38,11 @@ def generate_launch_description():
 
     ekf_config_path = os.path.join(pkg_share, 'config', 'ekf_rover_gazebo.yaml')
     ekf_imu_config_path = os.path.join(pkg_share, 'config', 'ekf_rover_gazebo_imu.yaml')
-    wheels_config_path = os.path.join(pkg_share, 'config', 'steer_wheels.yaml')
+    wheels_config_path = PathJoinSubstitution([
+        pkg_share, 'config',
+        PythonExpression(["'steer_wheels_noisy.yaml' if '", LaunchConfiguration('noisy_wheels'),
+                          "'.lower() in ('true', '1') else 'steer_wheels.yaml'"]),
+    ])
     kinematics_file = os.path.join(
         get_package_share_directory('rover_gazebo'), 'config', 'rover_kinematics.yaml')
     # Overrides publish_tf in ekf_rover_gazebo.yaml.
@@ -54,7 +63,11 @@ def generate_launch_description():
         DeclareLaunchArgument('publish_tf', default_value='true',
                               description='publish odom -> base_footprint from the filter'),
         DeclareLaunchArgument('use_imu', default_value='false',
-                              description='also fuse the gyro yaw rate from /imu_relay'),
+                              description='also fuse the IMU (roll, pitch, angular rates) '
+                                          'from /imu_relay; runs the filter in 3D'),
+        DeclareLaunchArgument('noisy_wheels', default_value='false',
+                              description='inject the EKF test noise into the wheel '
+                                          'encoders (steer_wheels_noisy.yaml)'),
 
         # EKF node, fusing the four wheel velocities and the wheel-fitted yaw rate
         Node(

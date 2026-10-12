@@ -68,7 +68,9 @@ def generate_launch_description():
         'collision_monitor',
         'bt_navigator',
         'waypoint_follower',
-        'docking_server',
+        # docking_server is left out, node and all. Nothing on this rover docks,
+        # and opennav_docking (1.3.x) intermittently segfaults while configuring;
+        # the lifecycle manager then leaves every other node inactive.
     ]
 
     return LaunchDescription([
@@ -160,14 +162,6 @@ def generate_launch_description():
             package='nav2_collision_monitor',
             executable='collision_monitor',
             name='collision_monitor',
-            output='screen',
-            parameters=[configured_params, {'use_sim_time': use_sim_time}],
-            remappings=remappings,
-        ),
-        Node(
-            package='opennav_docking',
-            executable='opennav_docking',
-            name='docking_server',
             output='screen',
             parameters=[configured_params, {'use_sim_time': use_sim_time}],
             remappings=remappings,

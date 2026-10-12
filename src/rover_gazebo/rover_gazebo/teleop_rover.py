@@ -24,7 +24,7 @@ What A and D do in each mode:
                sweep rate, about six degrees at the defaults, because a terminal key
                lapses rather than releasing. Trim it with a tap of the opposite key.
 
-Publishes geometry_msgs/Twist on cmd_vel and std_msgs/String on rover/steer_mode, and
+Publishes geometry_msgs/TwistStamped on cmd_vel and std_msgs/String on rover/steer_mode, and
 subscribes to std_msgs/Float64 on rover/steer_aim to show and recentre the explicit
 angle. In explicit mode angular.z carries a steering rate rather than a body yaw rate;
 rover_kinematics_node integrates it, which is why the angle survives a key release.
@@ -40,7 +40,7 @@ import termios
 import tty
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 from rclpy.node import Node
 from std_msgs.msg import Float64, String
 
@@ -61,7 +61,7 @@ class Teleop(Node):
         self.declare_parameter("hold_time", 0.4)         # s a key stays live
         self.declare_parameter("update_rate", 50.0)
 
-        self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
+        self.cmd = self.create_publisher(TwistStamped, "cmd_vel", 10)
         self.mode_pub = self.create_publisher(String, "rover/steer_mode", 10)
         self.create_subscription(Float64, "rover/steer_aim", self.on_aim, 10)
         self.mode = "ackermann"
@@ -143,7 +143,15 @@ class Teleop(Node):
         else:
             t.linear.x = fwd * speed
             t.angular.z = turn * p("max_yaw_rate").value
-        self.cmd.publish(t)
+        self.send(t)
+
+    def send(self, twist):
+        """Publish on cmd_vel stamped, the type rover_kinematics and Nav2 both use."""
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_footprint"
+        msg.twist = twist
+        self.cmd.publish(msg)
 
     def report_aim(self):
         """Show the live steering angle, redrawn only when the whole degree changes.
@@ -180,7 +188,7 @@ def main():
     finally:
         if interactive:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        node.cmd.publish(Twist())
+        node.send(Twist())
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

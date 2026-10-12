@@ -7,12 +7,29 @@
 #
 # Differences from nav2_params.yaml (real rover):
 #   - use_sim_time: true throughout
-#   - obstacles come from a 2-D LaserScan on /second_lidar/scan, not the fused
-#     PointCloud2 on /obstacle_cloud
-#   - odom topic is /odom, not /odometry/filtered
-#   - slower, tighter tuning matched to the small simulated robot
+#   - obstacles come from rover_gazebo's own sensors: the 16-ring roof lidar on
+#     /lidar/points and a cloud rebuilt from the RGB-D depth image on
+#     /camera/depth_points (started by rover_bringup pipeline.launch.py; rover_gazebo's own
+#     /camera/points is mis-framed, see there). Not the fused /obstacle_cloud,
+#     which nothing in sim publishes.
+#     The 2-D robot's /second_lidar/scan does not exist on this rover, and a
+#     collision_monitor source with no data zeroes /cmd_vel outright.
+#   - odom topic is /odom, Gazebo's ground truth, not /odometry/filtered. Nav2
+#     reads only its twist, for velocity feedback, so it is right whichever
+#     odom_source rover_slam runs with; the pose comes from TF.
+#   - base frame is base_footprint, not base_link. rover_gazebo's base_link sits
+#     0.7225 m up at the chassis origin, and rover_slam publishes
+#     odom -> base_footprint, so heights are measured from the ground here.
+#   - Ackermann: MPPI's Ackermann motion model and the Smac hybrid-A* planner,
+#     both at the 0.8 m min_turn_radius of rover_gazebo/config/rover_control.yaml.
+#     rover_kinematics runs in ackermann mode and turns a spin in place into no
+#     motion, so the Spin recovery is left out of the behaviour trees as well.
+#   - looser transform_tolerance: with odom_source:=lidar, odom -> base_footprint
+#     only arrives at the lidar's 5 Hz.
+#   - slower, tighter tuning matched to the simulator
 #
 # Selected by: ros2 launch rover_bringup navigation.launch.py sim:=true
+# Full stack (Gazebo + EKF + RTAB-Map + Nav2): ros2 launch rover_bringup pipeline.launch.py
 amcl:
   # Only used by localization.launch.py, i.e. replaying a map built earlier in
   # sim. Reads the simulated scan.
@@ -23,7 +40,7 @@ amcl:
     alpha3: 0.2
     alpha4: 0.2
     alpha5: 0.2
-    base_frame_id: "base_link"
+    base_frame_id: base_footprint
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
     beam_skip_threshold: 0.3
@@ -60,11 +77,20 @@ bt_navigator:
   ros__parameters:
     use_sim_time: true
     global_frame: map
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_topic: /odom
+    # Jazzy's default trees minus the Spin recovery; see the header of either file.
+    default_nav_to_pose_bt_xml: "$(find-pkg-share rover_nav2)/behavior_trees/navigate_to_pose_ackermann.xml"
+    default_nav_through_poses_bt_xml: "$(find-pkg-share rover_nav2)/behavior_trees/navigate_through_poses_ackermann.xml"
     bt_loop_duration: 10
-    default_server_timeout: 20
-    wait_for_service_timeout: 1000
+    # 20 ms, the Nav2 default, is not always enough for planner_server to
+    # acknowledge while Smac and both costmaps share its process in sim; a goal
+    # then aborts before planning starts.
+    default_server_timeout: 100
+    # ms each BT node waits for its action server when the tree loads, at
+    # activation. 1 s is not always enough for planner_server while Smac and the
+    # global costmap initialise, and a miss aborts the entire Nav2 bringup.
+    wait_for_service_timeout: 5000
     action_server_result_timeout: 900.0
     navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
@@ -117,7 +143,7 @@ controller_server:
       model_dt: 0.05
       batch_size: 1000
       prune_distance: 1.7
-      transform_tolerance: 0.1
+      transform_tolerance: 0.3
 
       # Velocity limits of the simulated robot, not of the rover.
       vx_max: 0.25
@@ -139,7 +165,11 @@ controller_server:
       temperature: 0.1
       gamma: 0.015
 
-      motion_model: "DiffDrive"
+      # rover_kinematics' ackermann mode caps yaw rate at |vx| / min_turn_radius,
+      # so DiffDrive's spins in place would come out as no motion at all.
+      motion_model: "Ackermann"
+      AckermannConstraints:
+        min_turning_r: 0.8        # rover_gazebo/config/rover_control.yaml min_turn_radius
       visualize: true             # cheap in sim, useful in RViz
       regenerate_noises: true
 
@@ -188,7 +218,11 @@ controller_server:
         cost_weight: 3.5
         near_collision_cost: 253
         critical_cost: 300.0
-        consider_footprint: false
+        # The footprint is a 1.1 x 0.9 m box, not a circle. Checked at its centre
+        # point alone, as false does, MPPI accepts trajectories whose corners clip
+        # obstacles, runs the rover up against walls, and then has nowhere to go.
+        # Needs inflation_radius above the circumscribed radius, which it has.
+        consider_footprint: true
         collision_cost: 1000000.0
         near_goal_distance: 1.0
         trajectory_point_step: 2
@@ -227,12 +261,12 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       rolling_window: true
       width: 10
       height: 10
       resolution: 0.05
-      transform_tolerance: 0.1
+      transform_tolerance: 0.5
       footprint: "[[0.55, 0.45],
              [0.55,-0.45],
              [-0.55,-0.45],
@@ -249,7 +283,9 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 1.5
-        inflation_radius: 0.55
+        # At least the footprint's circumscribed radius (0.78 m), or Smac and
+        # MPPI fall back to slow full-footprint collision checks everywhere.
+        inflation_radius: 0.85
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -260,16 +296,35 @@ local_costmap:
         max_obstacle_height: 2.0
         mark_threshold: 0
         combination_method: 1
-        observation_sources: scan
-        scan:
-          topic: /second_lidar/scan
-          data_type: "LaserScan"
+        # Heights are in the odom frame, i.e. above the ground. 0.15 m is rover_slam's
+        # Grid/MaxGroundHeight: below it is ground, and without a floor every ground
+        # return would be marked lethal. 1.0 m is Grid/MaxObstacleHeight, to match.
+        observation_sources: lidar camera
+        lidar:
+          # Roof lidar, 16 rings over +/- 15 deg at 0.75 m. Its lowest ring only
+          # touches the ground 2.8 m out, so it misses low rocks up close.
+          topic: /lidar/points
+          data_type: "PointCloud2"
           clearing: true
           marking: true
-          max_obstacle_height: 2.0
-          raytrace_max_range: 3.0
+          min_obstacle_height: 0.15
+          max_obstacle_height: 1.0
+          raytrace_max_range: 8.0
           raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
+          obstacle_max_range: 7.5
+          obstacle_min_range: 0.5
+        camera:
+          # Depth-image cloud, which covers that near zone. From rover_bringup pipeline.launch.py,
+          # not rover_gazebo's /camera/points, which is mis-framed.
+          topic: /camera/depth_points
+          data_type: "PointCloud2"
+          clearing: true
+          marking: true
+          min_obstacle_height: 0.15
+          max_obstacle_height: 1.0
+          raytrace_max_range: 4.5
+          raytrace_min_range: 0.0
+          obstacle_max_range: 4.0
           obstacle_min_range: 0.0
       always_send_full_costmap: true
 
@@ -280,10 +335,10 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: map
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       resolution: 0.05
       track_unknown_space: true
-      transform_tolerance: 0.1
+      transform_tolerance: 0.5
       footprint: "[[0.55, 0.45],
              [0.55,-0.45],
              [-0.55,-0.45],
@@ -306,17 +361,20 @@ global_costmap:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
         combination_method: 1
-        observation_sources: scan
-        scan:
-          topic: /second_lidar/scan
-          data_type: "LaserScan"
+        # Lidar only. The static layer below already carries rover_slam's grid,
+        # which was built from the camera depth as well.
+        observation_sources: lidar
+        lidar:
+          topic: /lidar/points
+          data_type: "PointCloud2"
           clearing: true
           marking: true
-          max_obstacle_height: 2.0
-          raytrace_max_range: 3.0
+          min_obstacle_height: 0.15
+          max_obstacle_height: 1.0
+          raytrace_max_range: 8.0
           raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
+          obstacle_max_range: 7.5
+          obstacle_min_range: 0.5
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         # The squished grid from rover_slam.
@@ -326,7 +384,8 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # Low scaling factor keeps the plan near the centre of free space.
         cost_scaling_factor: 1.5
-        inflation_radius: 0.7
+        # See the local costmap: above the 0.78 m circumscribed radius.
+        inflation_radius: 1.0
       always_send_full_costmap: true
 
 map_server:
@@ -351,10 +410,28 @@ planner_server:
     planner_plugins: ["GridBased"]
     costmap_update_timeout: 1.0
     GridBased:
-      plugin: "nav2_navfn_planner::NavfnPlanner"
+      # Hybrid-A*, not NavFn: NavFn plans corners an Ackermann rover cannot turn.
+      plugin: "nav2_smac_planner::SmacPlannerHybrid"
       tolerance: 0.5
-      use_astar: false
       allow_unknown: true
+      downsample_costmap: false
+      max_iterations: 1000000
+      max_planning_time: 2.0
+      # REEDS_SHEPP rather than DUBIN because MPPI's vx_min is negative, so the
+      # rover can reverse into a plan.
+      motion_model_for_search: "REEDS_SHEPP"
+      minimum_turning_radius: 0.8   # rover_gazebo/config/rover_control.yaml min_turn_radius
+      angle_quantization_bins: 72
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
+      reverse_penalty: 2.0
+      change_penalty: 0.0
+      non_straight_penalty: 1.2
+      cost_penalty: 2.0
+      retrospective_penalty: 0.015
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: false
+      smooth_path: true
 
 smoother_server:
   ros__parameters:
@@ -388,8 +465,8 @@ behavior_server:
       plugin: "nav2_behaviors::Wait"
     local_frame: odom
     global_frame: map
-    robot_base_frame: base_link
-    transform_tolerance: 0.1
+    robot_base_frame: base_footprint
+    transform_tolerance: 0.5
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.0
     min_rotational_vel: 0.4
@@ -452,12 +529,12 @@ collision_monitor:
   ros__parameters:
     use_sim_time: true
     enable_stamped_cmd_vel: true
-    base_frame_id: "base_link"
+    base_frame_id: base_footprint
     odom_frame_id: "odom"
     cmd_vel_in_topic: "cmd_vel_smoothed"
     cmd_vel_out_topic: "cmd_vel"
     state_topic: "collision_monitor_state"
-    transform_tolerance: 0.3
+    transform_tolerance: 0.5
     source_timeout: 1.0
     base_shift_correction: true
     stop_pub_timeout: 2.0
@@ -471,12 +548,15 @@ collision_monitor:
       min_points: 6
       visualize: false
       enabled: true
-    observation_sources: ["scan"]
-    scan:
-      type: "scan"
-      topic: "/second_lidar/scan"
+    # Must be a topic that actually publishes: a source with no data for longer
+    # than source_timeout makes collision_monitor zero /cmd_vel.
+    observation_sources: ["lidar"]
+    lidar:
+      type: "pointcloud"
+      topic: "/lidar/points"
+      # Measured in base_frame_id, base_footprint, so above the ground.
       min_height: 0.15
-      max_height: 2.0
+      max_height: 1.0
       enabled: true
 
 docking_server:
@@ -492,7 +572,7 @@ docking_server:
     undock_linear_tolerance: 0.05
     undock_angular_tolerance: 0.1
     max_retries: 3
-    base_frame: "base_link"
+    base_frame: base_footprint
     fixed_frame: "odom"
     dock_backwards: false
     dock_prestaging_tolerance: 0.5

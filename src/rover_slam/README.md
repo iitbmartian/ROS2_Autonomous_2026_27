@@ -87,6 +87,15 @@ ros2 launch rover_bringup rover_sim.launch.py
 ros2 launch rover_bringup rtabmap.launch.py rviz:=true
 ```
 
+To navigate on the map as it is built, with Nav2 planning on `/map`:
+
+```bash
+ros2 launch rover_bringup pipeline.launch.py nav_rviz:=true
+```
+
+That starts Gazebo, the EKF, RTAB-Map and Nav2 together. See
+[`rover_nav2`'s README](../rover_nav2/README.md#simulation) for how they connect.
+
 ## Arguments
 
 | Argument | Default | Meaning |

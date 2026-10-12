@@ -327,6 +327,13 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     # here starts an odometry node.
     odom_input = ({"odom_frame_id": "odom"}
                   if odom_source in ("ground_truth", "ekf") else {})
+    if odom_source == "ekf":
+        # Odometry read from TF carries no covariance, so RTAB-Map assumes
+        # 0.001 and treats every odometry link as near-perfect. Wheel odometry
+        # is not, and the graph then has no room to absorb its drift through
+        # proximity and loop-closure links. Ground truth keeps the default.
+        odom_input["odom_tf_linear_variance"] = 0.01
+        odom_input["odom_tf_angular_variance"] = 0.005
 
     if localization:
         # Keep the existing map, do not extend it.
