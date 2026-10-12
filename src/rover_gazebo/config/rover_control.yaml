@@ -81,91 +81,54 @@ teleop_rover_gui:
 explicit_pid_control:
   ros__parameters:
     use_sim_time: true
-    # Every gain and limit below is a conservative starting point, not a measured
-    # value -- unlike rover_kinematics.yaml's geometry, there is no CAD-derived source
-    # for how much torque a steering knuckle or a wheel actually needs. Sanity-checked
-    # in a headless Gazebo run for stability (no continuous saturation, no runaway
-    # oscillation), not tuned. See doc/VERIFICATION.md's explicit_pid section.
-    # Steering commands real torque, and by Newton's third law that torque reacts on
-    # the chassis -- all four steering joints share one axis convention and one
-    # steer_sign (see control_node.py's module docstring), so the four reactions add
-    # instead of cancelling. kp=40/kd=4 (no rate limit) made the whole rover body
-    # visibly spin while A/D was held. kp=8/kd=1 (with the rate limiter) cut that a
-    # lot while actively steering, but uncovered a worse problem on release: holding
-    # a nonzero angle against a chassis disturbance is a real feedback path (the
-    # disturbance twists the joint off target, the PID corrects, that correction's
-    # own reaction twists the chassis further the same way), and at kp=8/kd=1 it was
-    # an outright instability -- unbounded, accelerating rotation well after the key
-    # was released and the aim had stopped moving, confirmed live. Lowering kp turned
-    # that into a bounded oscillation; raising kd on top damped it into actually
-    # settling. kp=1/kd=3 is the first combination tried that settles rather than
-    # spinning or ringing. See doc/VERIFICATION.md.
-    steer_kp: 1.0                # N m / rad of steering position error
-    steer_ki: 0.0                # N m / (rad s); 0 means no integral term at all, so
-                                  # the anti-windup logic in control_node.py is a no-op
-                                  # until this is raised
-    steer_kd: 3.0                # N m / (rad/s), against measured joint velocity
-                                  # (derivative-on-measurement, so it does not kick when
-                                  # the aim itself changes)
-    steer_max_effort: 20.0       # N m
-    steer_max_effort_rate: 40.0  # N m/s -- slews a step in demanded torque into a
-                                  # ramp instead of a kick, independent of kp/kd
-    steer_sync_kp: 5.0            # N m / rad of deviation from the other 3 steering
-                                   # joints' average position -- see control_node.py's
-                                   # module docstring for why this exists and why it
-                                   # is not the same thing as a mimic joint
-    # A genuinely different mechanism from steer_kd above, not a bigger version of
-    # it: reads real chassis yaw rate from /odom and applies a uniform correction
-    # across all four steering joints to oppose it, using the same reaction-torque
-    # path that was causing the problem, deliberately this time. Needed because
-    # neither raising steer_kd to 8 nor lowering steer_max_effort to a quarter of
-    # its value stopped the chassis from accelerating into a full, continuing
-    # rotation seconds after the steering target had already gone still -- ruled
-    # out as a magnitude problem, confirmed live as a loop closed entirely outside
-    # what steer_kp/steer_kd/steer_sync_kp can see (each joint's angle relative to
-    # the chassis, not the chassis's own absolute yaw). See control_node.py's
-    # module docstring and doc/VERIFICATION.md.
-    chassis_yaw_kd: 15.0          # N m / (rad/s) of measured chassis yaw rate.
-                                   # Sign not verified by inspection -- confirm live
-                                   # that enabling this measurably slows chassis
-                                   # rotation rather than speeding it up before
-                                   # trusting the sign; flip negative here if not
-    wheel_kp: 0.4                 # N m / (rad/s) of wheel speed error
-    wheel_ki: 0.4                 # N m / rad, with the same conditional-integration
-                                   # anti-windup as steering
-    wheel_kd: 0.0                 # N m / (rad/s^2). Deliberately off, not just an
-                                   # untuned default: differentiating a velocity error
-                                   # differentiates an already-once-differentiated,
-                                   # noisy simulated signal, and update_rate's 200 Hz
-                                   # amplifies that noise straight into torque.
-                                   # Measured directly in a headless Gazebo run:
-                                   # kp=8/kd=0.5 oscillated straight through zero and
-                                   # never settled; kp=2/ki=1/kd=0 was stable but
-                                   # overshot roughly 3x; the values shipped here are
-                                   # stable and correctly signed but still carry real
-                                   # ripple, on the order of the commanded speed
-                                   # itself -- there is real tuning headroom left. See
-                                   # doc/VERIFICATION.md.
-    wheel_max_effort: 60.0       # N m, well inside the xacro's 150 N m backstop
-    wheel_sync_kp: 2.0            # N m / (rad/s) of deviation from the other 3
-                                   # wheels' average speed -- this is the important
-                                   # one: four independently-tracking wheel loops that
-                                   # agree with their target but not quite with each
-                                   # other behave like a mismatched skid-steer rig and
-                                   # measurably yawed the chassis even driving dead
-                                   # straight, with no steering input at all
-    wheel_max_effort_rate: 1000.0  # N m/s -- generous on purpose; nothing measured
-                                  # so far points to the wheel loop needing its output
-                                  # slewed the way steering's does, this just gives it
-                                  # the same mechanism at a ceiling that doesn't change
-                                  # today's behaviour
+    # Retuned 2026-10-12 from headless Gazebo runs (doc/VERIFICATION.md, "Explicit_PID
+    # stability"). The earlier values (steer kp=1/kd=3, wheel kp=0.4/ki=0.4, plus sync
+    # and chassis-yaw terms) were tuned while rocker_coupling was in a sustained
+    # oscillation, which dithered the joints and hid two real problems: steer kp=1
+    # commands 0.5 N m at 30 deg of error, which is below the knuckle's own 0.5 N m
+    # joint friction plus tyre scrub, so on a calm rover the steering never moved at
+    # all; and the wheel PI settled ~19% fast and rang for seconds after a stop. The
+    # chassis "spin" those extra terms were added for was the steering failing to hold
+    # its angle, not a separate loop -- with these gains yaw drift is <2 deg per run
+    # with chassis_yaw_kd and both sync terms at 0, so they ship disabled.
+    steer_kp: 60.0               # N m / rad. Must beat 0.5 N m friction + scrub with
+                                  # well under a degree of error
+    steer_ki: 20.0               # N m / (rad s); removes the last ~0.5-1 deg the
+                                  # friction would otherwise leave
+    steer_kd: 2.0                # N m / (rad/s), derivative on measured joint velocity
+    steer_max_effort: 60.0       # N m, well inside the xacro's 150 N m backstop
+    steer_max_effort_rate: 100000.0  # N m/s, effectively off. A slew limit inside the
+                                  # loop is pure phase lag; nothing measured needs it
+                                  # once the suspension is not oscillating
+    steer_sync_kp: 0.0           # N m / rad toward the other 3 joints' mean. Measured
+                                  # no benefit; kept as a knob, 0 disables
+    chassis_yaw_kd: 0.0          # N m / (rad/s) of /odom yaw rate on all 4 knuckles.
+                                  # +15/0/-15 measured within noise of each other once
+                                  # steering holds; 0 disables
+    wheel_kp: 5.0                 # N m / (rad/s). 0.4 ran 19% fast; 10+ tracked but
+                                  # made the 4 wheels fight each other through the
+                                  # ground (opposing +-14 N m) and doubled yaw drift
+    wheel_ki: 2.0                 # N m / rad. The integrator is cleared whenever the
+                                  # wheel target is zero (control_node.py), otherwise
+                                  # front and rear wound up against each other at a
+                                  # standstill (+-17 N m squeeze measured)
+    wheel_kd: 0.0                 # N m / (rad/s^2); off, differentiates a noisy velocity
+    wheel_max_effort: 60.0       # N m
+    wheel_sync_kp: 0.0            # N m / (rad/s) toward the other 3 wheels' mean;
+                                   # measured no benefit, 0 disables
+    wheel_max_effort_rate: 1000.0  # N m/s
     update_rate: 200.0           # Hz
 
 rocker_coupling:
   ros__parameters:
     use_sim_time: true
     stiffness: 8000.0          # N m per rad of constraint residual
-    damping: 250.0             # N m per rad/s
+    damping: 50.0              # N m per rad/s. Was 250: with the steer/drive joints
+                               # torque-driven (explicit_pid) 250 broke into a
+                               # self-sustaining ~2-3 g pitch shake within seconds,
+                               # and 800 was worse -- this loop closes over a ROS
+                               # topic, so its D term acts on stale data. 50 was
+                               # calm in every mode; see doc/VERIFICATION.md
     max_torque: 400.0          # N m per joint. Enough to hold the suspension, and
                                # deliberately no more: whatever residual the coupling
                                # cannot correct becomes a fore-aft shove that a

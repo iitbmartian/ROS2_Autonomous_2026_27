@@ -228,70 +228,26 @@ class ExplicitPidControl(Node):
         self.steer_signs = tuple(cfg[s]["steer_sign"] for s in STATIONS)
         self.drive_signs = tuple(cfg[s]["drive_sign"] for s in STATIONS)
 
-        # Steering: kept deliberately gentle, well below the xacro's 150 N m
-        # interface backstop. Live-measured in Gazebo (see doc/VERIFICATION.md): the
-        # torque this loop commands reacts on the chassis (see the module docstring).
-        # kp=40/kd=4 (no rate limit) made the whole rover body visibly spin while A/D
-        # was held. kp=8/kd=1 (with the rate limiter added) cut that a lot while
-        # actively steering, but a much worse problem showed up on release: holding a
-        # nonzero angle against a chassis disturbance is a real feedback path (the
-        # disturbance twists the joint off target -> the PID corrects -> that
-        # correction's own reaction twists the chassis further the same way), and at
-        # kp=8/kd=1 it was an outright instability -- the chassis kept accelerating
-        # into full, un-damped rotations well after the key was released and the aim
-        # had stopped moving. Lowering kp changed that from monotonic runaway into a
-        # bounded oscillation; raising kd on top of that damped the oscillation into
-        # settling. kp=1/kd=3 is the first combination tried that actually settles
-        # rather than spinning or ringing -- slower to reach a commanded angle than
-        # kp=8 was, which is the real cost of a stable hold here, not a free lunch.
-        self.declare_parameter("steer_kp", 1.0)      # N m / rad
-        self.declare_parameter("steer_ki", 0.0)      # N m / (rad s)
-        self.declare_parameter("steer_kd", 3.0)      # N m / (rad/s)
-        self.declare_parameter("steer_max_effort", 20.0)          # N m
-        self.declare_parameter("steer_max_effort_rate", 40.0)     # N m/s, slews a
-                                                                   # torque step into
-                                                                   # a ramp
-        # Gang sync -- see step(). A starting guess, live-tuned like everything else
-        # here; 0 would disable it entirely.
-        self.declare_parameter("steer_sync_kp", 5.0)  # N m / rad of deviation from
-                                                        # the other 3 joints' average
-        # Chassis yaw damping -- see the module docstring for why this is a genuinely
-        # different mechanism from steer_kd, not a bigger version of it. Sign is not
-        # obvious by inspection (depends on the steering joints' axis direction
-        # relative to the chassis's own frame after the CAD's Y-up-to-ROS-Z-up
-        # rotation) -- verify live that a positive chassis yaw rate produces a
-        # torque that measurably slows it, not speeds it up, before trusting this
-        # sign; flip it if a live test shows the opposite. 0 disables it entirely.
-        self.declare_parameter("chassis_yaw_kd", 15.0)  # N m / (rad/s) of measured
-                                                          # chassis yaw rate, applied
-                                                          # uniformly to all 4 steer
-                                                          # joints
-        # kd defaults to 0: differentiating a velocity *error* means differentiating an
-        # already-once-differentiated, noisy simulated signal, and at update_rate's
-        # 200 Hz that noise is amplified straight into a torque command. kp/ki are
-        # both low for the same reason -- a wheel's rotational inertia is small enough
-        # that even a modest gain reacting to a noisy velocity reading measurably
-        # overshot in Gazebo. Measured directly (see doc/VERIFICATION.md): kp=8/kd=0.5
-        # oscillated through zero, sign and all, never settling; kp=2/ki=1/kd=0 was
-        # stable but still overshot about 3x; these values track within roughly the
-        # commanded speed's own magnitude of ripple, stable and correctly signed, but
-        # still not tight -- there is real tuning headroom left here.
-        self.declare_parameter("wheel_kp", 0.4)      # N m / (rad/s)
-        self.declare_parameter("wheel_ki", 0.4)      # N m / rad
-        self.declare_parameter("wheel_kd", 0.0)      # N m / (rad/s^2)
+        # Defaults mirror config/rover_control.yaml, where the reasoning for each value
+        # lives. Retuned 2026-10-12 (doc/VERIFICATION.md, "Explicit_PID stability"):
+        # the old steer kp=1 could not beat the knuckle's 0.5 N m joint friction, and
+        # the old wheel kp/ki=0.4 settled ~19% fast and rang after a stop.
+        self.declare_parameter("steer_kp", 60.0)     # N m / rad
+        self.declare_parameter("steer_ki", 20.0)     # N m / (rad s)
+        self.declare_parameter("steer_kd", 2.0)      # N m / (rad/s)
+        self.declare_parameter("steer_max_effort", 60.0)          # N m
+        self.declare_parameter("steer_max_effort_rate", 1.0e5)    # N m/s, effectively off
+        # Gang sync and chassis yaw damping -- see the module docstring for what they
+        # do. Both measured to add nothing once the steering actually holds its angle,
+        # so they default to 0 (disabled) but stay available as knobs.
+        self.declare_parameter("steer_sync_kp", 0.0)   # N m / rad
+        self.declare_parameter("chassis_yaw_kd", 0.0)  # N m / (rad/s) of chassis yaw rate
+        self.declare_parameter("wheel_kp", 5.0)      # N m / (rad/s)
+        self.declare_parameter("wheel_ki", 2.0)      # N m / rad
+        self.declare_parameter("wheel_kd", 0.0)      # N m / (rad/s^2); off, noisy signal
         self.declare_parameter("wheel_max_effort", 60.0)          # N m
-        # Generous on purpose -- unlike steering, nothing measured so far points to
-        # the wheel loop needing its output slewed; this just gives it the same
-        # mechanism, at a ceiling high enough not to change today's behaviour.
         self.declare_parameter("wheel_max_effort_rate", 1000.0)   # N m/s
-        # Gang sync -- see step(). This is the one that matters most: four
-        # independently-tracked wheel speeds that agree with their own target but
-        # not quite with each other behave like a mismatched differential drive,
-        # injecting real, growing yaw into the chassis even driving dead straight --
-        # measured live, not assumed (see doc/VERIFICATION.md).
-        self.declare_parameter("wheel_sync_kp", 2.0)  # N m / (rad/s) of deviation
-                                                        # from the other 3 wheels'
-                                                        # average speed
+        self.declare_parameter("wheel_sync_kp", 0.0)  # N m / (rad/s)
         self.declare_parameter("update_rate", 200.0)  # Hz
 
         self.mode = "ackermann"     # rover_kinematics_node's own default; on_state()
@@ -466,6 +422,12 @@ class ExplicitPidControl(Node):
         for j, target, sign, norm in zip(
                 WHEEL_JOINTS, self.wheel_target, self.drive_signs, norm_wheel):
             error = target - self.vel[j]
+            if target == 0.0:
+                # A stopped wheel holds on P alone. Left integrating, the four
+                # independent loops each wind up against whatever small creep the
+                # suspension gives them, and front and rear ended up squeezing the
+                # chassis between them (+-17 N m measured) with nothing commanded.
+                self.wheel_pid[j].integral = 0.0
             raw = self.wheel_pid[j].step(
                 error, self.vel[j], self.dt, w_kp, w_ki, w_kd, w_lim,
                 derivative_on_measurement=False)

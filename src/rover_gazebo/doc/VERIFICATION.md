@@ -277,46 +277,53 @@ straight.
 
 This has nothing to do with the steering joint's own travel. Ninety degrees commanded sits comfortably inside its 100 degree hard stop, with no saturation and no fight against a limit going on. The badness tracks how far the wheel's own heading has turned away from the chassis's fore-aft axis, not how close the command sits to anything mechanical: a wheel aligned with the chassis absorbs the suspension's fore-aft residual by simply rolling with it, and a wheel turned across the chassis cannot, so the residual pushes the chassis instead.
 
-## Explicit_PID mode, which has not been measured either
+## Explicit_PID stability (measured 2026-10-12)
 
-Same caveat as explicit mode above, and for the same reason: added afterward,
-**nothing in this section is filled in from a proper run**, and the table is
-deliberately left empty. What *did* happen was a live sanity check against a headless
-Gazebo instance while building the mode, which is not the same thing as the measured
-runs elsewhere on this page — no repeated trials, no varied aim angles, no fresh
-simulator per data point — but it found a real bug, so it is worth recording here
-rather than only in `doc/updates.md`.
+Run with `ros2 run rover_gazebo run_stability_suite.sh` (headless; `stability_test.py`
+does the checking). Thresholds live at the top of `stability_test.py`.
 
-The harness is the same procedure as explicit mode's, run against `explicit_pid`
-instead:
+**What the jitter was.** Not the PID. With the steer/drive joints torque-driven, the
+rocker coupling at `damping: 250` fell into a self-sustaining pitch shake (IMU vertical
+accel std ~27 m/s^2, pitch-rate RMS ~0.85 rad/s; a calm rover reads ~0.02 and ~0.0002).
+Zeroing the coupling removed it completely; damping 800 was worse; 70 and 100 still
+diverged in explicit/explicit_pid at 45 deg; 50 is calm. The loop closes over a ROS
+topic, so the D term acts on stale data -- more damping, more instability.
 
-```bash
-ros2 run rover_gazebo measure_rover.py --test explicit_pid --aim 45 --speed 0.5 --duration 5
-```
+**What the old PID gains hid.** With the shake gone, steer kp=1 left the steering stuck
+29.5 deg short of a 30 deg aim (0.51 N m commanded against 0.5 N m joint friction plus
+scrub), and the wheel PI (0.4/0.4) ran at 3.97 against 3.34 rad/s. Steering gain sweep
+at a 30 deg aim: kp 10 -> ~4 deg error, 13.5 deg yaw drift; kp 30 -> ~1.5 deg; kp 60 ->
+~0.7 deg; kp 60 + ki 20 -> ~0.2 deg, 0.7 deg yaw. Wheels: kp 5/ki 2 -> 3.35 rad/s,
+ripple 0.01; kp 10-20 also tracked but the four wheels fought through the ground.
 
-The same two numbers decide whether it works: `track_angle_deg` should match
-`aim_reached_deg`, and `yaw_deg` should be near zero.
+**Flat world, shipped config** (pass = all of shake/steer/wheel/motion/suspension):
 
-| Aim, deg | Track angle, deg | Track error, deg | Yaw drift, deg | Distance, m |
-|---|---|---|---|---|
-| 0 | | | | |
-| 45 | | | | |
-| 90 | | | | |
+| Scenario | Result |
+|---|---|
+| explicit_pid at 0, 45, 90 deg, -30 deg reversing, 15 s hold at 30 deg | pass |
+| explicit 0 deg; ackermann forward/reverse; crab; spot cw | pass |
+| explicit 45 deg | suspension residual ~5 deg (limit 3) |
+| ackermann arcs | residual 8-9 deg, accel std 2.3-2.8 m/s^2 (limit 1) |
+| spot ccw | accel std 1.1 m/s^2 (limit 1) |
+| after leaving explicit_pid: explicit 20 deg, explicit_pid, ackermann, spot | pass (with the patched gz_ros2_control, below) |
 
-Expect this mode's numbers to be *worse* than explicit mode's at the same aim, on top
-of whatever the suspension-residual mechanism above already costs explicit mode: this
-mode adds a second source of tracking error, the PID loop itself. Steering tracked
-tightly in the sanity check (settled within roughly 0.03-0.09 rad of a 20 degree
-target, no oscillation), but the wheel-speed loop did not: its first gains tried
-(`kp=8, kd=0.5`) oscillated straight through zero rather than converging, traced to
-differentiating an already-noisy simulated velocity signal at the loop's 200 Hz update
-rate. The shipped gains (`kp=0.4, ki=0.4, kd=0`, `config/rover_control.yaml`) are
-stable and correctly signed but still carry real ripple, on the order of the commanded
-speed's own magnitude — real tuning headroom is left there. A single exploratory run
-at a 45 degree aim, one fresh simulator, no repeats, read `track_error_deg` around
--75 degrees, which is consistent with that wheel-speed ripple dominating the run
-rather than the steering loop or the suspension residual; take that as a sign of where
-the problem lives, not as a number for the table above.
+Crab/spot are held to a 20 deg residual on purpose: at the damping the main modes need,
+their residual is ~8-18 deg, accepted as low priority.
+
+**Obstacles.** ledge.sdf passes both ways (ackermann forward, explicit_pid reversing).
+bars.sdf: ackermann stalls at the 0.12 m bar (1.2 m progress) and shakes at 16 m/s^2
+while jammed; explicit_pid reverses back over it but at 6.6 m/s^2 (limit 6). Open.
+
+**Leaving explicit_pid used to leave the joints limp -- fixed.** gz_ros2_control
+creates a `JointForceCmd` component the first time effort mode runs and never removes
+it; gz-sim's Physics system applies `JointForceCmd` in preference to `JointVelocityCmd`
+("Only set joint velocity if joint force is not set"), so every later position/velocity
+command on the 8 steer/drive joints was ignored until the sim restarted, while the
+controller switch itself reported success. This workspace now builds a patched
+gz_ros2_control overlay (`src/third_party/README.md`) that removes the other mode's
+stale command component on each write; with it, all four `after_pid_*` scenarios pass.
+Run from `install/local_setup.bash` so Gazebo loads the overlay's plugin, not
+`/opt/ros/jazzy`'s.
 
 ## The suspension, with the coupling and without
 

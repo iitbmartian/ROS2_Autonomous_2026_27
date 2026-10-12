@@ -14,8 +14,10 @@ install(PROGRAMS
   rover_gazebo/teleop_rover.py
   rover_gazebo/teleop_rover_gui.py
   rover_gazebo/measure_rover.py
+  rover_gazebo/stability_test.py
   tools/derive_ratios.py
   tools/generate_description.py
+  tools/run_stability_suite.sh
   DESTINATION lib/${PROJECT_NAME})
 
 # Shared driving logic imported by teleop_rover.py and teleop_rover_gui.py -- a plain

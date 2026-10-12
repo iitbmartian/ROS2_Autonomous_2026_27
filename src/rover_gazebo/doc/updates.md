@@ -5,6 +5,25 @@ reasoning behind the change; the "how" lives in the code and the other docs, not
 
 ## Summary
 
+- **2026-10-12** — Fixed explicit_pid jitter and added a stability suite. The jitter
+  was `rocker_coupling_node`, not the PID: at `damping: 250` the coupling broke into a
+  self-sustaining ~2-3 g pitch shake whenever the wheels weren't velocity-locked
+  (explicit_pid, but also crab/spot/arcs/explicit 45 deg). Its loop closes over a ROS
+  topic, so the D term acts on stale data; 50 is calm, 70 and 100 already diverge.
+  With the suspension calm, the old PID gains were exposed: steer kp=1 can't beat the
+  knuckle's 0.5 N m friction (steering never moved), wheel kp/ki=0.4 ran 19% fast.
+  Retuned to steer 60/20/2 (kp/ki/kd), wheel 5/2, sync and chassis-yaw terms off; the
+  wheel integrator is cleared at a zero target (front/rear were squeezing +-17 N m at a
+  standstill). Crab/spot keep a larger suspension residual (~8-18 deg) at this damping,
+  accepted as low priority. New `stability_test.py` + `tools/run_stability_suite.sh`
+  check shake, joint tracking, motion and suspension in every mode on flat/ledge/bars.
+  Leaving explicit_pid used to leave all 8 steer/drive joints limp until a sim
+  restart (gz_ros2_control never removes the `JointForceCmd` effort mode creates, and
+  gz-sim's Physics ignores velocity commands while one exists); fixed with a patched
+  gz_ros2_control 1.2.20 overlay in `src/third_party/` (see its README).
+  Files: `config/rover_control.yaml`, `rover_gazebo/control_node.py`,
+  `rover_gazebo/stability_test.py`, `tools/run_stability_suite.sh`, `CMakeLists.txt`,
+  `src/third_party/gz_ros2_control/` (vendored, patched `gz_system.cpp`).
 - **2026-09-23** — Added explicit_pid steering mode (teleop key 5): identical movement
   to explicit, but the 4 steer + 4 drive joints are each driven by a new node's own
   independent PID (effort control) rather than the ideal `steer_controller`/
