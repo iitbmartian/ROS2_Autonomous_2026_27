@@ -26,7 +26,9 @@ rover_kinematics:
     speed_ramp_time: 1.2       # s, standstill to full speed
     steer_ramp_time: 0.8       # s, lock to lock
     update_rate: 100.0         # Hz
-    command_timeout: 0.5       # s without a Twist before the rover coasts to a stop
+    command_timeout: 0.5       # s since the last cmd_vel arrived before the rover coasts
+                               # to a stop. Measured on receipt, not from header.stamp:
+                               # Nav2 stamps in sim time and the teleops in wall time
     mode: ackermann
 
 # Keyboard feel. Read only when the sim is launched with teleop:=true; running
@@ -105,6 +107,8 @@ explicit_pid_control:
     chassis_yaw_kd: 0.0          # N m / (rad/s) of /odom yaw rate on all 4 knuckles.
                                   # +15/0/-15 measured within noise of each other once
                                   # steering holds; 0 disables
+    chassis_yaw_ki: 0.0          # N m / rad of accumulated /odom yaw rate; same
+                                  # story as chassis_yaw_kd, 0 disables
     wheel_kp: 5.0                 # N m / (rad/s). 0.4 ran 19% fast; 10+ tracked but
                                   # made the 4 wheels fight each other through the
                                   # ground (opposing +-14 N m) and doubled yaw drift
@@ -162,7 +166,19 @@ rocker_hold:
     use_sim_time: true
     stiffness: 8000.0          # N m per rad of residual
     damping: 1000.0            # N m per rad/s
-    max_torque: 400.0          # N m
+    max_torque: 8000.0         # N m. Raised again from an earlier fix's 2000: at
+                               # 2000, idle on a fresh launch could still saturate
+                               # solid and chatter -- measured live, FLS oscillating
+                               # 13 to 24 deg, commands pinned at -2000 repeatedly,
+                               # not converging. 8000 removes that saturating
+                               # chatter (converges to a stable point instead), but
+                               # does NOT fix the deeper problem -- see
+                               # rocker_hold_node.py's module docstring: under real
+                               # driving loads (a spot turn, measured), FLS/FRS still
+                               # reach their hard limits regardless of this value,
+                               # because <mimic>'s rigid constraint enforcement
+                               # itself, not insufficient torque, is what's forcing
+                               # the large excursion. Known unresolved limitation.
     update_rate: 400.0         # Hz
     capture_rest: true         # same rationale as rocker_coupling's own: hold
                                # against wherever FLS actually settles, not a
@@ -174,3 +190,16 @@ rocker_hold:
     velocity_filter_tau: 0.0   # s, 0 disables the one-pole low-pass on the D term's
                                # velocity; not yet re-measured for this single-joint
                                # case either
+    pre_capture_hold: true     # apply the same stiffness+damping PD as the
+                               # post-capture hold, targeting 0.0, while waiting out
+                               # rest_capture_delay, instead of leaving FLS_joint
+                               # fully free. Needed here and not on
+                               # rocker_coupling_node's own four independent rockers:
+                               # this joint reflects all four rockers' inertia through
+                               # the mimic constraint from the first physics step, and
+                               # measured live, it never actually settles left free or
+                               # damping-only -- it crawls steadily (confirmed for a
+                               # full 40 s) toward its hard limit instead. Safe to
+                               # anchor at 0.0 because suspension:=torque's own
+                               # measured rest position on this rover is -0.0007 deg.
+                               # See rocker_hold_node.py.

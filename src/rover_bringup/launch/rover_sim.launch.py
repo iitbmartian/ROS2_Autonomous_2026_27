@@ -71,7 +71,7 @@ def generate_launch_description():
         DeclareLaunchArgument("gui", default_value="true"),
         DeclareLaunchArgument("teleop", default_value="false",
                               description="launch keyboard teleop in this terminal"),
-        DeclareLaunchArgument("teleop_gui", default_value="false",
+        DeclareLaunchArgument("teleop_gui", default_value="true",
                               description="launch the Tkinter keyboard teleop window"),
         DeclareLaunchArgument("x", default_value="0.0"),
         DeclareLaunchArgument("y", default_value="0.0"),
