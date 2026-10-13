@@ -104,6 +104,51 @@ unrelated cause to the jitter section below: this is a solved-angle discontinuit
 the suspension coupling. Both can be present at once, and this fix does not touch or
 depend on the coupling loop.
 
+## A fold-boundary snap, left behind by the rate-limit fix above
+
+Reported directly: driving in Ackermann mode, pressing S to reverse (or coming to a stop
+after reversing) snapped the steering wheels to roughly +90 degrees and then to roughly
+-90 degrees, one physical jerk, changing the chassis's heading. The rate-limit fix above
+stops the *solved* wheel angle from snapping straight to a fresh target, but it never
+touched a second, separate step that runs immediately afterward: past 90 degrees, the
+wheel is folded to point the other way and roll backwards instead, so it never has to
+swing through the far side. That fold ran on the *published* value only, one tick after
+the rate limit, so the internal angle stayed free to keep ramping smoothly out past 90
+degrees toward its raw, unfolded target -- which can be a full 180 degrees away, since
+`atan2(0, vx)` is exactly 0 for `vx>0` and exactly pi for `vx<0`, a hard discontinuity in
+the *target* the instant a reversal crosses zero speed. The moment that still-ramping
+internal value crossed the ±90 degree line, the published angle jumped by the fold
+amount in that single tick, even though the internal value had only moved by one
+ordinary tick's worth.
+
+The fix folds the solved angle to whichever of itself or its reverse sits closer to
+wherever the wheel's ramped state *already is*, before rate-limiting toward that folded
+target, not after. The choice is re-made fresh every tick from the wheel's actual current
+position, so crossing the boundary now costs one ordinary rate-limited step like any
+other tick.
+
+Standalone, against the real kinematics node with no Gazebo: the same four scenarios
+(straight reversal, reverse-while-turning, reverse-then-stop, spot spin-up from a stop)
+that all showed a 178.85 degree single-tick jump before this fix show a maximum of 1.146
+degrees after -- the ordinary per-tick rate-limit step, at the boundary crossing itself,
+and zero in the two scenarios that never needed to cross it.
+
+Measured live in Gazebo, both times from a fresh launch, commanding the rover straight in
+Ackermann mode and reversing (`linear.x` +0.8 to -0.8, `angular.z` 0 throughout --
+reproducing "press S while driving straight"), peak `|angular.z|` in the ~2 s window
+around the reversal:
+
+| | Peak `angular.z` during the reversal |
+|---|---|
+| Before this fix | 2.043 rad/s |
+| After this fix | 0.005 rad/s |
+
+A 99.7% cut -- down to the same low-single-digit-mrad/s level as the contact-solver
+jitter baseline measured elsewhere in this document, i.e. no longer distinguishable from
+noise. `measure_rover.py --test forward` and `--test arc_left` afterward showed no
+regression (near-zero yaw/lateral drift driving straight; a sustained, continuous turn
+with real forward and lateral displacement throughout driving an arc).
+
 ## A jitter that Fortress never showed
 
 The Harmonic forward number above is not a fluke. Recording `/odom` continuously through
@@ -231,6 +276,60 @@ much like the crab row, and an aim of 0 should be indistinguishable from driving
 straight.
 
 This has nothing to do with the steering joint's own travel. Ninety degrees commanded sits comfortably inside its 100 degree hard stop, with no saturation and no fight against a limit going on. The badness tracks how far the wheel's own heading has turned away from the chassis's fore-aft axis, not how close the command sits to anything mechanical: a wheel aligned with the chassis absorbs the suspension's fore-aft residual by simply rolling with it, and a wheel turned across the chassis cannot, so the residual pushes the chassis instead.
+
+## Explicit_PID stability (measured 2026-10-12)
+
+Run with `ros2 run rover_gazebo run_stability_suite.sh` (headless; `stability_test.py`
+does the checking). Thresholds live at the top of `stability_test.py`.
+
+**What the jitter was.** Not the PID. With the steer/drive joints torque-driven, the
+rocker coupling at `damping: 250` fell into a self-sustaining pitch shake (IMU vertical
+accel std ~27 m/s^2, pitch-rate RMS ~0.85 rad/s; a calm rover reads ~0.02 and ~0.0002).
+Zeroing the coupling removed it completely; damping 800 was worse; 70 and 100 still
+diverged in explicit/explicit_pid at 45 deg; 50 is calm. The loop closes over a ROS
+topic, so the D term acts on stale data -- more damping, more instability.
+
+**What the old PID gains hid.** With the shake gone, steer kp=1 left the steering stuck
+29.5 deg short of a 30 deg aim (0.51 N m commanded against 0.5 N m joint friction plus
+scrub), and the wheel PI (0.4/0.4) ran at 3.97 against 3.34 rad/s. Steering gain sweep
+at a 30 deg aim: kp 10 -> ~4 deg error, 13.5 deg yaw drift; kp 30 -> ~1.5 deg; kp 60 ->
+~0.7 deg; kp 60 + ki 20 -> ~0.2 deg, 0.7 deg yaw. Wheels: kp 5/ki 2 -> 3.35 rad/s,
+ripple 0.01; kp 10-20 also tracked but the four wheels fought through the ground.
+
+**Flat world, shipped config** (pass = all of shake/steer/wheel/motion/suspension):
+
+| Scenario | Result |
+|---|---|
+| explicit_pid at 0, 45, 90 deg, -30 deg reversing, 15 s hold at 30 deg | pass |
+| explicit 0 deg; ackermann forward/reverse; crab; spot cw | pass |
+| explicit 45 deg | suspension residual ~5 deg (limit 3) |
+| ackermann arcs | residual 8-9 deg, accel std 2.3-2.8 m/s^2 (limit 1) |
+| spot ccw | accel std 1.1 m/s^2 (limit 1) |
+| after leaving explicit_pid: explicit 20 deg, explicit_pid, ackermann, spot | pass (with the patched gz_ros2_control, below) |
+
+Crab/spot are held to a 20 deg residual on purpose: at the damping the main modes need,
+their residual is ~8-18 deg, accepted as low priority.
+
+**Obstacles.** ledge.sdf passes both ways (ackermann forward, explicit_pid reversing).
+bars.sdf: ackermann stalls at the 0.12 m bar (1.2 m progress) and shakes at 16 m/s^2
+while jammed; explicit_pid reverses back over it but at 6.6 m/s^2 (limit 6). Open.
+
+**Leaving explicit_pid used to leave the joints limp -- fixed.** gz_ros2_control
+creates a `JointForceCmd` component the first time effort mode runs and never removes
+it; gz-sim's Physics system applies `JointForceCmd` in preference to `JointVelocityCmd`
+("Only set joint velocity if joint force is not set"), so every later position/velocity
+command on the 8 steer/drive joints was ignored until the sim restarted, while the
+controller switch itself reported success. This workspace now builds a patched
+gz_ros2_control overlay (`src/third_party/README.md`) that removes the other mode's
+stale command component on each write; with it, all four `after_pid_*` scenarios pass.
+Run from `install/local_setup.bash` so Gazebo loads the overlay's plugin, not
+`/opt/ros/jazzy`'s.
+
+> Build the whole workspace, `src/third_party/` included, and source
+> `install/setup.bash`. Run against the stock `/opt/ros/jazzy` gz_ros2_control and the
+> bug is back: after leaving explicit_pid (key 5) the controller switch reports success,
+> `wheel_controller/commands` carries speed, and every wheel joint stays at 0 rad/s
+> until Gazebo restarts.
 
 ## The suspension, with the coupling and without
 
