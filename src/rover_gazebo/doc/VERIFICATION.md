@@ -325,11 +325,11 @@ stale command component on each write; with it, all four `after_pid_*` scenarios
 Run from `install/local_setup.bash` so Gazebo loads the overlay's plugin, not
 `/opt/ros/jazzy`'s.
 
-> **Not in the repository yet.** `src/third_party/` has not been pushed, so a checkout
-> runs the stock `/opt/ros/jazzy` gz_ros2_control and still has the bug: after leaving
-> explicit_pid (key 5) the rover will not drive in any other mode until Gazebo is
-> restarted. Confirmed on the merged pipeline: the controller switch reports success,
-> `wheel_controller/commands` carries speed, and every wheel joint stays at 0 rad/s.
+> Build the whole workspace, `src/third_party/` included, and source
+> `install/setup.bash`. Run against the stock `/opt/ros/jazzy` gz_ros2_control and the
+> bug is back: after leaving explicit_pid (key 5) the controller switch reports success,
+> `wheel_controller/commands` carries speed, and every wheel joint stays at 0 rad/s
+> until Gazebo restarts.
 
 ## The suspension, with the coupling and without
 
