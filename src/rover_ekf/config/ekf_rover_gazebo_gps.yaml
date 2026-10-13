@@ -1,0 +1,18 @@
+### ekf_rover_gazebo_gps.yaml ###
+# Loaded on top of ekf_rover_gazebo.yaml (and, if enabled, ekf_rover_gazebo_imu.yaml)
+# when ekf_rover_gazebo.launch.py runs with use_gps:=true. Adds the absolute
+# x/y position from navsat_transform_node's /odometry/gps (see
+# ../launch/gps_fusion.launch.py) as one more fused source, alongside the
+# wheel- and IMU-derived velocities. Only position is fused here -- GPS gives
+# no velocity or heading of its own, so odom4 (wheel-fitted yaw rate) and the
+# per-wheel velocities above are left to do that job.
+ekf_filter_node:
+  ros__parameters:
+    odom5: /odometry/gps
+    odom5_config: [true,  true,  false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    odom5_differential: false
+    odom5_queue_size: 10

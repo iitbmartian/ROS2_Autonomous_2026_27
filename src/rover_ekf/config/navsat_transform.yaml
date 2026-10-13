@@ -1,0 +1,25 @@
+### navsat_transform.yaml ###
+# Params for navsat_transform_node, converting a raw sensor_msgs/NavSatFix
+# into an odometry message (/odometry/gps) in the same frame ekf_filter_node
+# already works in, so GPS/GNSS can be fused as another position source.
+# See ../launch/gps_fusion.launch.py.
+navsat_transform_node:
+  ros__parameters:
+    frequency: 30.0
+
+    # rover_ekf's EKF runs two_d_mode: true; keep the GPS-derived odometry flat too.
+    zero_altitude: true
+
+    # No magnetic declination correction (sim, and unset for real GNSS fields too).
+    magnetic_declination_radians: 0.0
+    yaw_offset: 0.0
+
+    # Heading comes from the IMU, not integrated odometry.
+    use_odometry_yaw: false
+
+    # Establish the local-frame origin from the first GPS+IMU+odom fix seen,
+    # rather than a fixed, surveyed datum.
+    wait_for_datum: false
+
+    broadcast_utm_transform: false
+    publish_filtered_gps: false
