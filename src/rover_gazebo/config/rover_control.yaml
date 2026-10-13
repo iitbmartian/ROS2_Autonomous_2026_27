@@ -7,6 +7,10 @@ rover_kinematics:
     max_speed: 1.0             # m/s
     min_turn_radius: 0.8       # m, tightest Ackermann arc measured from the rover centre
     max_steer_angle: 1.5708    # rad, leave at a quarter turn so spot mode can reach it
+    max_yaw_rate: 1.0          # rad/s, ackermann/crab yaw-rate range. Calibrates
+                               # steer_ramp_time for those modes; mirrors teleop_rover's
+                               # own max_yaw_rate below so the ramp time it documents
+                               # (lock to lock) is actually the range being ramped
     max_spin_rate: 0.7854      # rad/s, 45 deg/s in spot mode
     max_wheel_turn_rate: 2.0   # rad/s, ~115 deg/s. Caps how fast the solved wheel angle
                                # may change in ackermann/crab/spot, so a command that
@@ -46,11 +50,85 @@ teleop_rover:
     hold_time: 0.4             # s a key stays live after its last repeat
     update_rate: 50.0          # Hz
 
+# The Tkinter window (teleop_gui:=true). A separate block because its node name is
+# "teleop_rover_gui", not "teleop_rover" -- a ROS params file only applies to a node
+# whose name matches its block, so without this the window would silently run on
+# nothing but its script defaults (they happen to match the block above, but future
+# edits here wouldn't reach it). use_sim_time is left at the rclpy default (false):
+# unlike teleop_rover this frontend has no hold_time-style guess to age out against the
+# wrong clock, since it reads real key press/release events, not repeat timing.
+teleop_rover_gui:
+  ros__parameters:
+    max_speed: 1.0             # m/s
+    max_yaw_rate: 1.0          # rad/s, what A/D ask for in Ackermann
+    max_spin_rate: 0.7854      # rad/s, what A/D ask for in spot
+    max_steer_rate: 0.2618     # rad/s, ~15 deg/s, explicit mode A/D
+    boost: 2.5                 # Shift multiplier, drive speed only
+    update_rate: 50.0          # Hz
+    key_release_debounce_ms: 250  # ms a KeyRelease is held pending before it's treated
+                               # as real, so a same-key autorepeat KeyPress arriving
+                               # within that window cancels it instead of the key
+                               # falsely reading as let go. Needs to comfortably exceed
+                               # both the OS's key-repeat interval (~33-40 ms typically)
+                               # and whatever scheduling delay the machine itself adds
+                               # under load, since Tk's after() timers and the real key
+                               # events race against the same pressure -- 150 ms was not
+                               # enough on a loaded machine. If a held key still drops
+                               # occasionally, raise this further; if release feels
+                               # laggy on a machine that never has the problem, it can
+                               # come back down.
+
+explicit_pid_control:
+  ros__parameters:
+    use_sim_time: true
+    # Retuned 2026-10-12 from headless Gazebo runs (doc/VERIFICATION.md, "Explicit_PID
+    # stability"). The earlier values (steer kp=1/kd=3, wheel kp=0.4/ki=0.4, plus sync
+    # and chassis-yaw terms) were tuned while rocker_coupling was in a sustained
+    # oscillation, which dithered the joints and hid two real problems: steer kp=1
+    # commands 0.5 N m at 30 deg of error, which is below the knuckle's own 0.5 N m
+    # joint friction plus tyre scrub, so on a calm rover the steering never moved at
+    # all; and the wheel PI settled ~19% fast and rang for seconds after a stop. The
+    # chassis "spin" those extra terms were added for was the steering failing to hold
+    # its angle, not a separate loop -- with these gains yaw drift is <2 deg per run
+    # with chassis_yaw_kd and both sync terms at 0, so they ship disabled.
+    steer_kp: 60.0               # N m / rad. Must beat 0.5 N m friction + scrub with
+                                  # well under a degree of error
+    steer_ki: 20.0               # N m / (rad s); removes the last ~0.5-1 deg the
+                                  # friction would otherwise leave
+    steer_kd: 2.0                # N m / (rad/s), derivative on measured joint velocity
+    steer_max_effort: 60.0       # N m, well inside the xacro's 150 N m backstop
+    steer_max_effort_rate: 100000.0  # N m/s, effectively off. A slew limit inside the
+                                  # loop is pure phase lag; nothing measured needs it
+                                  # once the suspension is not oscillating
+    steer_sync_kp: 0.0           # N m / rad toward the other 3 joints' mean. Measured
+                                  # no benefit; kept as a knob, 0 disables
+    chassis_yaw_kd: 0.0          # N m / (rad/s) of /odom yaw rate on all 4 knuckles.
+                                  # +15/0/-15 measured within noise of each other once
+                                  # steering holds; 0 disables
+    wheel_kp: 5.0                 # N m / (rad/s). 0.4 ran 19% fast; 10+ tracked but
+                                  # made the 4 wheels fight each other through the
+                                  # ground (opposing +-14 N m) and doubled yaw drift
+    wheel_ki: 2.0                 # N m / rad. The integrator is cleared whenever the
+                                  # wheel target is zero (control_node.py), otherwise
+                                  # front and rear wound up against each other at a
+                                  # standstill (+-17 N m squeeze measured)
+    wheel_kd: 0.0                 # N m / (rad/s^2); off, differentiates a noisy velocity
+    wheel_max_effort: 60.0       # N m
+    wheel_sync_kp: 0.0            # N m / (rad/s) toward the other 3 wheels' mean;
+                                   # measured no benefit, 0 disables
+    wheel_max_effort_rate: 1000.0  # N m/s
+    update_rate: 200.0           # Hz
+
 rocker_coupling:
   ros__parameters:
     use_sim_time: true
     stiffness: 8000.0          # N m per rad of constraint residual
-    damping: 250.0             # N m per rad/s
+    damping: 50.0              # N m per rad/s. Was 250: with the steer/drive joints
+                               # torque-driven (explicit_pid) 250 broke into a
+                               # self-sustaining ~2-3 g pitch shake within seconds,
+                               # and 800 was worse -- this loop closes over a ROS
+                               # topic, so its D term acts on stale data. 50 was
+                               # calm in every mode; see doc/VERIFICATION.md
     max_torque: 400.0          # N m per joint. Enough to hold the suspension, and
                                # deliberately no more: whatever residual the coupling
                                # cannot correct becomes a fore-aft shove that a
@@ -72,3 +150,27 @@ rocker_coupling:
                                # made both the jitter and the residual worse, not
                                # better -- leave at 0 unless re-measured yourself,
                                # see doc/VERIFICATION.md
+
+# suspension:=mimic only (Bullet-Featherstone) -- rocker_hold_node.py, holding only
+# FLS_joint now that BLS/BRS/FRS are held by <mimic> tags instead. Gains are carried
+# over from rocker_coupling's own four-joint tuning above as a starting point only:
+# live-measured to hold FLS bounded rather than drifting to its hard stop, but with
+# real jitter (roughly +/-5 deg around the captured rest pose) that this single-joint
+# case has not yet been retuned for. See doc/VERIFICATION.md.
+rocker_hold:
+  ros__parameters:
+    use_sim_time: true
+    stiffness: 8000.0          # N m per rad of residual
+    damping: 1000.0            # N m per rad/s
+    max_torque: 400.0          # N m
+    update_rate: 400.0         # Hz
+    capture_rest: true         # same rationale as rocker_coupling's own: hold
+                               # against wherever FLS actually settles, not a
+                               # CAD-nominal pose it may never rest at
+    rest_capture_delay: 2.5    # s of settling before that reference is taken
+    max_torque_rate: 1000000.0 # N m/s, effectively unlimited; not yet re-measured
+                               # for this single-joint case the way rocker_coupling's
+                               # own value above was
+    velocity_filter_tau: 0.0   # s, 0 disables the one-pole low-pass on the D term's
+                               # velocity; not yet re-measured for this single-joint
+                               # case either

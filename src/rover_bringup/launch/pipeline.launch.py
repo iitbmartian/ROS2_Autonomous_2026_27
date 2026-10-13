@@ -4,6 +4,9 @@
     ros2 launch rover_bringup pipeline.launch.py world:=marsyard.sdf rviz:=true
     ros2 launch rover_bringup pipeline.launch.py localization:=true
     ros2 launch rover_bringup pipeline.launch.py nav_rviz:=true   # RViz with the Nav2 Goal tool
+    ros2 launch rover_bringup pipeline.launch.py teleop_gui:=true # Tk keyboard teleop window
+    ros2 launch rover_bringup pipeline.launch.py suspension:=mimic \
+        physics_engine:=gz-physics-bullet-featherstone-plugin
 
 Includes, from this package:
 
@@ -65,6 +68,9 @@ def generate_launch_description():
         "sim": LaunchConfiguration("sim"),
         "gui": LaunchConfiguration("gui"),
         "teleop": LaunchConfiguration("teleop"),
+        "teleop_gui": LaunchConfiguration("teleop_gui"),
+        "suspension": LaunchConfiguration("suspension"),
+        "physics_engine": LaunchConfiguration("physics_engine"),
         "x": LaunchConfiguration("x"),
         "y": LaunchConfiguration("y"),
         "z": LaunchConfiguration("z"),
@@ -132,6 +138,15 @@ def generate_launch_description():
         DeclareLaunchArgument("gui", default_value="true"),
         DeclareLaunchArgument("teleop", default_value="false",
                               description="launch keyboard teleop in this terminal"),
+        DeclareLaunchArgument("teleop_gui", default_value="false",
+                              description="launch the Tkinter keyboard teleop window"),
+        # The suspension's closed loops: 'torque' (rocker_coupling_node, any engine)
+        # or 'mimic', which needs
+        # physics_engine:=gz-physics-bullet-featherstone-plugin alongside it.
+        DeclareLaunchArgument("suspension", default_value="torque",
+                              choices=["torque", "mimic"]),
+        DeclareLaunchArgument("physics_engine", default_value="",
+                              description="gz sim --physics-engine; empty keeps DART"),
         # husarion_world.sdf needs x:=-13 to spawn clear of its logo plate.
         DeclareLaunchArgument("x", default_value="0.0"),
         DeclareLaunchArgument("y", default_value="0.0"),
