@@ -16,7 +16,7 @@ physically down.
 
 Click into this window once to give it keyboard focus (it tries to take focus on
 its own when it opens, but some window managers require the click anyway), then
-drive. Publishes geometry_msgs/Twist on cmd_vel and std_msgs/String on
+drive. Publishes geometry_msgs/TwistStamped on cmd_vel and std_msgs/String on
 rover/steer_mode, and subscribes to std_msgs/Float64 on rover/steer_aim -- the same
 topics teleop_rover.py uses, and the exact same driving logic
 (teleop_common.TeleopCore), so the two are interchangeable from anywhere else's
@@ -27,7 +27,7 @@ import math
 import tkinter as tk
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import String
 
 from teleop_common import MODE_KEYS, TeleopCore
@@ -242,7 +242,10 @@ class TeleopGUI(TeleopCore):
         if self._tick_id is not None:
             self.root.after_cancel(self._tick_id)
             self._tick_id = None
-        self.cmd.publish(Twist())
+        stop = TwistStamped()
+        stop.header.stamp = self.get_clock().now().to_msg()
+        stop.header.frame_id = "base_link"
+        self.cmd.publish(stop)
         self.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

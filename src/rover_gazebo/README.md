@@ -100,8 +100,11 @@ Three onboard sensors, bridged from Gazebo to ROS 2 topics:
 | `/camera/camera_info` | `sensor_msgs/CameraInfo` | same camera, intrinsics | 15 Hz |
 
 Ground-truth odometry is also bridged, on `/odom` (`nav_msgs/Odometry`), taken directly
-from Gazebo rather than from any sensor. See `doc/INTEGRATION.md` for the full topic
-list, including the driving and control topics. Sensor definitions live in
+from Gazebo rather than from any sensor. Driving itself goes in on `/cmd_vel`
+(`geometry_msgs/TwistStamped`, not a plain `Twist`) -- `header.stamp` is what
+`command_timeout` measures a command's age against, not when it happens to arrive, so
+an unstamped command is treated as already stale. See `doc/INTEGRATION.md` for the
+full topic list, including the driving and control topics. Sensor definitions live in
 `urdf/rover_sensors.xacro`, and the topic bridge in `config/bridge.yaml`.
 
 ## What this had to fix

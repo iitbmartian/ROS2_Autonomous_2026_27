@@ -13,7 +13,7 @@ fwd and turn are each in [-1, 1] (forward-minus-back, left-minus-right, as the W
 keys give it); boost is whether the frontend considers Shift down for this tick.
 """
 
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from std_msgs.msg import Float64, String
@@ -55,7 +55,7 @@ class TeleopCore(Node):
         self.declare_parameter("hold_time", 0.4)          # s, terminal frontend only
         self.declare_parameter("update_rate", 50.0)
 
-        self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
+        self.cmd = self.create_publisher(TwistStamped, "cmd_vel", 10)
         self.mode_pub = self.create_publisher(String, "rover/steer_mode", MODE_QOS)
         self.create_subscription(Float64, "rover/steer_aim", self._on_aim, 10)
 
@@ -97,30 +97,32 @@ class TeleopCore(Node):
         boost = p("boost").value if boost_active else 1.0
         speed = p("max_speed").value * boost
 
-        t = Twist()
+        t = TwistStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = "base_link"
         if self.mode == "crab":
-            t.linear.x = fwd * speed
-            t.linear.y = turn * speed
+            t.twist.linear.x = fwd * speed
+            t.twist.linear.y = turn * speed
         elif self.mode == "spot":
-            t.angular.z = turn * p("max_spin_rate").value * boost
+            t.twist.angular.z = turn * p("max_spin_rate").value * boost
         elif self.mode in ("explicit", "explicit_pid"):
             # Same movement either way -- explicit_pid only changes what happens
             # downstream, in rover_kinematics_node/control_node.py, not what a key
             # does here. Shift boosts W/S only, never the aiming rate, which stays
             # fixed so you can stop where you meant to.
             rate = p("max_steer_rate").value
-            t.linear.x = fwd * p("max_speed").value * boost
+            t.twist.linear.x = fwd * p("max_speed").value * boost
             if self.recentre:
                 # Saturates at the sweep rate while the aim is large and lands exactly
                 # on zero as it closes, so it converges without hunting around straight.
                 want = -self.aim / self.dt
-                t.angular.z = max(-rate, min(rate, want))
+                t.twist.angular.z = max(-rate, min(rate, want))
                 if abs(self.aim) < 0.005:
-                    t.angular.z = 0.0
+                    t.twist.angular.z = 0.0
                     self.recentre = False
             else:
-                t.angular.z = turn * rate
+                t.twist.angular.z = turn * rate
         else:
-            t.linear.x = fwd * speed
-            t.angular.z = turn * p("max_yaw_rate").value
+            t.twist.linear.x = fwd * speed
+            t.twist.angular.z = turn * p("max_yaw_rate").value
         self.cmd.publish(t)

@@ -35,7 +35,7 @@ import sys
 import time
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
@@ -88,7 +88,7 @@ class Measure(Node):
         self.create_subscription(Float64, "rover/steer_aim", self.on_aim, 10)
         self.create_subscription(Odometry, "odom", self.on_odom, 20)
         self.create_subscription(JointState, "joint_states", self.on_joints, 20)
-        self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
+        self.cmd = self.create_publisher(TwistStamped, "cmd_vel", 10)
         self.mode = self.create_publisher(String, "rover/steer_mode", MODE_QOS)
 
     def on_aim(self, msg):
@@ -103,11 +103,23 @@ class Measure(Node):
                 self.joints[n] = msg.position[i]
 
     # -- helpers ----------------------------------------------------------
+    def publish_cmd(self, t):
+        """Wrap a Twist in a freshly-stamped TwistStamped and publish it. Called on
+        every publish, including every tick of a Twist held across spin()'s loop for a
+        multi-second hold, so a long-held command's header.stamp never goes stale under
+        rover_kinematics_node's command_timeout, now measured from this stamp rather
+        than from receipt time."""
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_link"
+        msg.twist = t
+        self.cmd.publish(msg)
+
     def spin(self, seconds, twist=None):
         end = time.time() + seconds
         while time.time() < end and rclpy.ok():
             if twist is not None:
-                self.cmd.publish(twist)
+                self.publish_cmd(twist)
             rclpy.spin_once(self, timeout_sec=0.02)
             self.record()
 
@@ -191,7 +203,7 @@ class Measure(Node):
         self.mode.publish(String(data=mode))
         self.spin(0.5)
         self.spin(a.duration, t)
-        self.cmd.publish(Twist())
+        self.publish_cmd(Twist())
         self.spin(0.5)
 
         return self.summarise(start, mode)
@@ -231,7 +243,7 @@ class Measure(Node):
         t = Twist()
         t.linear.x = a.speed
         self.spin(a.duration, t)
-        self.cmd.publish(Twist())
+        self.publish_cmd(Twist())
         self.spin(0.5)
 
         return self.summarise(start, mode)
@@ -248,11 +260,11 @@ class Measure(Node):
         while time.time() < end and rclpy.ok():
             err = target - self.aim
             if abs(err) < tol:
-                self.cmd.publish(Twist())
+                self.publish_cmd(Twist())
                 self.spin(0.5)
                 return True
             t.angular.z = math.copysign(self.args.steer_rate, err)
-            self.cmd.publish(t)
+            self.publish_cmd(t)
             rclpy.spin_once(self, timeout_sec=0.02)
             # The aim stops moving once it hits the node's clamp. Give up rather than
             # pushing at it for the full timeout.
@@ -260,7 +272,7 @@ class Measure(Node):
                 stalled_since, last = time.time(), self.aim
             elif time.time() - stalled_since > 2.0:
                 break
-        self.cmd.publish(Twist())
+        self.publish_cmd(Twist())
         return False
 
     def summarise(self, start, mode):

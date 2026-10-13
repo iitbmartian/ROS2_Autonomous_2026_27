@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Turn a Twist into steering angles and wheel speeds for a four-wheel-steer rover.
+"""Turn a TwistStamped into steering angles and wheel speeds for a four-wheel-steer rover.
 
 This is the Gazebo counterpart of Unity's RoverDriveController. Four driving modes.
 Three of them ask for a body motion and solve for the wheels, and all three reduce to
@@ -67,9 +67,11 @@ import yaml
 from ament_index_python.packages import get_package_share_directory
 from builtin_interfaces.msg import Duration
 from controller_manager_msgs.srv import SwitchController
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
+from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
+from rclpy.time import Time
 from std_msgs.msg import Float64, Float64MultiArray, String
 
 MODES = ("ackermann", "crab", "spot", "explicit", "explicit_pid")
@@ -169,7 +171,19 @@ class RoverKinematics(Node):
         # commanded, then ramped
         self.want = [0.0, 0.0, 0.0]     # vx, vy, omega
         self.have = [0.0, 0.0, 0.0]
-        self.last_cmd = self.get_clock().now()
+        # builtin_interfaces/Time from the most recent cmd_vel's header.stamp, or None
+        # before the first message ever arrives.
+        self.last_cmd_stamp = None
+        self._warned_zero_stamp = False
+        # This node runs use_sim_time:true (its step() timer needs to track Gazebo's
+        # clock), but every cmd_vel publisher in this package stamps with wall-clock
+        # time (teleop_rover/teleop_rover_gui run use_sim_time:false by deliberate
+        # existing design, and measure_rover.py declares no override at all) -- so
+        # comparing a cmd_vel's header.stamp against self.get_clock().now() directly
+        # would compare two different epochs (sim time starts near zero at launch; a
+        # wall-clock stamp carries a full Unix epoch). A dedicated SYSTEM_TIME clock,
+        # used only for this one staleness check, keeps the comparison meaningful.
+        self.wall_clock = Clock(clock_type=ClockType.SYSTEM_TIME)
 
         # Explicit mode state. steer_aim is the one angle all four wheels share;
         # last_fl_angle is whatever the front-left wheel was last told, kept so the
@@ -194,7 +208,7 @@ class RoverKinematics(Node):
         self.wheel_target_pub = self.create_publisher(
             Float64MultiArray, "explicit_pid_control/wheel_target", 10)
         self.aim_pub = self.create_publisher(Float64, "rover/steer_aim", 10)
-        self.create_subscription(Twist, "cmd_vel", self.on_cmd, 10)
+        self.create_subscription(TwistStamped, "cmd_vel", self.on_cmd, 10)
         self.create_subscription(String, "rover/steer_mode", self.on_mode, MODE_QOS)
 
         # Hands off between {steer,wheel}_controller (ideal, modes 1-4) and
@@ -217,9 +231,9 @@ class RoverKinematics(Node):
         self.create_timer(self.dt, self.step)
 
     # -- input ------------------------------------------------------------
-    def on_cmd(self, msg: Twist):
-        self.want = [msg.linear.x, msg.linear.y, msg.angular.z]
-        self.last_cmd = self.get_clock().now()
+    def on_cmd(self, msg: TwistStamped):
+        self.want = [msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z]
+        self.last_cmd_stamp = msg.header.stamp
 
     def on_mode(self, msg: String):
         name = msg.data.strip().lower()
@@ -281,7 +295,24 @@ class RoverKinematics(Node):
         timeout = p("command_timeout").value
 
         want = list(self.want)
-        age = (self.get_clock().now() - self.last_cmd).nanoseconds * 1e-9
+        stamp = self.last_cmd_stamp
+        if stamp is None or (stamp.sec == 0 and stamp.nanosec == 0):
+            # Never received, or a message arrived with its header.stamp left unset --
+            # treat that as infinitely stale rather than guessing a real age for it.
+            age = float("inf")
+            if stamp is not None and not self._warned_zero_stamp:
+                self.get_logger().warn(
+                    "cmd_vel arrived with a zero header.stamp; treating it as stale "
+                    "until a properly-stamped message arrives")
+                self._warned_zero_stamp = True
+        else:
+            # Time.from_msg() defaults to ClockType.ROS_TIME; rclpy.Time subtraction
+            # requires both sides to share a clock type, so the stamp has to be
+            # relabelled SYSTEM_TIME to match self.wall_clock.now() -- it is already
+            # wall-clock in practice (every publisher stamps with wall-clock time),
+            # this only fixes the label rclpy checks the subtraction against.
+            stamp_time = Time.from_msg(stamp, clock_type=ClockType.SYSTEM_TIME)
+            age = max(0.0, (self.wall_clock.now() - stamp_time).nanoseconds * 1e-9)
         if timeout > 0.0 and age > timeout:
             want = [0.0, 0.0, 0.0]
 

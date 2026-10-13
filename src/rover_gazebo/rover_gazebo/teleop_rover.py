@@ -32,7 +32,7 @@ What A and D do in each mode:
                controllers are active to match. See rover_kinematics_node.py and
                control_node.py.
 
-Publishes geometry_msgs/Twist on cmd_vel and std_msgs/String on rover/steer_mode, and
+Publishes geometry_msgs/TwistStamped on cmd_vel and std_msgs/String on rover/steer_mode, and
 subscribes to std_msgs/Float64 on rover/steer_aim to show and recentre the explicit
 angle. In explicit/explicit_pid modes angular.z carries a steering rate rather than a
 body yaw rate, which rover_kinematics_node integrates, which is why the angle survives
@@ -53,7 +53,7 @@ import termios
 import tty
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import String
 
 from teleop_common import MODE_KEYS, TeleopCore
@@ -152,7 +152,10 @@ def main():
     finally:
         if interactive:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        node.cmd.publish(Twist())
+        stop = TwistStamped()
+        stop.header.stamp = node.get_clock().now().to_msg()
+        stop.header.frame_id = "base_link"
+        node.cmd.publish(stop)
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

@@ -110,15 +110,30 @@ while the chassis itself is spinning out from under it.
 
 chassis_yaw_kd is the fix, and it is a genuinely different mechanism from
 steer_kd, not a bigger version of it: it reads real chassis yaw rate from /odom
-(ground truth from Gazebo here, not an estimated or noisy sensor) and adds a term
-to all four steering joints, proportional to that rate, sized to oppose it -- using
-the exact same reaction-torque path that was causing the problem, deliberately this
-time, as a brake instead of an accident. It is applied uniformly across all four
-joints for the same reason the runaway itself was uniform across all four: the
-shared axis convention that makes their individual reactions add on the chassis is
-exactly what gives a single shared correction real authority over chassis yaw. This
-is layered on top of steer_sync (previous section) and the ordinary target-tracking
-PID (JointPID.step()), not a replacement for either.
+(Gazebo's own ground-truth OdometryPublisher, not an estimated or noisy sensor --
+see on_odom(), though, for a real caveat this plugin has under
+suspension:=mimic/Bullet-Featherstone) and adds a term to all four steering joints,
+proportional to that rate, sized to oppose it -- using the exact same reaction-torque
+path that was causing the problem, deliberately this time, as a brake instead of an
+accident. It is applied uniformly across all four joints for the same reason the
+runaway itself was uniform across all four: the shared axis convention that makes
+their individual reactions add on the chassis is exactly what gives a single shared
+correction real authority over chassis yaw. This is layered on top of steer_sync
+(previous section) and the ordinary target-tracking PID (JointPID.step()), not a
+replacement for either.
+
+A second bug, found later (see on_odom()): under suspension:=mimic specifically,
+Gazebo's OdometryPublisher reports NaN in twist.twist.angular on nearly all messages
+(measured: ~97.5%), and this term used to read that unguarded. A NaN chassis_damp
+does not cancel out in step()'s clamp -- it resolves the whole clamp to exactly
++steer_max_effort on all four joints, continuously, which is an even larger and more
+sustained version of the exact reaction-torque problem this term exists to fix. This
+was the actual cause of a separate, more severe symptom -- suspension:=mimic's
+FLS_joint locking permanently against its own hard limit specifically in
+explicit_pid, never in ackermann or explicit (which never read /odom at all) --
+reported after chassis_yaw_kd had already shipped and seemed to be working. Fixed by
+treating a NaN sample as "no new information" (falls back to 0.0) rather than letting
+it flow into the clamp.
 """
 
 import math
@@ -242,6 +257,8 @@ class ExplicitPidControl(Node):
         # so they default to 0 (disabled) but stay available as knobs.
         self.declare_parameter("steer_sync_kp", 0.0)   # N m / rad
         self.declare_parameter("chassis_yaw_kd", 0.0)  # N m / (rad/s) of chassis yaw rate
+        self.declare_parameter("chassis_yaw_ki", 0.0)  # N m / (rad), accumulated chassis
+                                                          # yaw rate over time -- see step()
         self.declare_parameter("wheel_kp", 5.0)      # N m / (rad/s)
         self.declare_parameter("wheel_ki", 2.0)      # N m / rad
         self.declare_parameter("wheel_kd", 0.0)      # N m / (rad/s^2); off, noisy signal
@@ -258,6 +275,9 @@ class ExplicitPidControl(Node):
         self.steer_target = None    # rad, FL/FR/BL/BR, from rover_kinematics_node
         self.wheel_target = None    # rad/s, FL/FR/BL/BR
         self.chassis_yaw_rate = 0.0  # rad/s, from /odom -- see on_odom()
+        self.chassis_yaw_integral = 0.0  # rad/s accumulated over time -- see
+                                          # chassis_yaw_ki, reset alongside the
+                                          # per-joint PIDs on entry to explicit_pid
         self.steer_pid = {j: JointPID() for j in STEER_JOINTS}
         self.wheel_pid = {j: JointPID() for j in WHEEL_JOINTS}
         self.prev_steer_effort = dict.fromkeys(STEER_JOINTS, 0.0)
@@ -301,6 +321,7 @@ class ExplicitPidControl(Node):
             self.steer_target = None
             self.wheel_target = None
             self.chassis_yaw_rate = 0.0
+            self.chassis_yaw_integral = 0.0
             self.joint_state_sub = self.create_subscription(
                 JointState, "joint_states", self.on_state, 10)
             self.odom_sub = self.create_subscription(
@@ -328,11 +349,31 @@ class ExplicitPidControl(Node):
                 self.vel[name] = msg.velocity[i] if i < len(msg.velocity) else 0.0
 
     def on_odom(self, msg: Odometry):
-        # No mode check needed, same as on_state(). Ground truth from Gazebo, not an
-        # estimated or noisy sensor -- see the module docstring for why that matters
-        # here (the whole point is a clean signal for the one quantity the per-joint
-        # PIDs can't see).
-        self.chassis_yaw_rate = msg.twist.twist.angular.z
+        # No mode check needed, same as on_state(). Gazebo's OdometryPublisher is
+        # ground truth (not an estimated or noisy sensor) when it publishes a real
+        # number -- but measured live under suspension:=mimic
+        # (physics_engine:=gz-physics-bullet-featherstone-plugin), it reports NaN in
+        # twist.twist.angular on the large majority of messages (475 of 487 sampled,
+        # ~97.5%), not occasionally -- a plugin/bridge issue on this engine
+        # combination, not a bug in this node's own request for it. Assigning that
+        # straight to self.chassis_yaw_rate used to be exactly this bug: step()'s
+        # clamp is max(-s_lim, min(s_lim, raw + sync + chassis_damp)), and because
+        # min()/max() take the non-NaN operand first, a NaN chassis_damp does not
+        # zero out or propagate -- it silently resolves the whole clamp to exactly
+        # +s_lim, snapping all four steering joints to maximum positive effort
+        # simultaneously, continuously, for as long as odometry keeps reporting NaN.
+        # That is a real, confirmed, additive reaction-torque event (all four share
+        # one sign, see the module docstring), and it is what was driving
+        # suspension:=mimic's FLS_joint to its hard limit during explicit_pid
+        # specifically -- ackermann/explicit never read /odom at all, so they were
+        # never exposed to this. Guarding it here, rather than only in step(), keeps
+        # self.chassis_yaw_rate itself always a real number so nothing downstream
+        # has to know this plugin can misbehave.
+        z = msg.twist.twist.angular.z
+        if math.isnan(z):
+            self.chassis_yaw_rate = 0.0
+        else:
+            self.chassis_yaw_rate = z
 
     def on_steer_target(self, msg: Float64MultiArray):
         if len(msg.data) == len(STEER_JOINTS):
@@ -362,6 +403,7 @@ class ExplicitPidControl(Node):
         s_rate = p("steer_max_effort_rate").value * self.dt
         s_sync = p("steer_sync_kp").value
         chassis_kd = p("chassis_yaw_kd").value
+        chassis_ki = p("chassis_yaw_ki").value
         w_kp, w_ki, w_kd = p("wheel_kp").value, p("wheel_ki").value, p("wheel_kd").value
         w_lim = p("wheel_max_effort").value
         w_rate = p("wheel_max_effort_rate").value * self.dt
@@ -375,7 +417,19 @@ class ExplicitPidControl(Node):
         # spinning *faster* with this enabled, the sign is backwards for this
         # installation's axis convention and chassis_yaw_kd needs to go negative in
         # config/rover_control.yaml, not this line.
-        chassis_damp = -chassis_kd * self.chassis_yaw_rate
+        #
+        # chassis_yaw_ki accumulates the same measured rate over time -- see its own
+        # declare_parameter comment for why a D-only term cannot fully cancel a small
+        # constant bias torque. Clamped so its own contribution alone can never
+        # exceed s_lim, the simplest anti-windup that still lets it accumulate
+        # freely within a range this loop can actually use.
+        self.chassis_yaw_integral += self.chassis_yaw_rate * self.dt
+        if chassis_ki > 0.0:
+            max_integral = s_lim / chassis_ki
+            self.chassis_yaw_integral = max(
+                -max_integral, min(max_integral, self.chassis_yaw_integral))
+        chassis_damp = -(chassis_kd * self.chassis_yaw_rate
+                          + chassis_ki * self.chassis_yaw_integral)
 
         # Gang sync: each joint is still driven by its own independent PID against
         # the shared target above, exactly as before -- this is a *second*, explicit

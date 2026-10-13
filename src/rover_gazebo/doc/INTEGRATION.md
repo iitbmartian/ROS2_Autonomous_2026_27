@@ -4,7 +4,7 @@
 
 | Topic | Type | Direction | Where it comes from |
 |---|---|---|---|
-| `/cmd_vel` | `geometry_msgs/Twist` | in | you, teleop, or a nav stack |
+| `/cmd_vel` | `geometry_msgs/TwistStamped` | in | you, teleop, or a nav stack |
 | `/rover/steer_mode` | `std_msgs/String` | in | `ackermann`, `crab`, `spot` or `explicit` |
 | `/joint_states` | `sensor_msgs/JointState` | out | `joint_state_broadcaster` |
 | `/odom` | `nav_msgs/Odometry` | out | Gazebo, bridged. Ground truth |
@@ -32,29 +32,35 @@ rocker joints.
 
 ## Driving it from your own code
 
-Publish a `Twist` on `/cmd_vel`. What the fields mean depends on the mode:
+Publish a `TwistStamped` on `/cmd_vel`. The body-motion fields are the same as a plain
+`Twist`, just moved under `.twist`; set `.header.stamp` too -- it is what
+`command_timeout` measures a command's age against, not when the message happens to
+arrive, so an unstamped (zero-stamp) message is treated as already stale.
+`.header.frame_id` is conventionally `base_link`. What the `.twist` fields mean depends
+on the mode:
 
-| Mode | `linear.x` | `linear.y` | `angular.z` |
+| Mode | `twist.linear.x` | `twist.linear.y` | `twist.angular.z` |
 |---|---|---|---|
 | `ackermann` | forward speed | ignored | yaw rate, capped by the tightest turn radius |
 | `crab` | forward speed | sideways speed | ignored |
 | `spot` | ignored | ignored | spin rate |
 | `explicit` | wheel speed, all four | ignored | steering sweep rate |
 
-Ackermann is the mode a nav stack wants: it is ordinary differential-drive `Twist`
-semantics, with the yaw rate limited so the turn stays inside what the steering can
-reach. Crab and spot are there because the rover can do them and a planner might want
-them, not because anything needs them by default.
+Ackermann is the mode a nav stack wants: it is ordinary differential-drive
+`TwistStamped`/`.twist` semantics, with the yaw rate limited so the turn stays inside
+what the steering can reach. Crab and spot are there because the rover can do them and
+a planner might want them, not because anything needs them by default.
 
-Explicit is not a body-velocity mode at all, so read its row carefully. `angular.z` is
-still rad/s, but it is the rate the steering sweeps at rather than the rate the body
+Explicit is not a body-velocity mode at all, so read its row carefully. `twist.angular.z`
+is still rad/s, but it is the rate the steering sweeps at rather than the rate the body
 yaws at, and `rover_kinematics_node` integrates it into one angle shared by all four
-wheels. `linear.x` is then handed to every wheel as its own speed, scaled only by that
-wheel's `drive_sign`. Nothing solves for where the rover will go.
+wheels. `twist.linear.x` is then handed to every wheel as its own speed, scaled only by
+that wheel's `drive_sign`. Nothing solves for where the rover will go.
 
-Two things follow from that. The aim persists: stop publishing and the 0.5 s
-`command_timeout` zeroes the rate, so the drive coasts down while the wheels stay
-pointed where you left them. And because the node owns the angle rather than the
+Two things follow from that. The aim persists: stop publishing (or let the last message's
+`header.stamp` age past it) and the 0.5 s `command_timeout` zeroes the rate, so the drive
+coasts down while the wheels stay pointed where you left them. And because the node owns
+the angle rather than the
 publisher, it echoes it on `/rover/steer_aim`, which is how you close the loop if you
 want to command an absolute angle rather than a rate. Switching into explicit mode
 sweeps the wheels back to straight ahead first, so you always start from a known pose.
