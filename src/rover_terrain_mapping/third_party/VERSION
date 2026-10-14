@@ -1,0 +1,10 @@
+# Vendored upstream code. Update by replacing the directories with a fresh export at the new
+# commit, then reapplying every entry in PATCHES.md.
+
+fastdem   https://github.com/Ikhyeon-Cho/FastDEM   5cd3e2552dba62be14cd8fe83d5c81261eafd12e   (2026-09-04, v0.3.1, directory fastdem/ only, BSD-3-Clause)
+nanogrid  https://github.com/Ikhyeon-Cho/nanoGrid  058a6a60aa5c4c681be3428f57dbfc5b8fd57f96   (2026-04-09, v0.1.0, assets/ dropped, BSD-3-Clause)
+
+# Bundled inside FastDEM's tree, versions as shipped at the commit above:
+#   fastdem/lib/nanoPCL                     MIT
+#   fastdem/lib/nanoPCL/thirdparty/nanoflann BSD-2-Clause
+#   fastdem/lib/stb                         MIT or public domain

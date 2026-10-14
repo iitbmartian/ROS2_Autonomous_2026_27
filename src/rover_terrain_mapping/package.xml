@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rover_terrain_mapping</name>
+  <version>0.1.0</version>
+  <description>2.5D terrain mapping for the rover: terrain_mapping_node on top of a vendored
+    FastDEM, publishing elevation and feature maps in the SPEC.md layer contract.</description>
+  <maintainer email="singhalram44@gmail.com">Ram Singhal</maintainer>
+  <license>BSD-3-Clause</license>
+  <!-- third_party/: FastDEM and nanoGrid BSD-3-Clause, nanoPCL MIT, nanoflann BSD-2-Clause,
+       stb MIT or public domain. See third_party/VERSION. -->
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- FastDEM core -->
+  <depend>eigen</depend>
+  <depend>yaml-cpp</depend>
+  <depend>spdlog</depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>grid_map_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
+  <depend>rover_traversability</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
