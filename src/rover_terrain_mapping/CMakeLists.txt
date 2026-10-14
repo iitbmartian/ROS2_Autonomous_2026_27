@@ -25,6 +25,38 @@ foreach(t fastdem nanoGrid)
   target_compile_options(${t} PRIVATE -w)
 endforeach()
 
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(grid_map_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(rover_traversability REQUIRED)
+# rover_traversability exports grid_map_core, whose cmake extras add Eigen plugin definitions to
+# the whole directory. This package uses no grid_map_core, and the plugins must not reach
+# FastDEM's or nanoGrid's Eigen code.
+remove_definitions(
+  -DEIGEN_FUNCTORS_PLUGIN=\"grid_map_core/eigen_plugins/FunctorsPlugin.hpp\"
+  -DEIGEN_DENSEBASE_PLUGIN=\"grid_map_core/eigen_plugins/DenseBasePlugin.hpp\")
+
+add_library(contract_layers STATIC src/contract_layers.cpp)
+target_include_directories(contract_layers PUBLIC include)
+target_link_libraries(contract_layers PUBLIC fastdem)
+# Only layer_names.hpp is used. Linking traversability_core, not the package, keeps
+# grid_map_core's Eigen plugin definitions out of FastDEM's translation units.
+target_link_libraries(contract_layers PUBLIC rover_traversability::traversability_core)
+
+add_executable(terrain_mapping_node src/terrain_mapping_node.cpp src/tf_provider.cpp)
+target_include_directories(terrain_mapping_node PRIVATE include)
+target_link_libraries(terrain_mapping_node contract_layers fastdem)
+ament_target_dependencies(terrain_mapping_node
+  rclcpp sensor_msgs grid_map_msgs std_msgs visualization_msgs tf2 tf2_ros tf2_eigen)
+
+install(TARGETS terrain_mapping_node DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
@@ -50,6 +82,9 @@ if(BUILD_TESTING)
   target_compile_definitions(fastdem_example_hello_mapping PRIVATE
     EXAMPLE_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}")
   add_test(NAME fastdem_example_hello_mapping COMMAND fastdem_example_hello_mapping)
+
+  ament_add_gtest(test_contract_layers test/test_contract_layers.cpp)
+  target_link_libraries(test_contract_layers contract_layers)
 endif()
 
 ament_package()

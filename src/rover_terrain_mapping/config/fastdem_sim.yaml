@@ -1,0 +1,49 @@
+# FastDEM pipeline for terrain_mapping_node in simulation, in FastDEM's own format
+# (third_party/fastdem/config/default.yaml documents every key).
+
+mapping:
+  mode: "local"
+  type: "kalman_filter"
+  kalman:
+    min_variance: 0.0001     # m^2
+    max_variance: 0.01       # m^2
+    process_noise: 0.0       # m^2, static terrain
+
+# Applied in base_footprint, so heights are above the ground under the rover.
+point_filter:
+  z_min: -1.0                # m, deep enough for a crater floor
+  z_max: 1.5                 # m, above anything the rover could drive under
+  range_min: 1.0             # m, drops the rover's own wheels (about 0.74 m from the lidar)
+  range_max: 12.0            # m, beyond the 5 m half-width of the map
+
+sensor_model:
+  type: "lidar"
+  lidar:
+    range_noise: 0.02        # m
+    angular_noise: 0.001     # rad
+
+raycasting:
+  enabled: true
+  height_conflict_threshold: 0.05
+  log_odds_observed: 0.4
+  log_odds_ghost: 0.2
+  log_odds_max: 2.0
+  clear_threshold: -1.0
+
+# Off: filling holes invents ground, and across a crater rim that hides a negative obstacle.
+# Unfilled cells stay NaN and the layer prices them as unknown.
+inpainting:
+  enabled: false
+  max_iterations: 3
+  min_valid_neighbors: 2
+
+uncertainty_fusion:
+  enabled: false
+
+# Phase 0 bridge (see PROGRESS.md). 0.10 m radius is a 0.2 m disc, the prototype's step window.
+feature_extraction:
+  enabled: true
+  analysis_radius: 0.10
+  min_valid_neighbors: 4
+  step_lower_percentile: 0.05
+  step_upper_percentile: 0.95
