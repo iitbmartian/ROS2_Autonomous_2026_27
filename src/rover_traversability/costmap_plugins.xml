@@ -1,0 +1,10 @@
+<library path="rover_traversability_layer">
+  <class name="rover_traversability/TraversabilityLayer"
+         type="rover_traversability::TraversabilityLayer"
+         base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      Converts a 2.5D terrain feature map (slope, roughness, step) into Nav2
+      traversability costs for uneven natural terrain.
+    </description>
+  </class>
+</library>
