@@ -43,7 +43,15 @@ def generate_launch_description():
 
     args = [
         DeclareLaunchArgument("world", default_value="flat.sdf",
-                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf"),
+                              description="file in worlds/: flat.sdf, ledge.sdf, bars.sdf, "
+                                          "or a stress world from "
+                                          "tools/generate_stress_worlds.py: slopes.sdf, "
+                                          "side_slope.sdf, rocks.sdf, washboard.sdf, "
+                                          "low_friction.sdf, rough_terrain.sdf"),
+        DeclareLaunchArgument("record_path", default_value="",
+                              description="if set, Gazebo records the full simulation "
+                                          "state log there, for `gz sim --playback` "
+                                          "later (doc/STRESS_TESTING.md)"),
         DeclareLaunchArgument("sim", default_value="harmonic",
                               description="'harmonic' or 'fortress'; picks plugin names"),
         DeclareLaunchArgument("physics_engine", default_value="",
@@ -110,6 +118,13 @@ def generate_launch_description():
                 PythonExpression(["'' if '", LaunchConfiguration("physics_engine"),
                                   "' == '' else ' --physics-engine ' + '",
                                   LaunchConfiguration("physics_engine"), "'"]),
+                # State every 20 ms is plenty to watch and keeps the log small. Not
+                # --record-resources: on Harmonic 8.15 it segfaults copying this model's
+                # meshes (LogModelResources), so playback needs the workspace sourced.
+                PythonExpression(["'' if '", LaunchConfiguration("record_path"),
+                                  "' == '' else ' --record-path ' + '",
+                                  LaunchConfiguration("record_path"),
+                                  "' + ' --log-overwrite --record-period 0.02'"]),
             ],
             "on_exit_shutdown": "true",
         }.items(),

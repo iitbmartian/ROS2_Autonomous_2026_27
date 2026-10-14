@@ -5,6 +5,24 @@ reasoning behind the change; the "how" lives in the code and the other docs, not
 
 ## Summary
 
+- **2026-10-13** — Added a stress suite, report only: no control or model changes.
+  Six generated worlds (`tools/generate_stress_worlds.py`: slopes, side_slope,
+  rocks, washboard, low_friction, rough_terrain), seven suites in
+  `rover_gazebo/stress_suites.py` (the six terrains plus command abuse on flat), run by
+  `tools/run_stress_suite.sh` with each sim isolated in its own ROS domain and Gazebo
+  partition. A sim elsewhere on the default domain had spawned a second rover into a test
+  world. `stability_test.py` gained teleporting between lanes, scripted command
+  programs, a post-abuse recovery window, a survive check (NaN/rollover/runaway/
+  fall-through), a controller and node health probe, and PID/coupling torque metrics.
+  Three showcase runs are recorded as Gazebo state log + rosbag + plot
+  (`tools/plot_run.py`, `tools/odom_tf_replay.py` for RViz). New launch arg
+  `record_path`. Findings F1-F8 are in `doc/STRESS_TESTING.md`, most importantly a
+  kinematics bug that leaves ackermann driving sideways after an explicit aim reaches
+  its 90 deg clamp.
+  Files: `tools/generate_stress_worlds.py`, `tools/run_stress_suite.sh`,
+  `tools/plot_run.py`, `tools/odom_tf_replay.py`, `rover_gazebo/stress_suites.py`,
+  `rover_gazebo/stability_test.py`, `launch/rover_sim.launch.py`, `CMakeLists.txt`,
+  `worlds/*.sdf` (6 new), `worlds/terrain/rough.obj`, `doc/STRESS_TESTING.md`.
 - **2026-10-12** — Fixed explicit_pid jitter and added a stability suite. The jitter
   was `rocker_coupling_node`, not the PID: at `damping: 250` the coupling broke into a
   self-sustaining ~2-3 g pitch shake whenever the wheels weren't velocity-locked

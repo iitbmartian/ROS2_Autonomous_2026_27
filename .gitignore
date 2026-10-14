@@ -73,3 +73,6 @@ AMENT_IGNORE
 # macOS
 .DS_Store
 *.bag
+
+# rover_gazebo stress-test output (tools/run_stress_suite.sh)
+stress_runs/
