@@ -43,6 +43,18 @@ class WheelBodyVelocity(Node):
     Blind to lateral wheel slip: a wheel dragged sideways reports only its
     rolling speed, so yaw the wheels cause by scrubbing (explicit mode with a
     large aim, for instance) is under-reported.
+
+    The fit is 8 equations in 3 unknowns, so it also carries a residual: how
+    far the 4 wheels' actual reports land from the closest single rigid-body
+    motion. Four wheels agreeing with each other is only evidence they are
+    consistent, not that they are correct, but when a wall or an obstacle
+    makes them disagree (one or two wheels scrub while the rest keep
+    rolling), the residual spikes and that is used as a second, empirical
+    variance estimate for the published yaw rate, on top of the wheels' own
+    reported variance. A collision that slips all 4 wheels by the same wrong
+    amount leaves this residual near zero, since nothing here distinguishes
+    "turning together" from "slipping together" -- that case needs a motion
+    source outside the wheels entirely, e.g. GPS or visual/lidar odometry.
     """
 
     def __init__(self):
@@ -67,10 +79,12 @@ class WheelBodyVelocity(Node):
         for x, y in stations:
             rows.append([1.0, 0.0, -y])
             rows.append([0.0, 1.0, x])
-        a = np.array(rows)
-        self.pinv = np.linalg.pinv(a)
+        self.a = np.array(rows)
+        self.pinv = np.linalg.pinv(self.a)
         # Parameter covariance per unit wheel-velocity variance: (A^T A)^-1.
-        self.unit_cov = np.linalg.inv(a.T @ a)
+        self.unit_cov = np.linalg.inv(self.a.T @ self.a)
+        # Degrees of freedom left over by the fit: 8 equations, 3 unknowns.
+        self.dof = self.a.shape[0] - self.a.shape[1]
 
         self.latest = {}  # wheel -> Odometry
         for wheel in self.wheel_names:
@@ -102,12 +116,26 @@ class WheelBodyVelocity(Node):
             meas.append(m.twist.twist.linear.y)
             variances.append(m.twist.covariance[0])
             variances.append(m.twist.covariance[7])
-        vx, vy, w = self.pinv @ np.array(meas)
+        meas = np.array(meas)
+        vx, vy, w = self.pinv @ meas
         if not all(math.isfinite(v) for v in (vx, vy, w)):
             return
 
-        # Wheels report the same variance, so the fit covariance is that times (A^T A)^-1.
-        cov = self.unit_cov * max(variances)
+        # Residual of the fit: how far the 4 wheels' actual readings land
+        # from the single rigid-body motion that best explains them. Near
+        # zero during normal rolling (and during any slip that moves every
+        # wheel by the same wrong amount); it spikes when a collision or
+        # obstacle makes one or two wheels disagree with the rest, which is
+        # exactly when the wheels' own reported variance understates the
+        # error. residual_variance is the standard unbiased noise estimate
+        # for an overdetermined least-squares fit (sum of squared residuals
+        # over the remaining degrees of freedom).
+        residual = meas - self.a @ np.array([vx, vy, w])
+        residual_variance = float(residual @ residual) / self.dof
+
+        # Wheels report the same variance, so the fit covariance is that times (A^T A)^-1,
+        # unless the residual above says the wheels disagree more than that explains.
+        cov = self.unit_cov * max(max(variances), residual_variance)
 
         out = Odometry()
         out.header.stamp = msgs[stamps.index(newest)].header.stamp

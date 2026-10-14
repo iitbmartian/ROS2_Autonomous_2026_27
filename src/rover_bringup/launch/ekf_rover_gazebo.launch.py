@@ -86,7 +86,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('publish_tf', default_value='true',
                               description='publish odom -> base_footprint from the filter'),
-        DeclareLaunchArgument('use_imu', default_value='false',
+        DeclareLaunchArgument('use_imu', default_value='true',
                               description='also fuse the IMU (roll, pitch, angular rates) '
                                           'from /imu_relay; runs the filter in 3D'),
         DeclareLaunchArgument('noisy_wheels', default_value='false',
@@ -119,7 +119,8 @@ def generate_launch_description():
             output='screen',
             parameters=[{'use_sim_time': True,
                          'odom_topic': '/odom',
-                         'imu_topic': '/imu/data'}],
+                         'imu_topic': '/imu/data',
+                         'gps_topic': '/gps/raw'}],
         ),
         Node(
             package=pkg_name,

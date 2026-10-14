@@ -57,3 +57,11 @@
   ros_type_name: "sensor_msgs/msg/CameraInfo"
   gz_type_name: "gz.msgs.CameraInfo"
   direction: GZ_TO_ROS
+
+# No covariance on the gz side (gz.msgs.NavSat carries none); rover_ekf's
+# covariance_relay fills it in, relaying this to /gps/fix.
+- ros_topic_name: "/gps/raw"
+  gz_topic_name: "/gps/raw"
+  ros_type_name: "sensor_msgs/msg/NavSatFix"
+  gz_type_name: "gz.msgs.NavSat"
+  direction: GZ_TO_ROS

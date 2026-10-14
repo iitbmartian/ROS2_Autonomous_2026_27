@@ -11,9 +11,14 @@
     lidar3d_link    3D gpu lidar, roof mount, /lidar/points at 5 Hz, 360 deg
     camera_link     RGBD camera, front mount, /camera at 15 Hz, plus the
                     REP-103 optical frame the image data is published in
+    gps_link        GPS/GNSS, roof mount, /gps/raw at 5 Hz (NavSatFix, no
+                    covariance: rover_ekf's covariance_relay fills that in
+                    on /gps/fix)
 
-  The gpu lidar and RGBD camera need the Sensors system (ogre2) and the IMU
-  needs the Imu system in the world; the shipped worlds load both. Topics are
+  The gpu lidar and RGBD camera need the Sensors system (ogre2), the IMU needs
+  the Imu system, and the GPS needs the NavSat system, all in the world; the
+  shipped worlds load them. The world also needs a <spherical_coordinates>
+  origin or the GPS sensor has nothing to measure lat/lon against. Topics are
   bridged in config/bridge.yaml.
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
@@ -154,6 +159,48 @@
           <far>20.0</far>
         </clip>
       </camera>
+    </sensor>
+  </gazebo>
+
+  <link name="gps_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.02"/>
+      <inertia ixx="1e-06" ixy="0" ixz="0" iyy="1e-06" iyz="0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.015" length="0.01"/></geometry>
+      <material name="gps_white"><color rgba="0.9 0.9 0.9 1"/></material>
+    </visual>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <origin xyz="0 0.2 0.05" rpy="${ros_frame}"/>
+    <parent link="chassis_link"/>
+    <child link="gps_link"/>
+  </joint>
+  <gazebo reference="gps_link">
+    <sensor name="gps_sensor" type="navsat">
+      <always_on>1</always_on>
+      <update_rate>5</update_rate>
+      <topic>/gps/raw</topic>
+      <gz_frame_id>gps_link</gz_frame_id>
+      <navsat>
+        <!-- Ideal for now: zero noise. position_sensing's noise is applied
+             directly to lat/lon in degrees, not converted from the metres the
+             schema docs describe (checked empirically: a stddev of 1.5 here
+             scattered readings across several degrees, i.e. hundreds of km).
+             Keep that in mind if real noise goes back in: deg-equivalents of
+             metres are tiny (1 deg latitude is ~111320 m). -->
+        <position_sensing>
+          <horizontal><noise type="gaussian"><mean>0.0</mean><stddev>0.0</stddev></noise></horizontal>
+          <vertical><noise type="gaussian"><mean>0.0</mean><stddev>0.0</stddev></noise></vertical>
+        </position_sensing>
+        <velocity_sensing>
+          <horizontal><noise type="gaussian"><mean>0.0</mean><stddev>0.0</stddev></noise></horizontal>
+          <vertical><noise type="gaussian"><mean>0.0</mean><stddev>0.0</stddev></noise></vertical>
+        </velocity_sensing>
+      </navsat>
     </sensor>
   </gazebo>
 
