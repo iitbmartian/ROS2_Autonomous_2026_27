@@ -1,0 +1,30 @@
+# Physical parameters of the rover. The only source of physical values for the 3D navigation
+# stack (SPEC.md, "Physical parameters"). Code never hardcodes any of these.
+#
+# Values from the sim URDF are real for the sim. Values marked PLACEHOLDER are guesses until
+# mechanical data arrives, and every node that loads one logs a warning at startup.
+# The marker must sit on the same line as its key.
+#
+# Frames: x forward, y left, z up, origin at base_footprint (ground under the rover centre).
+
+# Geometry, from rover_gazebo/config/rover_kinematics.yaml (generated from the CAD URDF).
+wheelbase: 0.744729          # m, front to rear wheel centre
+track: 0.436000              # m, left to right wheel centre
+wheel_radius: 0.149850       # m
+wheel_width: 0.140000        # m
+
+# Chassis outline, from the footprint in rover_nav2/config/nav2_params_sim.yaml.
+footprint_length: 1.1        # m, along x, centred on base_footprint
+footprint_width: 0.9         # m, along y, centred on base_footprint
+
+# Mass properties.
+cg_height: 0.45              # m above ground  # PLACEHOLDER
+cg_offset_x: 0.0             # m forward of the rover centre  # PLACEHOLDER
+cg_offset_y: 0.0             # m left of the rover centre  # PLACEHOLDER
+mass: 50.0                   # kg  # PLACEHOLDER
+
+# Limits.
+ground_clearance: 0.25       # m, belly to ground on flat terrain  # PLACEHOLDER
+rocker_max: 0.35             # rad, max rocker deflection either way  # PLACEHOLDER
+step_max: 0.10               # m, highest step a wheel climbs (sim climbs 10 to 12 cm bars)  # PLACEHOLDER
+stability_margin_min: 0.17   # rad, smallest allowed tip-over margin  # PLACEHOLDER

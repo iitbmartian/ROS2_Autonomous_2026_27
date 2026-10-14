@@ -1,0 +1,16 @@
+# Fixture: every key, two placeholders, one marker on a line of its own.
+wheelbase: 1.0
+track: wide
+wheel_radius: 0.1
+wheel_width: 0.05
+footprint_length: 1.2
+footprint_width: 0.8
+cg_height: 0.3  # PLACEHOLDER
+cg_offset_x: 0.01
+cg_offset_y: -0.02
+mass: 40
+# PLACEHOLDER: this comment is not attached to any key
+ground_clearance: 0.2
+rocker_max: 0.3
+step_max: 0.08   # m  # PLACEHOLDER
+stability_margin_min: 0.2
