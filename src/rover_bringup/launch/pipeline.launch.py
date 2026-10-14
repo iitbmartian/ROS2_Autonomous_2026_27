@@ -5,6 +5,7 @@
     ros2 launch rover_bringup pipeline.launch.py localization:=true
     ros2 launch rover_bringup pipeline.launch.py nav_rviz:=true   # RViz with the Nav2 Goal tool
     ros2 launch rover_bringup pipeline.launch.py teleop_gui:=true # Tk keyboard teleop window
+    ros2 launch rover_bringup pipeline.launch.py nav_params_file:=/path/to/params.yaml
     ros2 launch rover_bringup pipeline.launch.py suspension:=mimic \
         physics_engine:=gz-physics-bullet-featherstone-plugin
 
@@ -93,7 +94,12 @@ def generate_launch_description():
         "dense_map": LaunchConfiguration("dense_map"),
     })
 
-    nav2 = include("navigation.launch.py", {"sim": "true"})
+    # params_file defaults to the same nav2_params_sim.yaml that sim:=true selects inside
+    # navigation.launch.py, so leaving nav_params_file unset changes nothing.
+    nav2 = include("navigation.launch.py", {
+        "sim": "true",
+        "params_file": LaunchConfiguration("nav_params_file"),
+    })
 
     # Near-field obstacle cloud for the local costmap, rebuilt from the depth
     # image. rover_gazebo's own /camera/points cannot be used: Gazebo publishes
@@ -186,6 +192,11 @@ def generate_launch_description():
                               choices=["true", "false"]),
 
         # Nav2
+        DeclareLaunchArgument(
+            "nav_params_file",
+            default_value=os.path.join(get_package_share_directory("rover_nav2"),
+                                       "config", "nav2_params_sim.yaml"),
+            description="Nav2 parameters file. Default is the 2D sim tuning"),
         DeclareLaunchArgument("nav_rviz", default_value="false", choices=["true", "false"],
                               description="RViz with the costmaps, plans and Nav2 Goal tool"),
 
