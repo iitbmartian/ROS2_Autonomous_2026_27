@@ -34,7 +34,7 @@ import time
 import numpy as np
 import rclpy
 from controller_manager_msgs.srv import ListControllers
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import (QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy,
@@ -153,6 +153,22 @@ def rms(x):
     return float(np.sqrt(np.mean(np.square(x)))) if len(x) else float("nan")
 
 
+class StampedCmd:
+    """publish(Twist) -> TwistStamped on cmd_vel, stamped with now() (wall clock)."""
+
+    def __init__(self, pub, now):
+        self.pub, self.now = pub, now
+
+    def publish(self, twist):
+        msg = TwistStamped()
+        t = self.now()
+        msg.header.stamp.sec = int(t)
+        msg.header.stamp.nanosec = int((t - int(t)) * 1e9)
+        msg.header.frame_id = "base_link"
+        msg.twist = twist
+        self.pub.publish(msg)
+
+
 class Tester(Node):
 
     def __init__(self, world=None):
@@ -191,7 +207,11 @@ class Tester(Node):
                              ("wheel_pid_controller/commands", False)):
             self.create_subscription(Float64MultiArray, topic,
                                      lambda m, st=steer: self.on_effort(m, st), deep)
-        self.cmd = self.create_publisher(Twist, "cmd_vel", 10)
+        # cmd_vel is TwistStamped, and rover_kinematics treats an unstamped (zero) or
+        # old stamp as stale -- judged against the *wall* clock, as teleop stamps it.
+        # Scenarios keep building plain Twists; this stamps each one on the way out.
+        self.cmd = StampedCmd(self.create_publisher(TwistStamped, "cmd_vel", 10),
+                              time.time)
         self.mode_pub = self.create_publisher(String, "rover/steer_mode", MODE_QOS)
 
     # -- recording ------------------------------------------------------------

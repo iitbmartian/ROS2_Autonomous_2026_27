@@ -22,7 +22,7 @@ for world in "${WORLDS[@]}"; do
   # Own process group, so shutdown can take every node with it: killing only the
   # launch process orphans its nodes, and an orphaned rocker_coupling_node keeps
   # publishing torque into the next world's sim.
-  setsid ros2 launch rover_gazebo rover_sim.launch.py gui:=false world:="$world" >"$log" 2>&1 &
+  setsid ros2 launch rover_gazebo rover_sim.launch.py gui:=false teleop_gui:=false world:="$world" >"$log" 2>&1 &
   launch_pid=$!
 
   # Wait for the PID controllers to be loaded (spawned last, --inactive).

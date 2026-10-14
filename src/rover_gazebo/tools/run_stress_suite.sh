@@ -53,7 +53,7 @@ launch_pid=""
 
 start_sim() {   # world log [record_path]
   # record_path only when recording: ros2 launch rejects an empty "name:=".
-  setsid ros2 launch rover_gazebo rover_sim.launch.py gui:=false world:="$1.sdf" \
+  setsid ros2 launch rover_gazebo rover_sim.launch.py gui:=false teleop_gui:=false world:="$1.sdf" \
     ${3:+record_path:="$3"} >"$2" 2>&1 &
   launch_pid=$!
   # Ready once the PID controllers (spawned last, --inactive) are loaded.
