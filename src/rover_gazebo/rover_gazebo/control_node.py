@@ -260,9 +260,10 @@ class ExplicitPidControl(Node):
         self.declare_parameter("chassis_yaw_ki", 0.0)  # N m / (rad), accumulated chassis
                                                           # yaw rate over time -- see step()
         self.declare_parameter("wheel_kp", 5.0)      # N m / (rad/s)
-        self.declare_parameter("wheel_ki", 2.0)      # N m / rad
+        self.declare_parameter("wheel_ki", 10.0)     # N m / rad
         self.declare_parameter("wheel_kd", 0.0)      # N m / (rad/s^2); off, noisy signal
         self.declare_parameter("wheel_max_effort", 60.0)          # N m
+        self.declare_parameter("wheel_hold_max_effort", 25.0)     # N m, see step()
         self.declare_parameter("wheel_max_effort_rate", 1000.0)   # N m/s
         self.declare_parameter("wheel_sync_kp", 0.0)  # N m / (rad/s)
         self.declare_parameter("update_rate", 200.0)  # Hz
@@ -406,6 +407,7 @@ class ExplicitPidControl(Node):
         chassis_ki = p("chassis_yaw_ki").value
         w_kp, w_ki, w_kd = p("wheel_kp").value, p("wheel_ki").value, p("wheel_kd").value
         w_lim = p("wheel_max_effort").value
+        w_hold = p("wheel_hold_max_effort").value
         w_rate = p("wheel_max_effort_rate").value * self.dt
         w_sync = p("wheel_sync_kp").value
 
@@ -476,12 +478,18 @@ class ExplicitPidControl(Node):
         for j, target, sign, norm in zip(
                 WHEEL_JOINTS, self.wheel_target, self.drive_signs, norm_wheel):
             error = target - self.vel[j]
-            if target == 0.0:
-                # A stopped wheel holds on P alone. Left integrating, the four
-                # independent loops each wind up against whatever small creep the
-                # suspension gives them, and front and rear ended up squeezing the
-                # chassis between them (+-17 N m measured) with nothing commanded.
-                self.wheel_pid[j].integral = 0.0
+            if target == 0.0 and w_ki > 0.0:
+                # A stopped wheel keeps integrating -- the integral of its velocity
+                # error is just how far it has rolled, so this is a brake that holds
+                # the rover on a slope. It used to be cleared here instead, leaving P
+                # alone, and a parked rover rolled down a 20 deg hill at ~0.1 m/s
+                # (doc/STRESS_TESTING.md, F4). Clearing was a fix for the four loops
+                # winding up against suspension creep and squeezing the chassis
+                # front-to-rear at a standstill (+-17 N m), so the hold's integral
+                # term is bounded to wheel_hold_max_effort rather than left unlimited.
+                cap = w_hold / w_ki
+                pid = self.wheel_pid[j]
+                pid.integral = max(-cap, min(cap, pid.integral))
             raw = self.wheel_pid[j].step(
                 error, self.vel[j], self.dt, w_kp, w_ki, w_kd, w_lim,
                 derivative_on_measurement=False)

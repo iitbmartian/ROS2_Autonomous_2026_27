@@ -113,12 +113,16 @@ explicit_pid_control:
     wheel_kp: 5.0                 # N m / (rad/s). 0.4 ran 19% fast; 10+ tracked but
                                   # made the 4 wheels fight each other through the
                                   # ground (opposing +-14 N m) and doubled yaw drift
-    wheel_ki: 2.0                 # N m / rad. The integrator is cleared whenever the
-                                  # wheel target is zero (control_node.py), otherwise
-                                  # front and rear wound up against each other at a
-                                  # standstill (+-17 N m squeeze measured)
+    wheel_ki: 10.0                # N m / rad. Was 2: on a 20-25 deg slope that ran
+                                  # 21% slow climbing and 1.6x fast descending. Swept
+                                  # 2/5/10 (doc/STRESS_TESTING.md, F4); 10 is the lowest
+                                  # within 10% climbing and 1.3x descending
     wheel_kd: 0.0                 # N m / (rad/s^2); off, differentiates a noisy velocity
     wheel_max_effort: 60.0       # N m
+    wheel_hold_max_effort: 25.0  # N m. At a zero target the integrator keeps running
+                                  # as a brake (holds on a slope; ~11 N m needed at 25
+                                  # deg) but its term is capped here, so front and rear
+                                  # cannot wind up into a squeeze at a standstill
     wheel_sync_kp: 0.0            # N m / (rad/s) toward the other 3 wheels' mean;
                                    # measured no benefit, 0 disables
     wheel_max_effort_rate: 1000.0  # N m/s
@@ -144,6 +148,9 @@ rocker_coupling:
                                # not the CAD pose, so it applies no standing
                                # push once the rover has bedded in
     rest_capture_delay: 2.5    # s of settling before that reference is taken
+    rest_capture_max: 0.01745  # rad (1 deg). A captured residual bigger than this
+                               # means the rover was not level at capture time, so the
+                               # CAD rest (zero) is held instead of a twisted pose
     max_torque_rate: 1000000.0 # N m/s ceiling on how fast the torque may change,
                                # separate from how large it may get. Effectively
                                # unlimited here. Tuning it down measurably cuts the

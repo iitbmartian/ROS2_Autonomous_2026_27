@@ -51,11 +51,30 @@ that is too soft once gravity loads it.
   - The cmd_vel timeout stops the rover within 2 s in both modes.
   - ±1 m/s step reversals every 1.5 s are calm.
 
+### Fix status (2026-10-14)
+
+F1–F4 are **fixed**. F5–F8 are left on purpose, because each is a physical or
+architectural limit, not a code bug. Re-measured after the fixes, each in a fresh,
+isolated sim:
+
+| Finding | Fix | Before → after |
+|---|---|---|
+| F1 stuck sideways | Fold only to reachable targets and clamp the stored wheel angle (`rover_kinematics_node.py`) | after the 90° aim, ackermann forward: 1.97 m sideways → **1.99 m forward, 0.00 m sideways**. `abuse_mode_storm` now passes too, confirming it was F1. Outputs are bit-identical to the old code for arcs, reversing, crab, spot and explicit 45° from the same state |
+| F2 NaN/inf | Drop non-finite `cmd_vel` and warn (`on_cmd`) | NaN 1.98 m / inf 2.1 m with a −150° spin → **0.000 m** both |
+| F3 rest capture | Captured residual > `rest_capture_max` (1°) → warn and hold the CAD rest (`rocker_coupling_node.py`) | the original twisted capture (+12.9/+9.0/+17.5°) is now rejected; flat captures are unchanged |
+| F4 hills | Zero-target integrator kept as a brake, bounded by `wheel_hold_max_effort` 25 N·m; `wheel_ki` 2 → 10 (swept 2/5/10) | hold 20°/25°: 0.51/0.39 m → **0.004/0.008 m**. Climb 20°: −21% → −4%. Uphill restart: 50% → 100%. Descent peak: 0.61/0.67 → **0.50/0.52** m/s (cmd 0.40). Flat 60 s hold: 0.4–0.6 N·m, no squeeze |
+
+Abuse suite: 13/18 → **17/18**. The one remaining failure is the known turned-wheel
+suspension residual during the 90° sweep itself.
+
+Still open: explicit_pid *rear steering* error on slopes, 6–14° p95, as tyre loads push
+the 60 N·m steering servo. This is the same class as F5.
+
 ### Findings, most severe first
 
-None of these were fixed (report only). Each has a suspected cause and a pointer.
+As originally reported, before the fixes above. Each has a suspected cause and a pointer.
 
-**F1. After the explicit aim reaches its 90° clamp, ackermann/crab/spot drive sideways
+**F1 (fixed). After the explicit aim reaches its 90° clamp, ackermann/crab/spot drive sideways
 until the node restarts.** To reproduce from the keyboard:
 1. In explicit mode (4 or 5), hold A or D for about 6 s until the aim stops at 90°.
 2. Press 1 and hold W.
@@ -79,7 +98,7 @@ against the clamped angle and clamping before projecting. Anything that uses exp
 before handing over to ackermann (an operator, or a pipeline that switches modes) can
 hit this.
 
-**F2. NaN and inf in `cmd_vel` are acted on, not rejected.** Python's
+**F2 (fixed). NaN and inf in `cmd_vel` are acted on, not rejected.** Python's
 `max(-top, min(top, nan))` returns `top` (line 296; line 395 is the same for the explicit
 steering rate), so:
 - NaN `linear.x` drives forward toward 1 m/s: 1.98 m in 4 s.
@@ -90,7 +109,7 @@ steering rate), so:
 The rover recovers normally afterwards (except via F1). A planner bug upstream would
 turn into motion here, not a stop.
 
-**F3. The suspension coupling's rest pose is captured once, 2.5 s after start, from
+**F3 (fixed). The suspension coupling's rest pose is captured once, 2.5 s after start, from
 wherever the rover happens to be.** Spawned straddling the edge of a 12° strip, it
 captured +12.9° / +9.1° / +17.5° as "rest" and held the suspension twisted by that much
 for the whole session, with the coupling content at ~10 N·m. On every flat spawn it
@@ -99,7 +118,7 @@ the rover on uneven ground (nav2 tests on terrain, a slope spawn) or disturbs it
 those 2.5 s gets a mis-constrained suspension silently. Check the "rest pose captured"
 line in the launch log.
 
-**F4. explicit_pid cannot hold or pull on a hill.**
+**F4 (fixed). explicit_pid cannot hold or pull on a hill.**
 - **Parked:** it slides 0.51 m in 6 s on 20° and 0.39 m on 25°, with nothing commanded
   (ackermann: 0.000 m). It also slid during the setup before that window, so the true
   slide is larger. The wheels roll back at 0.64 rad/s against 3.2 N·m, which is exactly

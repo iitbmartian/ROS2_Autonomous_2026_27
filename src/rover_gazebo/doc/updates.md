@@ -5,6 +5,20 @@ reasoning behind the change; the "how" lives in the code and the other docs, not
 
 ## Summary
 
+- **2026-10-14** — Fixed the four real bugs the stress suite found (doc/STRESS_TESTING.md,
+  "Fix status"). F1: a wheel's folded steering target could land outside the joint range
+  (e.g. after the explicit aim reached its 90 deg clamp, which is a hair past pi/2), and
+  the stored angle then stuck near 180 deg, driving the rover sideways in every
+  non-explicit mode until a restart. The target now folds only to reachable angles, the
+  stored angle is clamped, and the speed is projected on the clamped angle. F2: non-finite
+  cmd_vel is dropped instead of clamped (NaN clamped to full speed). F3: the coupling no
+  longer captures a twisted rest pose from an uneven spawn (new `rest_capture_max`, 1 deg).
+  F4: explicit_pid keeps its wheel integrator at a zero target as a bounded brake (new
+  `wheel_hold_max_effort`, 25 N m), and `wheel_ki` goes 2 -> 10. It now holds 25 deg
+  slopes, climbs within 4%, and descends within 1.3x.
+  Files: `rover_gazebo/rover_kinematics_node.py`, `rover_gazebo/rocker_coupling_node.py`,
+  `rover_gazebo/control_node.py`, `config/rover_control.yaml`,
+  `doc/STRESS_TESTING.md`, `docs/controls/ROVER_CONTROLS.md` (repo root).
 - **2026-10-13** — Added a stress suite, report only: no control or model changes.
   Six generated worlds (`tools/generate_stress_worlds.py`: slopes, side_slope,
   rocks, washboard, low_friction, rough_terrain), seven suites in

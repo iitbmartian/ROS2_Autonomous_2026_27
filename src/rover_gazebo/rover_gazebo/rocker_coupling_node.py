@@ -84,6 +84,12 @@ class RockerCoupling(Node):
         # changes, which is what it is for. Unity's coupler does the same thing.
         self.declare_parameter("capture_rest", True)
         self.declare_parameter("rest_capture_delay", 2.5)   # s after the first sample
+        # A real settled residual is tiny (0.000 deg on flat ground under Harmonic). One
+        # bigger than this means the rover was not sitting level when the capture fired
+        # -- spawned on a slope or rocks, or still moving -- and capturing it would hold
+        # the suspension twisted by that much all session (doc/STRESS_TESTING.md, F3),
+        # so the CAD rest (zero) is used instead.
+        self.declare_parameter("rest_capture_max", 0.01745)  # rad, 1 deg
         # Both off by default; see the module docstring for what each does and why
         # the second one needs measuring rather than assuming it helps.
         self.declare_parameter("max_torque_rate", 1.0e6)     # N m/s, effectively unlimited
@@ -139,10 +145,17 @@ class RockerCoupling(Node):
                 waited = (now - self.first_seen).nanoseconds * 1e-9
                 if waited < self.get_parameter("rest_capture_delay").value:
                     return
-                self.rest = [self.pos[a] - r * self.pos[b] for a, b, r in self.constraints]
-                self.get_logger().info(
-                    "rest pose captured: " + ", ".join(
-                        f"{math_degrees(v):+.3f} deg" for v in self.rest))
+                rest = [self.pos[a] - r * self.pos[b] for a, b, r in self.constraints]
+                shown = ", ".join(f"{math_degrees(v):+.3f} deg" for v in rest)
+                if max(abs(v) for v in rest) > self.get_parameter("rest_capture_max").value:
+                    self.rest = [0.0, 0.0, 0.0]
+                    self.get_logger().warn(
+                        f"rest pose not captured: residual {shown} is too large for a "
+                        "rover settled on level ground (sloped or uneven spawn?); "
+                        "holding the CAD rest pose instead")
+                else:
+                    self.rest = rest
+                    self.get_logger().info("rest pose captured: " + shown)
 
         k = self.get_parameter("stiffness").value
         d = self.get_parameter("damping").value

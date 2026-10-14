@@ -232,7 +232,16 @@ class RoverKinematics(Node):
 
     # -- input ------------------------------------------------------------
     def on_cmd(self, msg: TwistStamped):
-        self.want = [msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z]
+        want = [msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z]
+        if not all(math.isfinite(v) for v in want):
+            # Dropped, not clamped: the max/min clamps below send NaN to the *upper*
+            # limit (NaN speed drove off at 1 m/s, a NaN steer rate swept the aim to its
+            # clamp), and inf to full lock. Ignoring it lets the last good command age
+            # out through command_timeout, so bad input stops the rover.
+            self.get_logger().warn(f"ignoring non-finite cmd_vel {want}",
+                                   throttle_duration_sec=1.0)
+            return
+        self.want = want
         self.last_cmd_stamp = msg.header.stamp
 
     def on_mode(self, msg: String):
@@ -383,8 +392,23 @@ class RoverKinematics(Node):
             else:
                 target_angle = raw_target
 
+            # The fold above is relative to the current angle, so on its own it can pick
+            # a target the joint cannot reach -- e.g. a wheel left at the explicit aim's
+            # 90 deg clamp (1.5708, a hair past pi/2) asked to go straight folds to pi.
+            # The internal state used to ramp there and stay, the speed was projected on
+            # that unreachable pi (so it came out reversed) and only the published angle
+            # was clamped, leaving the rover driving sideways in every non-explicit mode
+            # until a restart (doc/STRESS_TESTING.md, F1). So: take whichever of the two
+            # candidates lies within the joint range, keep the state there, and project
+            # the speed on the angle actually commanded.
+            lim = p("max_steer_angle").value
+            target_angle = (target_angle + math.pi) % (2 * math.pi) - math.pi
+            if abs(target_angle) > lim:
+                target_angle -= math.copysign(math.pi, target_angle)
+
             max_delta = p("max_wheel_turn_rate").value * self.dt
-            self.wheel_angle[i] = angle_ramp(current, target_angle, max_delta)
+            self.wheel_angle[i] = max(-lim, min(lim, angle_ramp(current, target_angle,
+                                                                max_delta)))
             angle = self.wheel_angle[i]
 
             # Drive at however much of the desired ground velocity actually lies along
@@ -394,9 +418,6 @@ class RoverKinematics(Node):
             # target, angle points opposite (wx, wy) and this projection comes out
             # negative by itself, so no separate speed flip is needed any more.
             speed = wx * math.cos(angle) + wy * math.sin(angle)
-
-            lim = p("max_steer_angle").value
-            angle = max(-lim, min(lim, angle))
 
             if i == 0:
                 self.last_fl_angle = angle
