@@ -102,6 +102,29 @@ found obstacles, red phantoms, blue missed obstacles, orange free space painted
 through an obstacle. The rover's map is saved next to it as a map_server
 `.yaml`/`.pgm`.
 
+## Baseline results
+
+Full suite, 2026-10-29, branch `rover_testing` (18208a6), tolerance 0.3 m,
+headless, defaults otherwise. Times are sim seconds of the test's own motion.
+
+| Test | Result | Numbers |
+| --- | --- | --- |
+| `nav_empty_world_3_3` | PASS | 19.0 s, path 4.35 m (straight line 4.24), 0.14 m from goal |
+| `nav_obstacle_course` | PASS | 58.2 s, path 14.0 m, 0.08 m from goal, 0 recoveries |
+| `nav_slope_plateau` | FAIL | Smac "no valid path found" up the 8° ramp; 15 recoveries, 0.65 m moved |
+| `nav_slope_crossing` | FAIL | same, on the first leg |
+| `drive_flat_straight` | PASS | progress 100%, max loc. error 0.022 m |
+| `drive_slope_8deg` | PASS | progress 100%, climbed 0.40 m, peak pitch 7.9°, max loc. error 0.022 m |
+| `drive_slope_15deg` | PASS | progress 98%, climbed 0.60 m, peak pitch 14.7°, max loc. error 0.022 m |
+| `map_empty_world` | PASS | precision 1.00, recall 1.00, coverage 100%, obstacle error 0.017 m |
+| `map_obstacle_course` | PASS | precision 1.00, recall 0.99, coverage 100%, obstacle error 0.020 m |
+| `map_slopes` | FAIL | precision 0.19: the ramp and plateau mapped as obstacles from where the ramp passes 0.15 m |
+
+The three failures are one finding: the vehicle and the estimator handle both
+slopes (the drive tests), but RTAB-Map's grid and Nav2's costmaps classify by
+height above the rover, so a climbable ramp becomes a wall and Nav2 will not
+plan onto it. Localization error stayed under 2.5 cm in every test.
+
 ## The ideal maps
 
 `maps/*.yaml` are generated, not drawn: `reference_map.py` reads the world's
