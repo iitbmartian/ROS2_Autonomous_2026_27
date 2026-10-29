@@ -1,0 +1,62 @@
+# Test cases run_tests.launch.py's UI offers. One entry per file in launch/tests/.
+# Every test launch file takes the same arguments: tolerance, timeout, gui, result_file
+# (see rover_testing/testcase.py).
+#
+#   name         shown in the UI and used for the result file
+#   category     navigation | drive | mapping; the UI groups by it
+#   launch_file  file name in launch/tests/
+#   description  one line, shown next to the checkbox
+#   timeout      default sim seconds for the test's own motion (the UI can override)
+test_cases:
+  - name: nav_empty_world_3_3
+    category: navigation
+    launch_file: nav_empty_world_3_3.launch.py
+    description: "empty_world: Nav2 from spawn (0, 0) to (3, 3)"
+    timeout: 120.0
+  - name: nav_obstacle_course
+    category: navigation
+    launch_file: nav_obstacle_course.launch.py
+    description: "obstacle_course: Nav2 13 m across the arena, around a slalom of obstacles"
+    timeout: 180.0
+  - name: nav_slope_plateau
+    category: navigation
+    launch_file: nav_slope_plateau.launch.py
+    description: "slopes: Nav2 up an 8 degree ramp onto a 0.4 m plateau"
+    timeout: 120.0
+  - name: nav_slope_crossing
+    category: navigation
+    launch_file: nav_slope_crossing.launch.py
+    description: "slopes: Nav2 up, across and down an 8 degree hill"
+    timeout: 150.0
+
+  - name: drive_flat_straight
+    category: drive
+    launch_file: drive_flat_straight.launch.py
+    description: "empty_world: fixed 0.5 m/s for 5.5 m, no planner (flat baseline)"
+    timeout: 60.0
+  - name: drive_slope_8deg
+    category: drive
+    launch_file: drive_slope_8deg.launch.py
+    description: "slopes: fixed 0.5 m/s up an 8 degree ramp, 0.4 m climb"
+    timeout: 60.0
+  - name: drive_slope_15deg
+    category: drive
+    launch_file: drive_slope_15deg.launch.py
+    description: "slopes: fixed 0.5 m/s up a 15 degree ramp, 0.6 m climb"
+    timeout: 60.0
+
+  - name: map_empty_world
+    category: mapping
+    launch_file: map_empty_world.launch.py
+    description: "empty_world: 4 m square loop, map scored against the ideal map"
+    timeout: 300.0
+  - name: map_obstacle_course
+    category: mapping
+    launch_file: map_obstacle_course.launch.py
+    description: "obstacle_course: tour past every obstacle, map scored"
+    timeout: 300.0
+  - name: map_slopes
+    category: mapping
+    launch_file: map_slopes.launch.py
+    description: "slopes: map of an 8 degree hill scored against its drivable ideal"
+    timeout: 200.0

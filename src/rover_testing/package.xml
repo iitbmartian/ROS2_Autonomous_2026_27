@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rover_testing</name>
+  <version>0.0.0</version>
+  <description>
+    Benchmark test cases for the simulated rover stack: navigation, fixed-input
+    driving on slopes, and mapping scored against ideal reference maps. Wrappers
+    around the rover_bringup launch files, test worlds, one launch file per test
+    case, and run_tests.launch.py, a Tk UI that picks, runs and reports them.
+  </description>
+  <maintainer email="software.mrt.iitb@gmail.com">Nishant</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <!-- The launch files everything here wraps -->
+  <exec_depend>rover_bringup</exec_depend>
+  <exec_depend>rover_gazebo</exec_depend>
+
+  <!-- benchmark nodes, map comparison, world and reference-map generators -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>lifecycle_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-pil</exec_depend>
+
+  <!-- test_runner_ui (python3-pil above also shows the map overlays) -->
+  <exec_depend>python3-tk</exec_depend>
+  <exec_depend>python3-pil.imagetk</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
