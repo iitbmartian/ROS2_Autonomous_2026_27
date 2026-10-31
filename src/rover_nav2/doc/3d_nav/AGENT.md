@@ -17,8 +17,9 @@ workspace (ROS 2 Jazzy, Nav2, Gazebo Harmonic). The work happens in phases. Each
    points. When a gate is met, record the evidence in `PROGRESS.md` (test output, benchmark
    numbers, RViz screenshots or bag names, each with the command that produced it), commit, and
    move straight on to the next phase.
-3. Commit in small steps with clear messages on `ram/3d_nav`. Build and test after each
-   meaningful change. Never push.
+3. Commit in small steps with clear messages on `ram/3d_nav`, without asking first. Ram is the
+   only author: no `Co-Authored-By` line or any other Claude attribution in commit messages or
+   PR descriptions. Build and test after each meaningful change. Always ask before pushing.
 4. Make routine decisions yourself, following `SPEC.md` and this file: implementation details,
    parameter defaults, test design, file layout, fixing failing tests, choosing between
    equivalent libraries or approaches, small spec clarifications. Log each non-obvious decision
