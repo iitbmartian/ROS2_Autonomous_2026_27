@@ -1,0 +1,29 @@
+# Nav2 parameters, simulation, 3D terrain stack: an OVERLAY on nav2_params_sim.yaml.
+#
+# This file holds only what differs from the 2D sim tuning. rover_bringup's 3D launch files
+# deep-merge it over nav2_params_sim.yaml (rover_nav2.params_overlay): mappings merge key by key,
+# lists and scalars here replace the base value. Keeping it an overlay means the 3D stack follows
+# every 2D tuning change and differs only where it has to. nav2_params_sim.yaml itself is not
+# changed and the 2D stack never reads this file.
+#
+#   ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf
+#
+# Phase 0: the local costmap gains the TraversabilityLayer (rover_traversability), fed by
+# terrain_mapping_node's /terrain/local_features. Its thresholds are the prototype's defaults,
+# not tuned. Phase 3 replaces them with the utilisation model (see rover_nav2/doc/3d_nav/SPEC.md).
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      plugins: ["voxel_layer", "traversability_layer", "inflation_layer"]
+      traversability_layer:
+        plugin: "rover_traversability/TraversabilityLayer"
+        enabled: true
+        map_topic: /terrain/local_features
+        # The layer reports not current, and the controller stops, once the newest feature map
+        # is older than this. terrain_mapping_node publishes at 5 Hz from 5 Hz lidar.
+        map_timeout: 1.0
+        unknown_cost: 200       # never 255, updateWithMax would drop it
+        max_soft_cost: 252
+        lethal_dilation_radius: 0.0   # follow the footprint's inscribed radius
+        combination_method: 1   # max
