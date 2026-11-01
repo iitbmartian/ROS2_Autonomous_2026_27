@@ -68,6 +68,8 @@ TEST(YawEvaluation, TwentyDegreeSidehillOnlyUpAndDownSafe)
   EXPECT_TRUE(mask & (1u << 12));
   EXPECT_NEAR(out.best_utilisation(20, 20), 0.387441, 1e-4);
   EXPECT_NEAR(std::fabs(std::sin(out.best_yaw(20, 20))), 1.0, 1e-9);
+  // A smooth plane has no step, roughness or rocker difference, so tip sets u.
+  EXPECT_EQ(out.limiting_check(20, 20), 0.0f);
 }
 
 TEST(YawEvaluation, SymmetryShortcutMatchesFullEvaluation)

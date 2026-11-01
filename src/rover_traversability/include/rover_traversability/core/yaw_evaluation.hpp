@@ -20,9 +20,11 @@ namespace rover_traversability
 namespace core
 {
 
+// limiting_check at the best heading: which utilisation set u. 0 tip, 1 clearance,
+// 2 articulation, 3 step, 4 roughness, 5 negative obstacle under a wheel. NaN where unknown.
 struct YawLayers
 {
-  Eigen::MatrixXf safe_yaw_mask, best_yaw, best_utilisation;
+  Eigen::MatrixXf safe_yaw_mask, best_yaw, best_utilisation, limiting_check;
 };
 
 struct YawParams

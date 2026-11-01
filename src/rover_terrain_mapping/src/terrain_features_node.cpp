@@ -161,6 +161,7 @@ private:
       writeLayer(out, L::kSafeYawMask, y.safe_yaw_mask);
       writeLayer(out, L::kBestYaw, y.best_yaw);
       writeLayer(out, L::kBestUtilisation, y.best_utilisation);
+      writeLayer(out, "limiting_check", y.limiting_check);
       yaw_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - ty).count();
     }

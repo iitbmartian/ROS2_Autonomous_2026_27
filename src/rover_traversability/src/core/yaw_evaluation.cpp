@@ -46,6 +46,7 @@ YawLayers evaluateYaws(
   out.safe_yaw_mask = Eigen::MatrixXf::Constant(rows, cols, nan);
   out.best_yaw = Eigen::MatrixXf::Constant(rows, cols, nan);
   out.best_utilisation = Eigen::MatrixXf::Constant(rows, cols, nan);
+  out.limiting_check = Eigen::MatrixXf::Constant(rows, cols, nan);
 
   // With no fore-aft CG offset, heading k and k + bins/2 put the same wheels on the same cells
   // (front and rear swap), so every check gives the same answer and half the work suffices.
@@ -61,6 +62,7 @@ YawLayers evaluateYaws(
           unsigned mask = 0;
           double best_u = std::numeric_limits<double>::infinity();
           double best_yaw = 0.0;
+          float limiting = nan;
           bool any_known = false;
           for (int k = 0; k < evals; ++k) {
             const double yaw = 2.0 * M_PI * k / y.yaw_bins;
@@ -71,12 +73,21 @@ YawLayers evaluateYaws(
               mask |= 1u << k;
               if (symmetric) {mask |= 1u << (k + y.yaw_bins / 2);}
             }
-            if (r.u < best_u) {best_u = r.u; best_yaw = yaw;}
+            if (r.u < best_u || !std::isfinite(limiting)) {
+              if (r.u < best_u) {best_u = r.u; best_yaw = yaw;}
+              if (r.negative_contact) {
+                limiting = 5.0f;
+              } else {
+                const double us[5] = {r.u_tip, r.u_clear, r.u_art, r.u_step, r.u_rough};
+                limiting = static_cast<float>(std::max_element(us, us + 5) - us);
+              }
+            }
           }
           if (!any_known) {continue;}
           out.safe_yaw_mask(i, j) = static_cast<float>(mask);
           out.best_utilisation(i, j) = static_cast<float>(best_u);
           out.best_yaw(i, j) = static_cast<float>(best_yaw);
+          out.limiting_check(i, j) = limiting;
         }
       }
     };
