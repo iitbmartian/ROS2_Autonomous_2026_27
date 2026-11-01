@@ -1,7 +1,7 @@
 """The simulated rover stack with 3D terrain navigation.
 
     ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf
-    ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gui:=false nav_rviz:=true
+    ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gui:=false terrain_rviz:=true
 
 Runs pipeline.launch.py (Gazebo, EKF, RTAB-Map, Nav2) with the 3D Nav2 parameters, plus
 terrain_mapping.launch.py. The 3D parameters are rover_nav2's nav2_params_sim_3d.yaml merged
@@ -19,8 +19,10 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, GroupAction, IncludeLaunchDescription,
                             OpaqueFunction, TimerAction)
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 from rover_nav2.params_overlay import merge_files
 
@@ -65,7 +67,14 @@ def _launch(context):
     terrain = GroupAction(scoped=True, actions=[IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, 'terrain_mapping.launch.py')),
         launch_arguments={'sim': 'true'}.items())])
-    return [pipeline, TimerAction(period=TERRAIN_DELAY, actions=[terrain])]
+    # nav2_sim.rviz plus the terrain elevation and slope maps (grid_map_rviz_plugin).
+    rviz = Node(
+        package='rviz2', executable='rviz2', output='screen',
+        parameters=[{'use_sim_time': True}],
+        arguments=['-d', os.path.join(get_package_share_directory('rover_nav2'),
+                                      'rviz', 'terrain_3d.rviz')],
+        condition=IfCondition(LaunchConfiguration('terrain_rviz')))
+    return [pipeline, TimerAction(period=TERRAIN_DELAY, actions=[terrain]), rviz]
 
 
 def generate_launch_description():
@@ -75,4 +84,6 @@ def generate_launch_description():
         [DeclareLaunchArgument(k, default_value=v) for k, v in FORWARDED.items()]
         + [DeclareLaunchArgument('nav_overlay', default_value=overlay,
                                  description='Overlay merged over nav2_params_sim.yaml'),
+           DeclareLaunchArgument('terrain_rviz', default_value='false',
+                                 description='RViz with the Nav2 view and the terrain maps'),
            OpaqueFunction(function=_launch)])
