@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| Current phase | Phase 0 closing (2D baseline running), Phase 1 code in parallel |
-| Done | Phase 0: packages, layer loads and goes current in sim, FastDEM map recorded, benchmark runner. Phase 1: L2-like lidar option, four terrain worlds, ground-truth heightmap export, goal sets for all worlds. |
-| In progress | 2D baseline, 35 runs, `~/.ros/rover_benchmark/2026-11-01_baseline_2d/` |
+| Current phase | Phase 0 closing (2D baseline finishing). Code for Phases 1 to 5 written and unit tested, not yet validated in sim. |
+| Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
+| In progress | 2D baseline (`~/.ros/rover_benchmark/2026-11-01_baseline_2d/`), then sim validation phase by phase |
 | Waiting on Ram | (1) NVIDIA module for the running kernel, see next row. Phase 1's gate item "real-time factor of at least 0.7" cannot pass on CPU rendering. (2) License of the prototype's Gale Crater mesh before it can be copied into the team repo (see Phase 1 notes). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
@@ -37,6 +37,7 @@
 |---|---|---|---|
 | `ram/rover_gazebo-l2-lidar` | `rover_gazebo` (Pradyun) | `rover_sensors.xacro`: optional L2-like lidar (`lidar_model:=l2`, 360 x 96 deg, -6 to 90 deg vertical, 10 Hz, 48 x 360 samples, 2 cm noise), with `lidar_inverted` and `lidar_tilt`. Arguments default from `ROVER_LIDAR_MODEL`, `ROVER_LIDAR_INVERTED`, `ROVER_LIDAR_TILT`, so no launch file changes. Unset, the generated URDF is byte-identical to `main` (checked with xacro, paths normalised). | Committed locally (b82ed2e), merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_gazebo-terrain-worlds` | `rover_gazebo` (Pradyun) | `tools/make_terrain_worlds.py` and its output: `slopes`, `crater_field`, `rock_field`, `urc_mix` worlds, heightmap models `TerrainSlopes`, `TerrainCraterField`, `TerrainUrcMix`, `TerrainFlatNormal`. Existing worlds untouched. | Committed locally (2e8cf65), merged into `ram/3d_nav`, not pushed. |
+| `ram/rover_gazebo-swerve-mode` | `rover_gazebo` (Pradyun) | `rover_kinematics_node.py`: `swerve` mode, vx, vy and wz together, `v_wheel = (vx, vy) + w x r`, through the existing fold and turn-rate limit. Default stays ackermann. Hand check FL at (0.2, 0.1, 0.3): 57.55 deg, 0.2509 m/s. | Committed locally (2ab6b54), merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_bringup-nav-params-arg` | `rover_bringup` (unassigned owner) | `pipeline.launch.py` gains a `nav_params_file` argument. Its default is the same `nav2_params_sim.yaml` that `navigation.launch.py` picks with `sim:=true`, so the 2D pipeline behaves exactly as before. | Committed locally (d46e027), merged into `ram/3d_nav` (3269f82), not pushed. |
 
 ## Notes on history
@@ -80,6 +81,21 @@ One line each: the choice and the reason.
   definitions after `find_package(rover_traversability)`, since they broke FastDEM's build.
 - 2026-10-14: `rover_bringup/package.xml` does not yet list `rover_terrain_mapping` as a
   dependency. Adding it would edit an existing file in `rover_bringup`, so it is left for review.
+- 2026-11-01: The MPPI critic evaluates only the yaw-dependent checks (tip, articulation, step)
+  along rollouts. Belly clearance and roughness are yaw independent and already applied by the
+  costmap at every cell, so repeating them per rollout point would only cost time.
+- 2026-11-01: Unknown cells under the footprint are exempt from SPEC.md's "unknown inside the
+  braking distance is lethal" rule. Every sensor has a blind zone under the rover, and marking
+  it lethal puts the rover inside its own obstacle so it can never start. Braking distance is
+  measured from the circumscribed circle. This is an interpretation of SPEC.md, flagged for Ram.
+- 2026-11-01: The 3D collision monitor reads the terrain hazard cloud only, not raw lidar: the 2D
+  lidar source treats every point 0.15 m above base_footprint as an obstacle, ramps included.
+- 2026-11-01: Phases stay comparable in the benchmark through launch switches: `drive:=ackermann`
+  (Phase 3) or `swerve` (Phase 4), `governor:=` and `safety:=` (Phase 5), `lidar_model:=`.
+- 2026-11-01: The swerve mode is selected on `rover/steer_mode` by a low-rate latched publisher,
+  since a latched sample dies with its publisher. The kinematics node acts only on change.
+- 2026-11-01: `rover_traversability` defaults to a Release build. Host builds were -O0 and the
+  heading evaluation cost 72.6 s of CPU per map instead of 0.52 s.
 - 2026-11-01: SPEC.md updated (minor, logged here): feature definitions and units, `last_seen`
   as an age, the extra `slope_std` layer, the risk adjustment in practice, the exact 3D margin
   with body-fixed wheels, the belly disc approximation, the roughness disc, `roughness_max` and
@@ -287,4 +303,34 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   margin on slopes. Both lenient, both fixed. My own first hand constant (0.451384 for the flat
   margin) was also wrong. The right value, 0.451126 rad, agrees with the benchmark's 16.11 deg
   roll limit.
+- **Heading evaluation** (`core/yaw_evaluation`): `safe_yaw_mask`, `best_yaw`,
+  `best_utilisation` for every cell, threaded, halved by front-back symmetry when the CG has no
+  fore-aft offset. 5 tests (a 20 deg sidehill: only facing up or down is safe). Wired into
+  `terrain_features_node`.
+- **Performance** (`ros2 run`-free: `build/rover_terrain_mapping/bench_features`, process CPU
+  time, synthetic fully observed 10 x 10 m map at 5 cm, 36064 cells with a verdict): features
+  171 ms, negative obstacles 3 ms, roughness disc max 26 ms, heading evaluation 528 ms at 16
+  headings on one thread. 4 threads: heading evaluation 242 ms wall on a machine loaded by the
+  baseline sim. Before the Release default it was 72.6 s. NUC-class numbers still to measure.
+- **TraversabilityLayer v2** (`cost_model: utilisation`), 4 tests: quadratic graded cost, lethal
+  when no heading is safe, unknown lethal only in the braking band outside the footprint, only
+  lethal cells dilated.
+- **Phase 3 Nav2 overlay**: both costmaps on the terrain layer (the voxel layer and RTAB-Map's
+  flattened grid both mark ramps as obstacles), a global `terrain_features_node` instance on
+  `/terrain/global`, the L2 lidar inverted by default in `pipeline_3d.launch.py`,
+  `navigation_3d.launch.py`.
+
+### Phase 4 and 5 work (code only so far)
+
+- **Swerve mode** on `ram/rover_gazebo-swerve-mode` (see branches).
+- **TerrainCritic** (`core/trajectory_cost` plus an MPPI plugin): `w_terrain u^2`, collision cost
+  on lethal poses, redirect cost per radian of travel-direction change, uphill time term. 4 tests
+  (crossing a 20 deg slope facing uphill costs 10 x 20 x 0.387^2, driving across it is a
+  collision) and a pluginlib load test.
+- **Swerve overlay** `nav2_params_sim_3d_swerve.yaml`: MPPI Omni with TerrainCritic, Smac 2D,
+  lateral velocity limits, PathAngleCritic and PreferForwardCritic off.
+- **terrain_speed_governor** and **terrain_safety_monitor** (`core/speed_safety`, 4 tests), wired
+  into `pipeline_3d.launch.py` with the collision monitor reading `/terrain/hazard_points`.
+- **Not yet done:** any of this in sim. Every Phase 1 to 5 gate needs sim runs, which start once
+  the baseline finishes.
 
