@@ -6,6 +6,7 @@ add_library(traversability_core SHARED
   disc_dilation.cpp
   physical_params.cpp
   pose_evaluation.cpp
+  speed_safety.cpp
   trajectory_cost.cpp
   yaw_evaluation.cpp)
 target_include_directories(traversability_core PUBLIC
@@ -36,6 +37,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_trajectory_cost ${T}/test_trajectory_cost.cpp)
   target_link_libraries(test_trajectory_cost traversability_core)
+
+  ament_add_gtest(test_speed_safety ${T}/test_speed_safety.cpp)
+  target_link_libraries(test_speed_safety traversability_core)
 
   ament_add_gtest(test_physical_params ${T}/test_physical_params.cpp)
   target_link_libraries(test_physical_params traversability_core)

@@ -23,6 +23,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 add_subdirectory(src/core)
 add_subdirectory(src/msg)
 add_subdirectory(src/critic)
+add_subdirectory(src/nodes)
 
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
