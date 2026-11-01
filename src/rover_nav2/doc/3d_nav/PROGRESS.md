@@ -7,7 +7,7 @@
 | Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
-| Waiting on Ram | (1) NVIDIA module for the running kernel, see next row. Phase 1's gate item "real-time factor of at least 0.7" cannot pass on CPU rendering. (2) License of the prototype's Gale Crater mesh before it can be copied into the team repo (see Phase 1 notes). |
+| Waiting on Ram | (1) **Phase 1 gate item 2 cannot pass here: real-time factor 0.465 with the full 3D stack, gate 0.7.** The NVIDIA module is missing for the running kernel, so Gazebo renders sensors on the CPU (see next row). Recommended: install it (one command, reboot), then I rerun the measurement. Alternatives: accept the item as blocked by the machine and judge it on a GPU machine, or lower the sensor load (fewer lidar samples, no camera) for benchmarks only. (2) License of the prototype's Gale Crater mesh. (3) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
@@ -370,4 +370,40 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   Ram's then-uncommitted retune in the results directory), commit `98ce60c+dirty`.
 - Mid-baseline, `rover_gazebo`'s symlink-installed kinematics node gained the swerve branch. The
   ackermann path is unchanged, so the remaining runs are unaffected.
+
+## Phase 1: sim validation (2026-11-01)
+
+### Gate item 1: L2-like lidar puts ground cells within 1.0 m of the footprint edge: PASS
+
+`tools/phase1_coverage.sh` and the mount sweep, rover at rest on `flat.sdf`,
+`ros2 run rover_nav2 coverage_check --duration 30-40` (worst bearing over 36 bearings, from the
+footprint edge to the nearest observed ground cell, median map; observed share of the 1 m band):
+
+| Lidar and mount | Worst bearing | Band observed | Evidence |
+|---|---|---|---|
+| 16-ring roof lidar (default) | 2.33 m | 6 percent | `coverage_roof.txt` |
+| L2 inverted at the roof-lidar point | no ground at all on some bearings | 6 percent | `coverage_l2_inverted.txt` |
+| L2 inverted, front bracket (0.4, 0, 0.35) | 0.83 m | 65 percent | `coverage_front.txt` |
+| **L2 inverted, 0.5 m mast (0, 0, 0.5)** | **0.53 m** | **73 percent** | `coverage_mast050.txt` |
+| L2 inverted, 0.75 m mast (0, 0, 0.75) | 0.58 m | 72 percent | `coverage_mast075.txt` |
+
+- Surprise: at the roof-lidar point the dome sits inside the chassis geometry. One scan in
+  base_footprint (`tools/cloud_stats.py`): 5022 of 6270 returns on the rover itself at 5 to 10 cm
+  range, nearest ground return 5 m out. Added `lidar_xyz` to the L2 branch. The sim now mounts
+  it on a 0.5 m mast by default (`pipeline_3d.launch.py`). The real mount is a Phase 7 item.
+- Once, Nav2's lifecycle manager waited forever on `bt_navigator/get_state` (DDS never
+  discovered the service). Not our code: the same launch came up in every other run. Both
+  `tools/sim_up.sh` and the benchmark runner now retry a stalled start once.
+
+### Gate item 2: real-time factor at least 0.7 with the full sensor set: FAIL, blocked
+
+Full 3D stack (L2 on the mast, RGB-D camera, EKF, RTAB-Map, terrain mapping, both feature nodes,
+Nav2, governor, safety monitor) driving on `slopes.sdf`: **0.465** over 29 s
+(`evidence/phase1/rtf_full_stack_slopes.txt`, `/clock` against wall time). Load average 30 on
+12 cores. Cause: no NVIDIA module for kernel 7.0.0-38, so sensors render on the CPU. Question
+for Ram in the status table.
+
+### Gate item 3: baseline rerun on all worlds: pending
+
+Starts after the Phase 2 evaluation runs, so the two never share the CPU.
 
