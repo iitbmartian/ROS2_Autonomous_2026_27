@@ -1,0 +1,8 @@
+# Goals on rock_field.sdf: 210 rocks in x 2..20, y -8..8, heights straddling a 10 cm step.
+world: rock_field.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 300
+goals:
+  - {id: ahead_10m, x: 10.0, y: 0.0, yaw: 0.0}
+  - {id: far_left, x: 18.0, y: 4.0, yaw: 0.0}
+  - {id: far_right, x: 18.0, y: -4.0, yaw: 0.0}

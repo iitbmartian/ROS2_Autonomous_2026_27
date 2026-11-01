@@ -1,0 +1,11 @@
+# Goals on slopes.sdf (rover_gazebo tools/make_terrain_worlds.py). Ramp lanes rise along +x from
+# x 4 to 0.8 m plateaus 3 m long. Lanes are 2.5 m causeways, so flat ground runs between them.
+world: slopes.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 300
+goals:
+  - {id: lane15_top, x: 8.5, y: 0.0, yaw: 0.0}       # plateau x 6.99..9.99
+  - {id: lane25_top, x: 7.2, y: -5.0, yaw: 0.0}      # plateau x 5.72..8.72
+  - {id: lane35_top, x: 6.6, y: -10.0, yaw: 0.0}     # plateau x 5.14..8.14, should be refused
+  - {id: sidehill_uphill, x: 11.0, y: 7.5, yaw: 1.5708}  # 20 deg sidehill, facing uphill
+  - {id: past_lanes, x: 20.0, y: 0.0, yaw: 0.0}      # around or over the 15 deg lane

@@ -288,15 +288,15 @@ def ground_truth(shapes, x_min, x_max, y_min, y_max, res):
     return z.reshape(rows, cols)
 
 
-def default_extent(shapes, margin=1.0):
-    los, his = [], []
+def default_extent(shapes, margin=1.0, around_origin=10.0):
+    """Bounds of every bounded shape plus a margin, and always at least +-around_origin about
+    the spawn point, so worlds of small obstacles on a plane still cover the drive area."""
+    los, his = [np.array([-around_origin, -around_origin])], [np.array([around_origin] * 2)]
     for s in shapes:
         b = s.xy_bounds()
         if b is not None:
             los.append(b[0])
             his.append(b[1])
-    if not los:
-        return -10.0, 10.0, -10.0, 10.0
     lo, hi = np.min(los, axis=0) - margin, np.max(his, axis=0) + margin
     return lo[0], hi[0], lo[1], hi[1]
 

@@ -1,0 +1,9 @@
+# Goals on urc_mix.sdf: 51 x 51 m of hills, ramp lanes, a sidehill, craters and rocks.
+# Phase 6 adds the long multi-waypoint sets.
+world: urc_mix.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 600
+goals:
+  - {id: mid_20m, x: 20.0, y: 0.0, yaw: 0.0}
+  - {id: far_south, x: 30.0, y: -20.0, yaw: -0.6}
+  - {id: far_east, x: 42.0, y: 0.0, yaw: 0.0}

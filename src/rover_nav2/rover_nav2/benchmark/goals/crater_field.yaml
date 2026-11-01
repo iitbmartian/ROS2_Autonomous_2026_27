@@ -1,0 +1,8 @@
+# Goals on crater_field.sdf: craters 0.3 to 3 m across in x 1.5..20, y -11..11.
+world: crater_field.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 300
+goals:
+  - {id: ahead_10m, x: 10.0, y: 0.0, yaw: 0.0}
+  - {id: far_left, x: 18.0, y: 5.0, yaw: 0.0}
+  - {id: far_right, x: 18.0, y: -6.0, yaw: 0.0}
