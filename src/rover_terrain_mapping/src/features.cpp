@@ -1,0 +1,256 @@
+// Copyright 2026 Mars Rover Team, IIT Bombay.
+
+#include "rover_terrain_mapping/features.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <utility>
+#include <vector>
+
+#include <Eigen/Dense>
+
+namespace rover_terrain_mapping
+{
+
+namespace
+{
+
+constexpr float kNaN = std::numeric_limits<float>::quiet_NaN();
+
+std::vector<std::pair<int, int>> discOffsets(double radius_cells)
+{
+  std::vector<std::pair<int, int>> out;
+  // radius / resolution is often a whole number that floating point lands just under
+  // (0.15 / 0.05 = 2.9999999999999996), which would drop the disc's edge cells.
+  const double rc = radius_cells + 1e-6;
+  const int r = static_cast<int>(std::floor(rc));
+  const double r2 = rc * rc;
+  for (int di = -r; di <= r; ++di) {
+    for (int dj = -r; dj <= r; ++dj) {
+      if (di * di + dj * dj <= r2) {
+        out.emplace_back(di, dj);
+      }
+    }
+  }
+  return out;
+}
+
+PlaneFit fitPlaneOffsets(
+  const Grid & z, const Grid & var, int i, int j, const std::vector<std::pair<int, int>> & disc,
+  double radius_m, const FeatureParams & p)
+{
+  PlaneFit f;
+  const int rows = static_cast<int>(z.rows());
+  const int cols = static_cast<int>(z.cols());
+  const double res = p.resolution;
+
+  // Accumulate in double. Coordinates in metres about the centre cell.
+  Eigen::Matrix3d AtWA = Eigen::Matrix3d::Zero();
+  Eigen::Vector3d AtWz = Eigen::Vector3d::Zero();
+  double sw = 0.0, sx = 0.0, sy = 0.0, sxx = 0.0, syy = 0.0, sxy = 0.0;
+  std::vector<Eigen::Vector3d> pts;
+  pts.reserve(disc.size());
+  for (const auto & [di, dj] : disc) {
+    const int ii = i + di, jj = j + dj;
+    if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
+    const float zv = z(ii, jj);
+    if (!std::isfinite(zv)) {continue;}
+    const double x = -di * res, y = -dj * res;
+    const float vv = var(ii, jj);
+    const double w = 1.0 / std::max(std::isfinite(vv) ? static_cast<double>(vv) : 1e-2,
+                                    p.min_variance);
+    const Eigen::Vector3d a(x, y, 1.0);
+    AtWA.noalias() += w * a * a.transpose();
+    AtWz.noalias() += w * zv * a;
+    sw += 1.0; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+    pts.emplace_back(x, y, zv);
+  }
+  f.count = static_cast<int>(pts.size());
+  if (f.count < 4 || f.count < p.min_fill * static_cast<double>(disc.size())) {
+    return f;
+  }
+
+  // Spread: both principal standard deviations of the cell positions must reach a share of the
+  // radius, or the cells are close to a line and the plane's tilt across it is undetermined.
+  const double mx = sx / sw, my = sy / sw;
+  Eigen::Matrix2d cxy;
+  cxy << sxx / sw - mx * mx, sxy / sw - mx * my, sxy / sw - mx * my, syy / sw - my * my;
+  const Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es2(cxy);
+  const double min_std = std::sqrt(std::max(es2.eigenvalues()(0), 0.0));
+  if (min_std < p.spread_fraction * radius_m) {
+    return f;
+  }
+
+  const Eigen::Matrix3d cov = AtWA.inverse();     // weights are inverse variances
+  const Eigen::Vector3d sol = cov * AtWz;
+  f.a = sol(0); f.b = sol(1); f.c = sol(2);
+  const double g = std::hypot(f.a, f.b);
+  f.slope = std::atan(g);
+  // First-order propagation of the (a, b) covariance through slope = atan(|grad|).
+  const Eigen::Matrix2d cab = cov.topLeftCorner<2, 2>();
+  if (g > 1e-9) {
+    const Eigen::Vector2d J(f.a / (g * (1.0 + g * g)), f.b / (g * (1.0 + g * g)));
+    f.slope_std = std::sqrt(std::max(J.dot(cab * J), 0.0));
+  } else {
+    f.slope_std = std::sqrt(std::max(cab.trace() / 2.0, 0.0));
+  }
+
+  double r2 = 0.0;
+  Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+  for (const auto & q : pts) {
+    const double r = q.z() - (f.a * q.x() + f.b * q.y() + f.c);
+    r2 += r * r;
+    mean += q;
+  }
+  f.rms = std::sqrt(r2 / f.count);
+  mean /= f.count;
+  Eigen::Matrix3d c3 = Eigen::Matrix3d::Zero();
+  for (const auto & q : pts) {
+    const Eigen::Vector3d d = q - mean;
+    c3.noalias() += d * d.transpose();
+  }
+  const Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es3(c3 / f.count);
+  const double tr = es3.eigenvalues().sum();
+  f.curvature = tr > 0.0 ? std::max(es3.eigenvalues()(0), 0.0) / tr : 0.0;
+  f.valid = true;
+  return f;
+}
+
+}  // namespace
+
+PlaneFit fitPlane(
+  const Grid & elevation, const Grid & variance, int i, int j, double radius_cells,
+  const FeatureParams & p)
+{
+  return fitPlaneOffsets(
+    elevation, variance, i, j, discOffsets(radius_cells), radius_cells * p.resolution, p);
+}
+
+FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeatureParams & p)
+{
+  const int rows = static_cast<int>(z.rows());
+  const int cols = static_cast<int>(z.cols());
+  FeatureLayers out;
+  for (Grid * g : {&out.slope, &out.slope_std, &out.roughness, &out.step, &out.normal_x,
+      &out.normal_y, &out.normal_z, &out.curvature})
+  {
+    g->setConstant(rows, cols, kNaN);
+  }
+  const double plane_cells = p.plane_radius / p.resolution;
+  const auto plane_disc = discOffsets(plane_cells);
+  const auto step_disc = discOffsets(p.step_radius / p.resolution);
+
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (!std::isfinite(z(i, j))) {continue;}
+
+      float lo = std::numeric_limits<float>::infinity();
+      float hi = -lo;
+      int n = 0;
+      for (const auto & [di, dj] : step_disc) {
+        const int ii = i + di, jj = j + dj;
+        if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
+        const float v = z(ii, jj);
+        if (!std::isfinite(v)) {continue;}
+        lo = std::min(lo, v);
+        hi = std::max(hi, v);
+        ++n;
+      }
+      if (n >= 2) {out.step(i, j) = hi - lo;}
+
+      const PlaneFit f = fitPlaneOffsets(z, var, i, j, plane_disc, p.plane_radius, p);
+      if (!f.valid) {continue;}
+      out.slope(i, j) = static_cast<float>(f.slope);
+      out.slope_std(i, j) = static_cast<float>(f.slope_std);
+      out.roughness(i, j) = static_cast<float>(f.rms);
+      out.curvature(i, j) = static_cast<float>(f.curvature);
+      // z = a x + b y + c has upward normal (-a, -b, 1) / norm.
+      const double nn = std::sqrt(f.a * f.a + f.b * f.b + 1.0);
+      out.normal_x(i, j) = static_cast<float>(-f.a / nn);
+      out.normal_y(i, j) = static_cast<float>(-f.b / nn);
+      out.normal_z(i, j) = static_cast<float>(1.0 / nn);
+    }
+  }
+  return out;
+}
+
+Grid negativeObstacles(
+  const Grid & z, double si, double sj, double sensor_z, const NegativeObstacleParams & p)
+{
+  const int rows = static_cast<int>(z.rows());
+  const int cols = static_cast<int>(z.cols());
+  Grid out = Grid::Constant(rows, cols, kNaN);
+  const double step = 0.5;                       // cells per ray sample
+  const double max_cells = p.max_range / p.resolution;
+
+  struct Gap
+  {
+    std::vector<std::pair<int, int>> cells;
+    int visible{0};
+    double start_d{0.0};
+    double ref_z{0.0};
+  };
+
+  auto close_gap = [&](Gap & g, double end_d) {
+      if (g.cells.empty()) {return;}
+      const double length = end_d - g.start_d + p.resolution;
+      const double h = sensor_z - g.ref_z;
+      bool hole = false;
+      if (h > 0.05) {
+        const double spacing = g.start_d * g.start_d * p.row_spacing / h;
+        const double need = std::max(p.min_gap, p.gap_factor * spacing);
+        hole = length >= need && 2 * g.visible >= static_cast<int>(g.cells.size());
+      }
+      for (const auto & [ci, cj] : g.cells) {
+        float & o = out(ci, cj);
+        if (hole) {
+          o = 1.0f;
+        } else if (!std::isfinite(o)) {
+          o = 0.0f;
+        }
+      }
+      g.cells.clear();
+      g.visible = 0;
+    };
+
+  for (int b = 0; b < p.azimuth_bins; ++b) {
+    const double th = 2.0 * M_PI * b / p.azimuth_bins;
+    const double ui = std::cos(th), uj = std::sin(th);
+    double horizon = -std::numeric_limits<double>::infinity();
+    double ref_z = std::numeric_limits<double>::quiet_NaN();
+    Gap gap;
+    int last_i = -1, last_j = -1;
+    double last_d = 0.0;
+    for (double s = step; s <= max_cells; s += step) {
+      const int ci = static_cast<int>(std::lround(si + ui * s));
+      const int cj = static_cast<int>(std::lround(sj + uj * s));
+      if (ci < 0 || cj < 0 || ci >= rows || cj >= cols) {break;}
+      if (ci == last_i && cj == last_j) {continue;}
+      last_i = ci; last_j = cj;
+      const double d = std::max(s * p.resolution, p.resolution);
+      last_d = d;
+      const float zv = z(ci, cj);
+      if (std::isfinite(zv)) {
+        close_gap(gap, d - p.resolution);
+        horizon = std::max(horizon, (zv - sensor_z) / d);
+        ref_z = zv;
+        if (!std::isfinite(out(ci, cj))) {out(ci, cj) = 0.0f;}
+        continue;
+      }
+      if (!std::isfinite(ref_z)) {continue;}    // nothing observed yet along this ray
+      if (gap.cells.empty()) {
+        gap.start_d = d;
+        gap.ref_z = ref_z;
+      }
+      gap.cells.emplace_back(ci, cj);
+      // Would the sensor have seen this cell had the ground continued at ref_z height?
+      if ((gap.ref_z - sensor_z) / d > horizon + p.horizon_margin) {++gap.visible;}
+    }
+    // A run that reaches the range or grid edge has no far side: it may be a drop-off.
+    close_gap(gap, last_d);
+  }
+  return out;
+}
+
+}  // namespace rover_terrain_mapping

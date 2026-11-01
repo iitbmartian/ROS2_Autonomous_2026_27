@@ -48,6 +48,13 @@ target_link_libraries(contract_layers PUBLIC fastdem)
 # grid_map_core's Eigen plugin definitions out of FastDEM's translation units.
 target_link_libraries(contract_layers PUBLIC rover_traversability::traversability_core)
 
+# Feature math (SPEC.md layer contract), plain C++ on Eigen.
+find_package(Eigen3 REQUIRED NO_MODULE)
+add_library(terrain_features STATIC src/features.cpp)
+target_include_directories(terrain_features PUBLIC include)
+target_link_libraries(terrain_features PUBLIC Eigen3::Eigen)
+target_compile_options(terrain_features PRIVATE -Wall -Wextra -Wpedantic -O2)
+
 add_executable(terrain_mapping_node src/terrain_mapping_node.cpp src/tf_provider.cpp)
 target_include_directories(terrain_mapping_node PRIVATE include)
 target_link_libraries(terrain_mapping_node contract_layers fastdem)
@@ -85,6 +92,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_contract_layers test/test_contract_layers.cpp)
   target_link_libraries(test_contract_layers contract_layers)
+
+  ament_add_gtest(test_features test/test_features.cpp)
+  target_link_libraries(test_features terrain_features)
 endif()
 
 ament_package()
