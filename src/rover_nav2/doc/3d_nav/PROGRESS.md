@@ -7,7 +7,7 @@
 | Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
-| Waiting on Ram | (1) **Phase 1 gate item 2 cannot pass here: real-time factor 0.465 with the full 3D stack, gate 0.7.** The NVIDIA module is missing for the running kernel, so Gazebo renders sensors on the CPU (see next row). Recommended: install it (one command, reboot), then I rerun the measurement. Alternatives: accept the item as blocked by the machine and judge it on a GPU machine, or lower the sensor load (fewer lidar samples, no camera) for benchmarks only. (2) License of the prototype's Gale Crater mesh. (3) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
+| Waiting on Ram | (1) **Phase 1 gate item 2 (real-time factor 0.7): decision needed**, see the Phase 1 section. With the GPU, Gazebo alone runs at 0.97, but the base 2D pipeline caps it at 0.55 through other owners' Python nodes. Recommended: change the gate to "the 3D additions cost at most 10 percent of the base pipeline's real-time factor" (measured 0.545 to 0.496, 9 percent) and raise the rest with the owners. (2) License of the prototype's Gale Crater mesh. (3) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
@@ -395,13 +395,34 @@ footprint edge to the nearest observed ground cell, median map; observed share o
   discovered the service). Not our code: the same launch came up in every other run. Both
   `tools/sim_up.sh` and the benchmark runner now retry a stalled start once.
 
-### Gate item 2: real-time factor at least 0.7 with the full sensor set: FAIL, blocked
+### Gate item 2: real-time factor at least 0.7 with the full sensor set: FAIL, needs a decision
 
-Full 3D stack (L2 on the mast, RGB-D camera, EKF, RTAB-Map, terrain mapping, both feature nodes,
-Nav2, governor, safety monitor) driving on `slopes.sdf`: **0.465** over 29 s
-(`evidence/phase1/rtf_full_stack_slopes.txt`, `/clock` against wall time). Load average 30 on
-12 cores. Cause: no NVIDIA module for kernel 7.0.0-38, so sensors render on the CPU. Question
-for Ram in the status table.
+Ram installed the NVIDIA driver (GTX 1650, 595.99, kernel 7.0.0-42, the HWE meta-package keeps
+future kernels covered). Measured on `slopes.sdf` with `tools/rtf_probe.py` (`/clock` against wall
+time, 30 s, `evidence/phase1/rtf_*`):
+
+| Configuration | Real-time factor |
+|---|---|
+| Full 3D stack, CPU rendering (before the driver) | 0.465 |
+| Full 3D stack, GPU (`pipeline_3d.launch.py`, L2 on the mast, camera) | 0.496 |
+| 2D pipeline with the same L2 (`pipeline.launch.py`: Gazebo, EKF, RTAB-Map, 2D Nav2) | 0.545 |
+| Gazebo and the rover only, L2 on the mast (`rover_sim.launch.py`) | 0.973 |
+
+The sensors render cheaply on the GPU (10 percent use). The real-time factor is set by CPU load
+on 12 cores (load average near 29): Gazebo itself about 170 percent (1 kHz physics with the
+suspension constraints), and other owners' Python nodes running at joint-state rates about
+550 percent together (`rocker_coupling` 65 to 73, `steer_wheel_splitter` 64 to 72,
+`wheel_body_velocity` 49 to 55, `rover_kinematics` 48 to 54, `covariance_relay` 42 to 48,
+`control_node` 41, four `steer_wheel_relay` about 40 each). Our 3D additions cost 0.545 to 0.496,
+9 percent (terrain_features 60 percent CPU, terrain_mapping 24).
+
+**Question for Ram.** The 0.7 gate cannot pass without changes to `rover_gazebo` and `rover_ekf`.
+- Recommended: judge the 3D stack by what it adds, "at most 10 percent below the base pipeline's
+  real-time factor" (met: 9 percent), and raise the Python nodes' load with their owners. Every
+  benchmark number is in sim time, so a lower real-time factor costs wall time, not validity.
+- Alternative: I prepare branches for `rover_gazebo` and `rover_ekf` that cut their rates or
+  move the hot loops to C++, for the owners to review. Large and outside my scope.
+- Alternative: keep 0.7 and treat the gate as blocked until a faster machine.
 
 ### Gate item 3: baseline rerun on all worlds: pending
 
