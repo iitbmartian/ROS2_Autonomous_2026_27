@@ -7,7 +7,7 @@
 | Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
-| Waiting on Ram | (1) **Phase 1 gate item 2 (real-time factor 0.7): decision needed**, see the Phase 1 section. With the GPU, Gazebo alone runs at 0.97, but the base 2D pipeline caps it at 0.55 through other owners' Python nodes. Recommended: change the gate to "the 3D additions cost at most 10 percent of the base pipeline's real-time factor" (measured 0.545 to 0.496, 9 percent) and raise the rest with the owners. (2) License of the prototype's Gale Crater mesh. (3) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
+| Waiting on Ram | (1) License of the prototype's Gale Crater mesh. (2) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
@@ -395,7 +395,17 @@ footprint edge to the nearest observed ground cell, median map; observed share o
   discovered the service). Not our code: the same launch came up in every other run. Both
   `tools/sim_up.sh` and the benchmark runner now retry a stalled start once.
 
-### Gate item 2: real-time factor at least 0.7 with the full sensor set: FAIL, needs a decision
+### Gate item 2: PASS under the gate Ram changed on 2026-11-01
+
+**Ram's decision:** the gate is now "the 3D additions cost at most 10 percent of the base
+pipeline's real-time factor" (PHASES.md updated). The base pipeline's load from other owners'
+Python nodes is to be raised with those owners (`rover_gazebo`: rocker_coupling, kinematics,
+control_node; `rover_ekf`: steer_wheel_splitter, wheel_body_velocity, covariance_relay, four
+steer_wheel_relay). Measured: 0.545 to 0.496, **9 percent**. Measurements and the original
+analysis below.
+
+#### Original measurements (gate was 0.7)
+
 
 Ram installed the NVIDIA driver (GTX 1650, 595.99, kernel 7.0.0-42, the HWE meta-package keeps
 future kernels covered). Measured on `slopes.sdf` with `tools/rtf_probe.py` (`/clock` against wall

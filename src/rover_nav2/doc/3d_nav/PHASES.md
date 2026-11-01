@@ -41,7 +41,10 @@ Tasks:
 
 Gate:
 - With the L2-like lidar, the elevation map has ground cells within 1.0 m of the footprint edge.
-- Sim real-time factor of at least 0.7 with the full sensor set.
+- The 3D additions cost at most 10 percent of the base pipeline's real-time factor (full 3D
+  stack against the 2D pipeline with the same sensors). Changed by Ram on 2026-11-01 from "at
+  least 0.7 with the full sensor set": other owners' Python nodes cap the base pipeline at about
+  0.55, and their load is raised with those owners.
 - Baseline rerun on all worlds.
 
 ## Phase 2: terrain mapping
