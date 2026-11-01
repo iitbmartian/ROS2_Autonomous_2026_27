@@ -25,8 +25,10 @@ local_costmap:
         cost_model: utilisation          # SPEC.md cell cost from terrain_features_node
         map_topic: /terrain/local_features
         # The layer reports not current, and the controller stops, once the newest feature map
-        # is older than this.
-        map_timeout: 1.0
+        # is older than this. The scan, publish, feature and costmap chain runs 0.6 to 0.8 s in
+        # sim time at a real-time factor near 0.5 and spiked to 1.06 s, so 1.0 s stopped the
+        # controller on healthy data.
+        map_timeout: 2.0
         unknown_cost: 200       # never 255, updateWithMax would drop it
         max_soft_cost: 252
         lethal_dilation_radius: 0.0   # follow the footprint's inscribed radius
@@ -53,7 +55,7 @@ global_costmap:
         enabled: true
         cost_model: utilisation
         map_topic: /terrain/global_features
-        map_timeout: 5.0        # the global map publishes at 1 Hz
+        map_timeout: 15.0       # global planning needs no sub-second freshness
         unknown_cost: 200
         max_soft_cost: 252
         lethal_dilation_radius: 0.0

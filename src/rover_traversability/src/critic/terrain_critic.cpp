@@ -20,7 +20,7 @@ void TerrainCritic::initialize()
 {
   auto getParam = parameters_handler_->getParamGetter(name_);
   getParam(map_topic_, "map_topic", std::string("/terrain/local_features"));
-  getParam(map_timeout_, "map_timeout", 1.0);
+  getParam(map_timeout_, "map_timeout", 2.0);
   getParam(eval_.risk_kappa, "risk_kappa", 1.0);
   getParam(cost_.w_terrain, "cost_weight", 20.0);
   getParam(cost_.collision_cost, "collision_cost", 1.0e6);

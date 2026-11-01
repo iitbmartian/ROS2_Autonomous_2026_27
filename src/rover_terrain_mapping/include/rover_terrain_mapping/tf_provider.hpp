@@ -46,6 +46,12 @@ public:
   // An IMU attitude older than this (s) is not used and the pose falls back to TF entirely.
   void setImuTimeout(double s) {imu_timeout_s_ = s;}
 
+  // For a world frame updated at a low rate (RTAB-Map's map -> odom, about 1 Hz): when the
+  // exact-time world <- base lookup fails, compose the latest world <- odom with odom <- base at
+  // the scan stamp. world <- odom only moves on SLAM corrections, so the error is the correction
+  // since its last update, not the rover's motion.
+  void setOdomFrame(const std::string & odom_frame) {odom_frame_ = odom_frame;}
+
 private:
   std::optional<Eigen::Isometry3d> lookup(
     const std::string & target, const std::string & source, const tf2::TimePoint & t) const;
@@ -63,6 +69,7 @@ private:
   bool have_imu_{false};
   Eigen::Quaterniond q_world_imu_{Eigen::Quaterniond::Identity()};
   std::string imu_frame_;
+  std::string odom_frame_;
   uint64_t imu_stamp_ns_{0};
   double imu_timeout_s_{0.5};
 };

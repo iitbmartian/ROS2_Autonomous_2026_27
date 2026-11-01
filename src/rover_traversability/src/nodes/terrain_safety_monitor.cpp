@@ -44,7 +44,7 @@ public:
     tip_margin_ = declare_parameter<double>("tip_margin", 0.05);
     brake_decel_ = declare_parameter<double>("braking_decel", 0.5);
     brake_margin_ = declare_parameter<double>("braking_margin", 0.5);
-    map_timeout_ = declare_parameter<double>("map_timeout", 1.0);
+    map_timeout_ = declare_parameter<double>("map_timeout", 2.0);
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     abort_enabled_ = declare_parameter<bool>("abort_on_tip_risk", true);
     const auto rate = declare_parameter<double>("rate", 10.0);

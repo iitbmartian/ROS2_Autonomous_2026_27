@@ -38,7 +38,7 @@ public:
     lookahead_ = declare_parameter<double>("lookahead_time", 2.0);
     dt_ = declare_parameter<double>("prediction_dt", 0.2);
     unknown_u_ = declare_parameter<double>("unknown_utilisation", 0.5);
-    map_timeout_ = declare_parameter<double>("map_timeout", 1.0);
+    map_timeout_ = declare_parameter<double>("map_timeout", 2.0);
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     e_.risk_kappa = declare_parameter<double>("risk_kappa", 1.0);
     const auto rate = declare_parameter<double>("rate", 5.0);

@@ -14,6 +14,7 @@
 // With publish_features the node also publishes FastDEM's own features on
 // /terrain/local_features, the Phase 0 bridge. terrain_features_node replaces it.
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -77,6 +78,9 @@ class TerrainMappingNode : public rclcpp::Node
     std::shared_ptr<TfProvider> tf;
     std::shared_mutex mutex;
     uint64_t integrated{0};
+    // Since the last status line: scans integrated, scans whose pose lookup failed, scans
+    // FastDEM rejected with a pose available (empty after filtering, no extrinsic).
+    uint64_t ok{0}, no_pose{0}, rejected{0};
   };
 
 public:
@@ -140,6 +144,7 @@ public:
       global_->map.add(kLastSeenInternal, NAN);
       global_->fastdem = std::make_unique<fastdem::FastDEM>(global_->map, global_cfg);
       global_->tf = std::make_shared<TfProvider>(*this, base_frame, global_frame, tf_timeout);
+      global_->tf->setOdomFrame(map_frame);
       global_->fastdem->setTransformProvider(global_->tf);
     }
 
@@ -182,6 +187,7 @@ public:
     timer_ = rclcpp::create_timer(
       this, get_clock(), rclcpp::Duration::from_seconds(1.0 / publish_rate),
       [this]() {publishLocal();}, publish_group_);
+    status_timer_ = create_wall_timer(std::chrono::seconds(10), [this]() {logStatus();});
     if (global_) {
       global_timer_ = rclcpp::create_timer(
         this, get_clock(), rclcpp::Duration::from_seconds(1.0 / global_rate),
@@ -233,6 +239,12 @@ private:
   bool integrate(Mapper & m, const Input & in, const std::shared_ptr<fastdem::PointCloud> & cloud)
   {
     std::unique_lock lock(m.mutex);
+    // FastDEM reports its own failures through spdlog, which buffers when not on a terminal, so
+    // the pose is checked here to tell a missing pose from a FastDEM rejection.
+    if (!m.tf->getPoseAt(cloud->timestamp())) {
+      ++m.no_pose;
+      return false;
+    }
     m.fastdem->setSensorModel(in.type);
     m.fastdem->setRangeFilter(static_cast<float>(in.range_min), static_cast<float>(in.range_max));
     // _last_seen is updated where the point count grew. The previous count is kept as a map
@@ -241,8 +253,10 @@ private:
     if (!m.map.exists("_prev_n_points")) {m.map.add("_prev_n_points", n);}
     m.map.get("_prev_n_points") = n;
     if (!m.fastdem->integrate(cloud)) {
+      ++m.rejected;
       return false;
     }
+    ++m.ok;
     const float t = static_cast<float>((rclcpp::Time(cloud->timestamp(), get_clock()->get_clock_type()) -
       start_).seconds());
     auto & seen = m.map.get(kLastSeenInternal);
@@ -253,8 +267,9 @@ private:
     seen = (now_n.array() > prev.array() ||
       (prev.array().isNaN() && now_n.array() > 0)).select(t, seen);
     // FastDEM leaves the map stamp at 0. The newest integrated scan's stamp lets consumers judge
-    // how old the terrain data is.
-    m.map.setTimestamp(cloud->timestamp());
+    // how old the terrain data is. Never backwards: depth clouds arrive late through the depth
+    // pipeline, and taking their stamp made fresh maps look seconds old.
+    m.map.setTimestamp(std::max(m.map.getTimestamp(), cloud->timestamp()));
     ++m.integrated;
     return true;
   }
@@ -271,6 +286,21 @@ private:
     auto cloud = std::make_shared<fastdem::PointCloud>(std::move(raw));
     if (integrate(local_, in, cloud)) {++inputs_[k].scans;}
     if (global_) {integrate(*global_, in, cloud);}
+  }
+
+  void logStatus()
+  {
+    auto line = [](const char * name, Mapper & m) {
+        std::unique_lock lock(m.mutex);
+        std::string s = std::string(name) + " " + std::to_string(m.ok) + " ok, " +
+          std::to_string(m.no_pose) + " no pose, " + std::to_string(m.rejected) + " rejected";
+        m.ok = m.no_pose = m.rejected = 0;
+        return s;
+      };
+    std::string s = line("local", local_);
+    if (global_) {s += " | " + line("global", *global_);}
+    for (const auto & in : inputs_) {s += " | " + in.name + " " + std::to_string(in.scans);}
+    RCLCPP_INFO(get_logger(), "terrain_mapping last 10 s (wall): %s", s.c_str());
   }
 
   double secondsSinceStart(uint64_t stamp_ns) const
@@ -335,7 +365,7 @@ private:
   std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> subs_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr pub_local_, pub_features_, pub_global_;
-  rclcpp::TimerBase::SharedPtr timer_, global_timer_;
+  rclcpp::TimerBase::SharedPtr timer_, global_timer_, status_timer_;
 };
 
 }  // namespace rover_terrain_mapping

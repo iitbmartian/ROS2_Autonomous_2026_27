@@ -52,8 +52,20 @@ std::optional<Eigen::Isometry3d> TfProvider::getExtrinsic(const std::string & se
 
 std::optional<Eigen::Isometry3d> TfProvider::getPoseAt(uint64_t timestamp_ns) const
 {
-  auto T = lookup(
-    world_frame_, base_frame_, tf2::TimePoint(std::chrono::nanoseconds(timestamp_ns)));
+  const tf2::TimePoint t{std::chrono::nanoseconds(timestamp_ns)};
+  std::optional<Eigen::Isometry3d> T;
+  if (!odom_frame_.empty() && odom_frame_ != world_frame_) {
+    // Exact time first, without waiting: the slow world frame rarely has a stamp that close.
+    try {
+      T = tf2::transformToEigen(buffer_->lookupTransform(world_frame_, base_frame_, t));
+    } catch (const tf2::TransformException &) {
+      const auto T_wo = lookup(world_frame_, odom_frame_, tf2::TimePointZero);
+      const auto T_ob = lookup(odom_frame_, base_frame_, t);
+      if (T_wo && T_ob) {T = (*T_wo) * (*T_ob);}
+    }
+  } else {
+    T = lookup(world_frame_, base_frame_, t);
+  }
   if (!T) {
     return T;
   }
