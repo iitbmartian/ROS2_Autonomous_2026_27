@@ -40,7 +40,10 @@ def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     base_local = base['local_costmap']['local_costmap']['ros__parameters']
     for key in ('footprint', 'footprint_padding', 'inflation_layer', 'resolution', 'global_frame'):
         assert local[key] == base_local[key], key
-    # Everything outside the two costmaps is the 2D tuning, untouched.
+    cm = merged['collision_monitor']['ros__parameters']
+    assert cm['observation_sources'] == ['terrain_hazards']
+    assert cm['terrain_hazards']['topic'] == '/terrain/hazard_points'
+    # Everything else is the 2D tuning, untouched.
     for section in base:
-        if section not in ('local_costmap', 'global_costmap'):
+        if section not in ('local_costmap', 'global_costmap', 'collision_monitor'):
             assert merged[section] == base[section], section

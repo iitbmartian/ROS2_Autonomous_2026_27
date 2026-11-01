@@ -61,3 +61,18 @@ global_costmap:
         odom_topic: /odom
         braking_decel: 0.5
         braking_margin: 0.25
+
+collision_monitor:
+  ros__parameters:
+    # Terrain hazards from terrain_safety_monitor instead of raw lidar points: the 2D source
+    # treats anything 0.15 m above base_footprint as an obstacle, ramps included. The monitor
+    # publishes (possibly empty) clouds while terrain is fresh, so stale terrain times the source
+    # out and stops the rover.
+    observation_sources: ["terrain_hazards"]
+    terrain_hazards:
+      type: "pointcloud"
+      topic: "/terrain/hazard_points"
+      min_height: 0.15
+      max_height: 1.0
+      enabled: true
+

@@ -93,7 +93,19 @@ def _launch(context):
         arguments=['-d', os.path.join(get_package_share_directory('rover_nav2'),
                                       'rviz', 'terrain_3d.rviz')],
         condition=IfCondition(LaunchConfiguration('terrain_rviz')))
-    return env + [pipeline, TimerAction(period=TERRAIN_DELAY, actions=[terrain]), rviz]
+    # Speed governor and safety monitor (SPEC.md speed and safety), each switchable for the
+    # phase comparisons in the benchmark.
+    safety_nodes = []
+    if LaunchConfiguration('governor').perform(context).lower() in ('true', '1'):
+        safety_nodes.append(Node(
+            package='rover_traversability', executable='terrain_speed_governor',
+            output='screen', parameters=[{'use_sim_time': True}]))
+    if LaunchConfiguration('safety').perform(context).lower() in ('true', '1'):
+        safety_nodes.append(Node(
+            package='rover_traversability', executable='terrain_safety_monitor',
+            output='screen', parameters=[{'use_sim_time': True}]))
+    return env + [pipeline, TimerAction(period=TERRAIN_DELAY, actions=[terrain] + safety_nodes),
+                  rviz]
 
 
 def generate_launch_description():
@@ -109,6 +121,10 @@ def generate_launch_description():
                                  description='Mount the L2 upside down so the dome sees the ground'),
            DeclareLaunchArgument('lidar_tilt', default_value='0.0',
                                  description='L2 nose-down mount tilt, rad'),
+           DeclareLaunchArgument('governor', default_value='true',
+                                 description='terrain_speed_governor on /speed_limit'),
+           DeclareLaunchArgument('safety', default_value='true',
+                                 description='terrain_safety_monitor: hazard cloud, tip abort'),
            DeclareLaunchArgument('terrain_rviz', default_value='false',
                                  description='RViz with the Nav2 view and the terrain maps'),
            OpaqueFunction(function=_launch)])
