@@ -1,0 +1,151 @@
+// Copyright 2026 Mars Rover Team, IIT Bombay.
+//
+// terrain_features_node: feature layers of the SPEC.md map contract from an elevation map.
+//
+//   in   /terrain/local           elevation, variance, observations
+//   out  /terrain/local_features  the input layers plus slope, slope_std, roughness, step,
+//                                 normal_x, normal_y, normal_z, curvature, negative_obstacle
+//
+// Window sizes come from rover_physical.yaml: the plane fit spans wheelbase / 2 (chassis scale),
+// the step window a wheel radius (wheel scale). See features.hpp for the definitions.
+
+#include <chrono>
+#include <limits>
+#include <memory>
+#include <string>
+
+#include "grid_map_msgs/msg/grid_map.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+
+#include "rover_terrain_mapping/features.hpp"
+#include "rover_terrain_mapping/grid_map_msg.hpp"
+#include "rover_traversability/core/physical_params.hpp"
+#include "rover_traversability/layer_names.hpp"
+
+namespace rover_terrain_mapping
+{
+
+namespace L = rover_traversability::layers;
+
+class TerrainFeaturesNode : public rclcpp::Node
+{
+public:
+  explicit TerrainFeaturesNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("terrain_features", options)
+  {
+    const auto in = declare_parameter<std::string>("input_topic", "/terrain/local");
+    const auto out = declare_parameter<std::string>("output_topic", "/terrain/local_features");
+    sensor_frame_ = declare_parameter<std::string>("sensor_frame", "lidar3d_link");
+    const auto phys_path = declare_parameter<std::string>(
+      "physical_params_file", rover_traversability::core::defaultPhysicalParamsPath());
+    fp_.min_fill = declare_parameter<double>("min_fill", fp_.min_fill);
+    fp_.spread_fraction = declare_parameter<double>("spread_fraction", fp_.spread_fraction);
+    np_.max_range = declare_parameter<double>("negative.max_range", np_.max_range);
+    np_.min_gap = declare_parameter<double>("negative.min_gap", np_.min_gap);
+    np_.row_spacing = declare_parameter<double>("negative.row_spacing", np_.row_spacing);
+    np_.gap_factor = declare_parameter<double>("negative.gap_factor", np_.gap_factor);
+    np_.min_beam_angle = declare_parameter<double>("negative.min_beam_angle", np_.min_beam_angle);
+    np_.min_range = declare_parameter<double>("negative.min_range", np_.min_range);
+    np_.azimuth_bins = static_cast<int>(
+      declare_parameter<int>("negative.azimuth_bins", np_.azimuth_bins));
+
+    const auto phys = rover_traversability::core::loadPhysicalParams(phys_path);
+    const auto warn = rover_traversability::core::placeholderWarning(phys);
+    if (!warn.empty()) {
+      RCLCPP_WARN(get_logger(), "%s", warn.c_str());
+    }
+    fp_.plane_radius = phys.wheelbase / 2.0;
+    fp_.step_radius = phys.wheel_radius;
+
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
+    tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
+    pub_ = create_publisher<grid_map_msgs::msg::GridMap>(out, 1);
+    sub_ = create_subscription<grid_map_msgs::msg::GridMap>(
+      in, 1, [this](grid_map_msgs::msg::GridMap::ConstSharedPtr m) {onMap(*m);});
+    RCLCPP_INFO(
+      get_logger(), "terrain_features: %s -> %s, plane radius %.3f m, step radius %.3f m, "
+      "negative obstacles from '%s'", in.c_str(), out.c_str(), fp_.plane_radius,
+      fp_.step_radius, sensor_frame_.c_str());
+  }
+
+private:
+  void onMap(const grid_map_msgs::msg::GridMap & in)
+  {
+    Eigen::MatrixXf z, var;
+    if (!readLayer(in, L::kElevation, z)) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "input map has no elevation layer");
+      return;
+    }
+    if (!readLayer(in, L::kVariance, var)) {
+      var = Eigen::MatrixXf::Constant(z.rows(), z.cols(), 1e-2f);
+    }
+    const auto t0 = std::chrono::steady_clock::now();
+    const GridGeometry g = geometryOf(in);
+    fp_.resolution = g.resolution;
+    np_.resolution = g.resolution;
+    const FeatureLayers f = computeFeatures(z, var, fp_);
+
+    Eigen::MatrixXf neg = Eigen::MatrixXf::Constant(
+      z.rows(), z.cols(), std::numeric_limits<float>::quiet_NaN());
+    try {
+      const auto tf = tf_buffer_->lookupTransform(
+        in.header.frame_id, sensor_frame_, in.header.stamp, tf2::durationFromSec(0.1));
+      const auto & p = tf.transform.translation;
+      RCLCPP_INFO_ONCE(
+        get_logger(), "sensor at (%.2f, %.2f, %.2f) in %s, cell (%.1f, %.1f) of %dx%d, "
+        "map centre (%.2f, %.2f)", p.x, p.y, p.z, in.header.frame_id.c_str(), g.row(p.x),
+        g.col(p.y), g.rows, g.cols, g.center_x, g.center_y);
+      neg = negativeObstacles(z, g.row(p.x), g.col(p.y), p.z, np_);
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000, "no sensor pose, negative obstacles skipped: %s",
+        e.what());
+    }
+
+    grid_map_msgs::msg::GridMap out;
+    out.header = in.header;      // same stamp: consumers judge data age by it
+    out.info = in.info;
+    out.outer_start_index = 0;
+    out.inner_start_index = 0;
+    writeLayer(out, L::kElevation, z);
+    writeLayer(out, L::kVariance, var);
+    Eigen::MatrixXf obs;
+    if (readLayer(in, L::kObservations, obs)) {writeLayer(out, L::kObservations, obs);}
+    writeLayer(out, L::kSlope, f.slope);
+    writeLayer(out, "slope_std", f.slope_std);
+    writeLayer(out, L::kRoughness, f.roughness);
+    writeLayer(out, L::kStep, f.step);
+    writeLayer(out, L::kNormalX, f.normal_x);
+    writeLayer(out, L::kNormalY, f.normal_y);
+    writeLayer(out, L::kNormalZ, f.normal_z);
+    writeLayer(out, L::kCurvature, f.curvature);
+    writeLayer(out, L::kNegativeObstacle, neg);
+    out.basic_layers = {L::kElevation};
+    pub_->publish(out);
+
+    const double ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - t0).count();
+    RCLCPP_DEBUG(get_logger(), "features for %dx%d cells in %.1f ms", g.rows, g.cols, ms);
+  }
+
+  FeatureParams fp_;
+  NegativeObstacleParams np_;
+  std::string sensor_frame_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
+  rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr pub_;
+  rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr sub_;
+};
+
+}  // namespace rover_terrain_mapping
+
+int main(int argc, char ** argv)
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(
+    std::make_shared<rover_terrain_mapping::TerrainFeaturesNode>(rclcpp::NodeOptions()));
+  rclcpp::shutdown();
+  return 0;
+}

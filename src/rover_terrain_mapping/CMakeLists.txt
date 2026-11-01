@@ -61,7 +61,17 @@ target_link_libraries(terrain_mapping_node contract_layers fastdem)
 ament_target_dependencies(terrain_mapping_node
   rclcpp sensor_msgs grid_map_msgs std_msgs visualization_msgs tf2 tf2_ros tf2_eigen)
 
-install(TARGETS terrain_mapping_node DESTINATION lib/${PROJECT_NAME})
+add_library(grid_map_msg STATIC src/grid_map_msg.cpp)
+target_include_directories(grid_map_msg PUBLIC include)
+target_link_libraries(grid_map_msg PUBLIC Eigen3::Eigen)
+ament_target_dependencies(grid_map_msg PUBLIC grid_map_msgs std_msgs)
+
+add_executable(terrain_features_node src/terrain_features_node.cpp)
+target_link_libraries(terrain_features_node
+  terrain_features grid_map_msg rover_traversability::traversability_core)
+ament_target_dependencies(terrain_features_node rclcpp grid_map_msgs tf2 tf2_ros)
+
+install(TARGETS terrain_mapping_node terrain_features_node DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -95,6 +105,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_features test/test_features.cpp)
   target_link_libraries(test_features terrain_features)
+
+  ament_add_gtest(test_grid_map_msg test/test_grid_map_msg.cpp)
+  target_link_libraries(test_grid_map_msg grid_map_msg)
 endif()
 
 ament_package()

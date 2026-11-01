@@ -178,14 +178,36 @@ Grid ground()
 
 TEST(NegativeObstacles, HoleAheadIsFlagged)
 {
-  // Unknown 2.0 to 2.6 m out. Row spacing there: 2^2 * 0.035 / 0.75 = 0.187 m, so a gap must
-  // exceed max(0.30, 2 * 0.187) = 0.373 m. 0.6 m is a hole.
+  // Roof lidar: its lowest beam (-15 deg) meets flat ground from 2.80 m. Unknown from 3.0 to
+  // 4.0 m. Row spacing at 3 m: 3^2 * 0.035 / 0.75 = 0.42 m, so a gap must exceed
+  // max(0.30, 2 * 0.42) = 0.84 m. 1.0 m is a hole.
+  Grid z = ground();
+  z.block(kC + 60, kC - 6, 20, 13).setConstant(kNaN);
+  const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, negParams());
+  EXPECT_EQ(neg(kC + 70, kC), 1.0f);
+  EXPECT_EQ(neg(kC + 70, kC + 5), 1.0f);
+  EXPECT_EQ(neg(kC + 58, kC), 0.0f);           // observed ground before it
+}
+
+TEST(NegativeObstacles, RoofLidarMissesANearHole)
+{
+  // The same lidar cannot see a 0.6 m hole 2.0 to 2.6 m out: it is inside its blind radius.
+  // This is a limit of the sensor, recorded here so nobody expects otherwise.
   Grid z = ground();
   z.block(kC + 40, kC - 6, 12, 13).setConstant(kNaN);
   const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, negParams());
+  EXPECT_EQ(neg(kC + 45, kC), 0.0f);
+}
+
+TEST(NegativeObstacles, InvertedDomeSeesANearHole)
+{
+  // Beams reaching straight down: the 0.6 m hole at 2.0 m (needs 0.373 m there) is flagged.
+  Grid z = ground();
+  z.block(kC + 40, kC - 6, 12, 13).setConstant(kNaN);
+  auto p = negParams();
+  p.min_beam_angle = -M_PI / 2;
+  const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, p);
   EXPECT_EQ(neg(kC + 45, kC), 1.0f);
-  EXPECT_EQ(neg(kC + 45, kC + 5), 1.0f);
-  EXPECT_EQ(neg(kC + 30, kC), 0.0f);           // observed ground before it
 }
 
 TEST(NegativeObstacles, ShadowBehindRockIsNotFlagged)
@@ -215,6 +237,32 @@ TEST(NegativeObstacles, FarSamplingGapIsNotFlagged)
   z.block(kC + 120, kC - 6, 16, 13).setConstant(kNaN);
   const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, negParams());
   EXPECT_EQ(neg(kC + 125, kC), 0.0f);
+}
+
+TEST(NegativeObstacles, BlindZoneUnderTheSensorIsNotFlagged)
+{
+  // Observed ring 0.5 m out (say, from an earlier pose), then unknown to 2.5 m. The lowest beam
+  // (-15 deg) reaches flat ground only from 0.75 / tan(15 deg) = 2.80 m, so none of this was
+  // ever visible: blind zone, not a hole.
+  Grid z = ground();
+  z.block(kC + 11, kC - 6, 39, 13).setConstant(kNaN);
+  z.block(kC + 10, kC - 6, 1, 13).setConstant(0.0f);
+  const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, negParams());
+  EXPECT_EQ(neg(kC + 30, kC), 0.0f);
+  EXPECT_EQ(neg(kC + 45, kC), 0.0f);
+}
+
+TEST(NegativeObstacles, InvertedDomeSeesUnderneath)
+{
+  // With the beams reaching straight down (inverted L2), the same unknown run 0.55 to 2.5 m out
+  // was visible past min_range 1.0 m, so it is a hole.
+  Grid z = ground();
+  z.block(kC + 11, kC - 6, 39, 13).setConstant(kNaN);
+  z.block(kC + 10, kC - 6, 1, 13).setConstant(0.0f);
+  auto p = negParams();
+  p.min_beam_angle = -M_PI / 2;
+  const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, p);
+  EXPECT_EQ(neg(kC + 30, kC), 1.0f);
 }
 
 TEST(NegativeObstacles, NothingInferredBeyondRange)

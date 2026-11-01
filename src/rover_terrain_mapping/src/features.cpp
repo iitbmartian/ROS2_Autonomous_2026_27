@@ -244,8 +244,11 @@ Grid negativeObstacles(
         gap.ref_z = ref_z;
       }
       gap.cells.emplace_back(ci, cj);
-      // Would the sensor have seen this cell had the ground continued at ref_z height?
-      if ((gap.ref_z - sensor_z) / d > horizon + p.horizon_margin) {++gap.visible;}
+      // Would the sensor have seen this cell had the ground continued at ref_z height? Only if
+      // the cell is in reach (range and lowest beam) and clears the terrain horizon.
+      const double tan_flat = (gap.ref_z - sensor_z) / d;
+      const bool in_reach = d >= p.min_range && tan_flat >= std::tan(p.min_beam_angle);
+      if (in_reach && tan_flat > horizon + p.horizon_margin) {++gap.visible;}
     }
     // A run that reaches the range or grid edge has no far side: it may be a drop-off.
     close_gap(gap, last_d);

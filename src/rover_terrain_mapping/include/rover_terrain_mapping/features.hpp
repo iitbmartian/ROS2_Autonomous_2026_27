@@ -76,6 +76,11 @@ struct NegativeObstacleParams
   // A cell counts as visible-if-flat when its flat-continuation elevation angle clears the
   // terrain horizon by this much (tangent units).
   double horizon_margin{0.01};
+  // The sensor's reach. A cell below its lowest beam (min_beam_angle, rad, negative is down)
+  // or closer than min_range is never visible, so an unknown cell there is a blind zone, not a
+  // hole. Defaults: the 16-ring roof lidar (lowest beam -15 deg) and FastDEM's range_min.
+  double min_beam_angle{-0.2618};
+  double min_range{1.0};
 };
 
 // Occlusion reasoning for negative obstacles. Marches rays out from the sensor at (si, sj) in
