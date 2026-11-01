@@ -28,15 +28,20 @@
          lidar_model     default | l2      ROVER_LIDAR_MODEL
          lidar_tilt      rad, nose down    ROVER_LIDAR_TILT      (l2 only)
          lidar_inverted  true | false      ROVER_LIDAR_INVERTED  (l2 only)
+         lidar_xyz       "x y z", m        ROVER_LIDAR_XYZ       (l2 only)
 
        l2 approximates a Unitree L2: a dome field of view of 360 deg horizontally and about
        -6 to 90 deg vertically about the sensor, 10 Hz, 2 cm range noise. Upright, the dome
        looks at the sky. Mounted inverted it covers -90 to +6 deg and sees the ground all
        round the rover, which is what terrain mapping needs. lidar_tilt pitches it about the
-       rover's lateral axis after the inversion. -->
+       rover's lateral axis after the inversion. lidar_xyz moves the sensor from the roof-lidar
+       point in the rover's axes (x forward, y left, z up): a dome mounted at the roof point
+       sits inside the chassis geometry and sees mostly the rover itself, so it needs a mast or
+       bracket that clears the body. -->
   <xacro:arg name="lidar_model" default="$(optenv ROVER_LIDAR_MODEL default)"/>
   <xacro:arg name="lidar_tilt" default="$(optenv ROVER_LIDAR_TILT 0.0)"/>
   <xacro:arg name="lidar_inverted" default="$(optenv ROVER_LIDAR_INVERTED false)"/>
+  <xacro:arg name="lidar_xyz" default="$(optenv ROVER_LIDAR_XYZ 0 0 0)"/>
   <xacro:property name="lidar_model" value="$(arg lidar_model)"/>
   <xacro:property name="lidar_tilt" value="$(arg lidar_tilt)"/>
   <xacro:property name="lidar_roll" value="${pi if '$(arg lidar_inverted)'.lower() in ('true', '1') else 0.0}"/>
@@ -139,7 +144,7 @@
     <child link="lidar3d_mount"/>
   </joint>
   <joint name="lidar3d_joint" type="fixed">
-    <origin xyz="0 0 0" rpy="${lidar_roll} ${lidar_tilt} 0"/>
+    <origin xyz="$(arg lidar_xyz)" rpy="${lidar_roll} ${lidar_tilt} 0"/>
     <parent link="lidar3d_mount"/>
     <child link="lidar3d_link"/>
   </joint>
