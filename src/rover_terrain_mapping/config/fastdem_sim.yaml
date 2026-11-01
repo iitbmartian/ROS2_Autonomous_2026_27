@@ -41,9 +41,13 @@ uncertainty_fusion:
   enabled: false
 
 # Phase 0 bridge (see PROGRESS.md). 0.10 m radius is a 0.2 m disc, the prototype's step window.
+# min_valid_neighbors 8 of about 13 cells: with a sparse 16-ring lidar, a disc holding 4 cells is
+# often one ring arc, a near-straight line, and the plane fit then returns a horizontal normal
+# (slope 90 degrees, seen in sim). Requiring a mostly filled disc leaves such cells NaN, which the
+# layer prices as unknown instead of lethal. A coverage rule, not a cost threshold.
 feature_extraction:
   enabled: true
   analysis_radius: 0.10
-  min_valid_neighbors: 4
+  min_valid_neighbors: 8
   step_lower_percentile: 0.05
   step_upper_percentile: 0.95
