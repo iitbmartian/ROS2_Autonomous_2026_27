@@ -79,7 +79,11 @@ fastdem::ElevationMap copyRenamed(const fastdem::ElevationMap & src, const Renam
 
 const std::vector<std::string> & elevationContractLayers()
 {
-  static const std::vector<std::string> names = contractNames(elevationRenames());
+  static const std::vector<std::string> names = [] {
+      auto n = contractNames(elevationRenames());
+      n.push_back(L::kLastSeen);
+      return n;
+    }();
   return names;
 }
 
@@ -89,9 +93,16 @@ const std::vector<std::string> & featureContractLayers()
   return names;
 }
 
-fastdem::ElevationMap toElevationContract(const fastdem::ElevationMap & src)
+fastdem::ElevationMap toElevationContract(const fastdem::ElevationMap & src, double now_s)
 {
-  return copyRenamed(src, elevationRenames());
+  fastdem::ElevationMap out = copyRenamed(src, elevationRenames());
+  if (src.exists(kLastSeenInternal)) {
+    const auto & seen = src.get(kLastSeenInternal);
+    out.add(L::kLastSeen, (static_cast<float>(now_s) - seen.array()).matrix());
+  } else {
+    out.add(L::kLastSeen, NAN);
+  }
+  return out;
 }
 
 fastdem::ElevationMap toFeatureContract(const fastdem::ElevationMap & src)

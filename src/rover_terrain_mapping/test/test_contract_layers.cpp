@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <algorithm>
 #include <set>
 #include <string>
 
@@ -96,4 +97,19 @@ TEST(ContractLayers, KeepsStampFrameAndGeometry)
   EXPECT_EQ(out.getFrameId(), "odom");
   EXPECT_FLOAT_EQ(out.getResolution(), src.getResolution());
   EXPECT_EQ(out.getSize()(0), src.getSize()(0));
+}
+
+TEST(ContractLayers, LastSeenBecomesAnAge)
+{
+  // Internal value: seconds since node start when the cell last gained a point. Published: age.
+  auto src = featureMap();
+  src.add(rover_terrain_mapping::kLastSeenInternal, 10.0f);
+  src.get(rover_terrain_mapping::kLastSeenInternal)(0, 1) = 12.5f;
+  src.get(rover_terrain_mapping::kLastSeenInternal)(0, 2) = NAN;
+  const auto out = toElevationContract(src, 13.0);
+  EXPECT_FLOAT_EQ(out.get(L::kLastSeen)(0, 0), 3.0f);
+  EXPECT_FLOAT_EQ(out.get(L::kLastSeen)(0, 1), 0.5f);
+  EXPECT_TRUE(std::isnan(out.get(L::kLastSeen)(0, 2)));
+  const auto & names = rover_terrain_mapping::elevationContractLayers();
+  EXPECT_NE(std::find(names.begin(), names.end(), std::string(L::kLastSeen)), names.end());
 }

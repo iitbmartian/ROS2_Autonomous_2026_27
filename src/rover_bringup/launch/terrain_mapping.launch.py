@@ -4,7 +4,12 @@
     ros2 launch rover_bringup terrain_mapping.launch.py sim:=false
     ros2 launch rover_bringup terrain_mapping.launch.py features:=fastdem   # Phase 0 bridge
 
-Publishes /terrain/local (elevation, variance, observations) and /terrain/local_features
+Starts depth_range_cut (the Orin stand-in: /camera/depth_points cropped and downsampled to
+/terrain/depth_points), terrain_mapping_node (lidar and depth into FastDEM) and, by default,
+terrain_features_node.
+
+Publishes /terrain/local (elevation, variance, observations, last_seen), /terrain/global
+(coarse, in map) and /terrain/local_features
 (slope, slope_std, step, roughness, curvature, normals, negative_obstacle), both
 grid_map_msgs/GridMap in odom. features:=native (default) computes the feature layers in
 terrain_features_node with the definitions of SPEC.md. features:=fastdem publishes FastDEM's
@@ -41,8 +46,17 @@ def generate_launch_description():
             'sensor_frame', default_value='lidar3d_link',
             description='Frame of the lidar, for negative-obstacle occlusion reasoning'),
         DeclareLaunchArgument(
+            'lowest_beam', default_value='-0.2618',
+            description='Lidar lowest beam angle (rad, negative is down) for negative-obstacle '
+                        'reasoning: -0.2618 for the 16-ring roof lidar, -1.5708 for an inverted L2'),
+        DeclareLaunchArgument(
             'fastdem_config', default_value=os.path.join(config, 'fastdem_sim.yaml'),
             description='FastDEM pipeline file, in FastDEM format'),
+        Node(
+            package='rover_terrain_mapping', executable='depth_range_cut_node',
+            name='depth_range_cut', output='screen',
+            parameters=[{'use_sim_time': LaunchConfiguration('sim'),
+                         'max_range': 4.0, 'voxel_size': 0.05}]),
         Node(
             package='rover_terrain_mapping', executable='terrain_mapping_node',
             name='terrain_mapping', output='screen',
@@ -57,7 +71,8 @@ def generate_launch_description():
             package='rover_terrain_mapping', executable='terrain_features_node',
             name='terrain_features', output='screen',
             parameters=[{'use_sim_time': LaunchConfiguration('sim'),
-                         'sensor_frame': LaunchConfiguration('sensor_frame')}],
+                         'sensor_frame': LaunchConfiguration('sensor_frame'),
+                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam')}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
     ])

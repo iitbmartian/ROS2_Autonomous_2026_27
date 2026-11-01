@@ -55,9 +55,15 @@ target_include_directories(terrain_features PUBLIC include)
 target_link_libraries(terrain_features PUBLIC Eigen3::Eigen)
 target_compile_options(terrain_features PRIVATE -Wall -Wextra -Wpedantic -O2)
 
-add_executable(terrain_mapping_node src/terrain_mapping_node.cpp src/tf_provider.cpp)
+add_library(tf_provider STATIC src/tf_provider.cpp)
+target_include_directories(tf_provider PUBLIC include)
+target_link_libraries(tf_provider PUBLIC fastdem)
+ament_target_dependencies(tf_provider PUBLIC rclcpp tf2 tf2_ros tf2_eigen)
+
+add_executable(terrain_mapping_node src/terrain_mapping_node.cpp)
 target_include_directories(terrain_mapping_node PRIVATE include)
-target_link_libraries(terrain_mapping_node contract_layers fastdem)
+target_link_libraries(terrain_mapping_node contract_layers tf_provider fastdem
+  rover_traversability::traversability_core)
 ament_target_dependencies(terrain_mapping_node
   rclcpp sensor_msgs grid_map_msgs std_msgs visualization_msgs tf2 tf2_ros tf2_eigen)
 
@@ -71,7 +77,16 @@ target_link_libraries(terrain_features_node
   terrain_features grid_map_msg rover_traversability::traversability_core)
 ament_target_dependencies(terrain_features_node rclcpp grid_map_msgs tf2 tf2_ros)
 
-install(TARGETS terrain_mapping_node terrain_features_node DESTINATION lib/${PROJECT_NAME})
+add_library(depth_range_cut STATIC src/depth_range_cut.cpp)
+target_include_directories(depth_range_cut PUBLIC include)
+target_link_libraries(depth_range_cut PUBLIC fastdem)
+
+add_executable(depth_range_cut_node src/depth_range_cut_node.cpp)
+target_link_libraries(depth_range_cut_node depth_range_cut)
+ament_target_dependencies(depth_range_cut_node rclcpp sensor_msgs)
+
+install(TARGETS terrain_mapping_node terrain_features_node depth_range_cut_node
+  DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -105,6 +120,12 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_features test/test_features.cpp)
   target_link_libraries(test_features terrain_features)
+
+  ament_add_gtest(test_depth_range_cut test/test_depth_range_cut.cpp)
+  target_link_libraries(test_depth_range_cut depth_range_cut)
+
+  ament_add_gtest(test_tf_provider test/test_tf_provider.cpp)
+  target_link_libraries(test_tf_provider tf_provider)
 
   ament_add_gtest(test_grid_map_msg test/test_grid_map_msg.cpp)
   target_link_libraries(test_grid_map_msg grid_map_msg)
