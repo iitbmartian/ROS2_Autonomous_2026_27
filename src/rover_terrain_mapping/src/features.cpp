@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -141,7 +142,9 @@ FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeaturePar
   const auto plane_disc = discOffsets(plane_cells);
   const auto step_disc = discOffsets(p.step_radius / p.resolution);
 
-  for (int i = 0; i < rows; ++i) {
+  // Every cell is independent and writes only its own output, so rows split across threads.
+  auto work = [&](int r0, int r1) {
+  for (int i = r0; i < r1; ++i) {
     for (int j = 0; j < cols; ++j) {
       if (!std::isfinite(z(i, j))) {continue;}
 
@@ -172,6 +175,11 @@ FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeaturePar
       out.normal_z(i, j) = static_cast<float>(1.0 / nn);
     }
   }
+  };
+  const int n = std::max(1, std::min(p.threads, rows));
+  std::vector<std::thread> pool;
+  for (int t = 0; t < n; ++t) {pool.emplace_back(work, rows * t / n, rows * (t + 1) / n);}
+  for (auto & th : pool) {th.join();}
   return out;
 }
 

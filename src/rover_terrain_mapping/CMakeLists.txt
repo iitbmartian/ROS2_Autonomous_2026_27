@@ -52,7 +52,8 @@ target_link_libraries(contract_layers PUBLIC rover_traversability::traversabilit
 find_package(Eigen3 REQUIRED NO_MODULE)
 add_library(terrain_features STATIC src/features.cpp)
 target_include_directories(terrain_features PUBLIC include)
-target_link_libraries(terrain_features PUBLIC Eigen3::Eigen)
+find_package(Threads REQUIRED)
+target_link_libraries(terrain_features PUBLIC Eigen3::Eigen Threads::Threads)
 target_compile_options(terrain_features PRIVATE -Wall -Wextra -Wpedantic -O2)
 
 add_library(tf_provider STATIC src/tf_provider.cpp)
@@ -84,6 +85,10 @@ target_link_libraries(depth_range_cut PUBLIC fastdem)
 add_executable(depth_range_cut_node src/depth_range_cut_node.cpp)
 target_link_libraries(depth_range_cut_node depth_range_cut)
 ament_target_dependencies(depth_range_cut_node rclcpp sensor_msgs)
+
+# CPU-time benchmark of one feature map (not a test, not installed).
+add_executable(bench_features tools/bench_features.cpp)
+target_link_libraries(bench_features terrain_features rover_traversability::traversability_core)
 
 install(TARGETS terrain_mapping_node terrain_features_node depth_range_cut_node
   DESTINATION lib/${PROJECT_NAME})

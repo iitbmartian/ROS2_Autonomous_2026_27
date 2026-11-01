@@ -29,6 +29,7 @@ struct FeatureParams
   double spread_fraction{0.25};
   // Variance floor for weighting, m^2. Keeps one over-confident cell from dominating.
   double min_variance{1e-4};
+  int threads{4};      // rows are split across this many threads
 };
 
 struct FeatureLayers
