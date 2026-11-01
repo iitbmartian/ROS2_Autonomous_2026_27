@@ -22,7 +22,7 @@
 #include "tf2_ros/transform_listener.h"
 
 #include "rover_terrain_mapping/features.hpp"
-#include "rover_terrain_mapping/grid_map_msg.hpp"
+#include "rover_traversability/grid_map_msg.hpp"
 #include "rover_traversability/core/physical_params.hpp"
 #include "rover_traversability/core/pose_evaluation.hpp"
 #include "rover_traversability/core/yaw_evaluation.hpp"
@@ -32,6 +32,10 @@ namespace rover_terrain_mapping
 {
 
 namespace L = rover_traversability::layers;
+using rover_traversability::geometryOf;
+using rover_traversability::GridGeometry;
+using rover_traversability::readLayer;
+using rover_traversability::writeLayer;
 
 class TerrainFeaturesNode : public rclcpp::Node
 {

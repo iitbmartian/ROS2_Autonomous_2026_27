@@ -1,12 +1,12 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 
-#include "rover_terrain_mapping/grid_map_msg.hpp"
+#include "rover_traversability/grid_map_msg.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <string>
 
-namespace rover_terrain_mapping
+namespace rover_traversability
 {
 
 GridGeometry geometryOf(const grid_map_msgs::msg::GridMap & msg)
@@ -68,4 +68,4 @@ void writeLayer(
   msg.data.push_back(std::move(arr));
 }
 
-}  // namespace rover_terrain_mapping
+}  // namespace rover_traversability

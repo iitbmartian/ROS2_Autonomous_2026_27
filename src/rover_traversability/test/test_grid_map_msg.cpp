@@ -2,11 +2,11 @@
 
 #include <gtest/gtest.h>
 
-#include "rover_terrain_mapping/grid_map_msg.hpp"
+#include "rover_traversability/grid_map_msg.hpp"
 
-using rover_terrain_mapping::geometryOf;
-using rover_terrain_mapping::readLayer;
-using rover_terrain_mapping::writeLayer;
+using rover_traversability::geometryOf;
+using rover_traversability::readLayer;
+using rover_traversability::writeLayer;
 
 namespace
 {

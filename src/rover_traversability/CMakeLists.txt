@@ -21,6 +21,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 
 # The core first, before anything pulls in grid_map_core (see src/core/CMakeLists.txt).
 add_subdirectory(src/core)
+add_subdirectory(src/msg)
 
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)

@@ -9,8 +9,8 @@
 // unwrapped cell (i, j) is stored at ((i + outer_start_index) % rows,
 // (j + inner_start_index) % cols). Rows run along -x and columns along -y from the +x, +y corner.
 
-#ifndef ROVER_TERRAIN_MAPPING__GRID_MAP_MSG_HPP_
-#define ROVER_TERRAIN_MAPPING__GRID_MAP_MSG_HPP_
+#ifndef ROVER_TRAVERSABILITY__GRID_MAP_MSG_HPP_
+#define ROVER_TRAVERSABILITY__GRID_MAP_MSG_HPP_
 
 #include <string>
 
@@ -18,7 +18,7 @@
 
 #include "grid_map_msgs/msg/grid_map.hpp"
 
-namespace rover_terrain_mapping
+namespace rover_traversability
 {
 
 struct GridGeometry
@@ -45,6 +45,6 @@ bool readLayer(
 void writeLayer(
   grid_map_msgs::msg::GridMap & msg, const std::string & name, const Eigen::MatrixXf & data);
 
-}  // namespace rover_terrain_mapping
+}  // namespace rover_traversability
 
-#endif  // ROVER_TERRAIN_MAPPING__GRID_MAP_MSG_HPP_
+#endif  // ROVER_TRAVERSABILITY__GRID_MAP_MSG_HPP_
