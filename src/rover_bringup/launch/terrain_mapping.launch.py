@@ -75,4 +75,15 @@ def generate_launch_description():
                          'negative.min_beam_angle': LaunchConfiguration('lowest_beam')}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
+        # Second instance on the coarse global map, for the global costmap.
+        Node(
+            package='rover_terrain_mapping', executable='terrain_features_node',
+            name='terrain_features_global', output='screen',
+            parameters=[{'use_sim_time': LaunchConfiguration('sim'),
+                         'input_topic': '/terrain/global',
+                         'output_topic': '/terrain/global_features',
+                         'sensor_frame': LaunchConfiguration('sensor_frame'),
+                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam')}],
+            condition=IfCondition(PythonExpression(
+                ["'", LaunchConfiguration('features'), "' == 'native'"]))),
     ])

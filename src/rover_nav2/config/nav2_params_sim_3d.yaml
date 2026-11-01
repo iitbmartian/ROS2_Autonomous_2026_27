@@ -8,22 +8,56 @@
 #
 #   ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf
 #
-# Phase 0: the local costmap gains the TraversabilityLayer (rover_traversability), fed by
-# terrain_mapping_node's /terrain/local_features. Its thresholds are the prototype's defaults,
-# not tuned. Phase 3 replaces them with the utilisation model (see rover_nav2/doc/3d_nav/SPEC.md).
+# Both costmaps use the TraversabilityLayer (rover_traversability) with the utilisation cost
+# model of SPEC.md, fed by terrain_features_node: /terrain/local_features for the local costmap,
+# /terrain/global_features for the global one. Controller and planner stay the 2D sim's
+# Ackermann MPPI and Smac hybrid until the swerve mode lands (Phase 4).
 
 local_costmap:
   local_costmap:
     ros__parameters:
-      plugins: ["voxel_layer", "traversability_layer", "inflation_layer"]
+      # The terrain layer replaces the voxel layer: the voxel layer marks anything 0.15 m above
+      # base_footprint as an obstacle, ramps included, which is what stops the 2D stack on slopes.
+      plugins: ["traversability_layer", "inflation_layer"]
       traversability_layer:
         plugin: "rover_traversability/TraversabilityLayer"
         enabled: true
+        cost_model: utilisation          # SPEC.md cell cost from terrain_features_node
         map_topic: /terrain/local_features
         # The layer reports not current, and the controller stops, once the newest feature map
-        # is older than this. terrain_mapping_node publishes at 5 Hz from 5 Hz lidar.
+        # is older than this.
         map_timeout: 1.0
         unknown_cost: 200       # never 255, updateWithMax would drop it
         max_soft_cost: 252
         lethal_dilation_radius: 0.0   # follow the footprint's inscribed radius
         combination_method: 1   # max
+        odom_topic: /odom
+        braking_decel: 0.5      # m/s^2, conservative for loose ground
+        braking_margin: 0.25    # m beyond the stopping distance
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      # The same layer on the coarse global terrain map replaces RTAB-Map's 2D grid, which also
+      # marks ramps as walls. Fixed 100 m square in map, like terrain_mapping_node's global map.
+      plugins: ["traversability_layer", "inflation_layer"]
+      rolling_window: false
+      width: 100
+      height: 100
+      origin_x: -50.0
+      origin_y: -50.0
+      resolution: 0.2
+      track_unknown_space: true
+      traversability_layer:
+        plugin: "rover_traversability/TraversabilityLayer"
+        enabled: true
+        cost_model: utilisation
+        map_topic: /terrain/global_features
+        map_timeout: 5.0        # the global map publishes at 1 Hz
+        unknown_cost: 200
+        max_soft_cost: 252
+        lethal_dilation_radius: 0.0
+        combination_method: 1
+        odom_topic: /odom
+        braking_decel: 0.5
+        braking_margin: 0.25

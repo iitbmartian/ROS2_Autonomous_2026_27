@@ -10,6 +10,8 @@
 // the step window a wheel radius (wheel scale). See features.hpp for the definitions.
 
 #include <chrono>
+#include <cmath>
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <string>
@@ -22,6 +24,8 @@
 #include "rover_terrain_mapping/features.hpp"
 #include "rover_terrain_mapping/grid_map_msg.hpp"
 #include "rover_traversability/core/physical_params.hpp"
+#include "rover_traversability/core/pose_evaluation.hpp"
+#include "rover_traversability/core/yaw_evaluation.hpp"
 #include "rover_traversability/layer_names.hpp"
 
 namespace rover_terrain_mapping
@@ -51,12 +55,18 @@ public:
     np_.azimuth_bins = static_cast<int>(
       declare_parameter<int>("negative.azimuth_bins", np_.azimuth_bins));
 
+    yaw_.yaw_bins = static_cast<int>(declare_parameter<int>("yaw_bins", yaw_.yaw_bins));
+    yaw_.threads = static_cast<int>(declare_parameter<int>("threads", yaw_.threads));
+    eval_.risk_kappa = declare_parameter<double>("risk_kappa", eval_.risk_kappa);
+    evaluate_yaws_ = declare_parameter<bool>("evaluate_yaws", true);
     const auto phys = rover_traversability::core::loadPhysicalParams(phys_path);
+    phys_ = phys;
     const auto warn = rover_traversability::core::placeholderWarning(phys);
     if (!warn.empty()) {
       RCLCPP_WARN(get_logger(), "%s", warn.c_str());
     }
     fp_.plane_radius = phys.wheelbase / 2.0;
+    wheel_radius_ = phys.wheel_radius;
     fp_.step_radius = phys.wheel_radius;
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
@@ -85,6 +95,9 @@ private:
     const GridGeometry g = geometryOf(in);
     fp_.resolution = g.resolution;
     np_.resolution = g.resolution;
+    // On a coarse grid (the global map) a wheel-radius window would hold a single cell and step
+    // would never have two values to compare.
+    fp_.step_radius = std::max(wheel_radius_, 1.5 * g.resolution);
     const FeatureLayers f = computeFeatures(z, var, fp_);
 
     Eigen::MatrixXf neg = Eigen::MatrixXf::Constant(
@@ -122,15 +135,49 @@ private:
     writeLayer(out, L::kNormalZ, f.normal_z);
     writeLayer(out, L::kCurvature, f.curvature);
     writeLayer(out, L::kNegativeObstacle, neg);
+
+    double yaw_ms = 0.0;
+    if (evaluate_yaws_) {
+      const auto ty = std::chrono::steady_clock::now();
+      rover_traversability::core::TerrainGrid tg;
+      tg.resolution = g.resolution;
+      tg.center_x = g.center_x;
+      tg.center_y = g.center_y;
+      tg.elevation = z;
+      tg.variance = var;
+      tg.step = f.step;
+      tg.negative_obstacle = neg;
+      // Roughness under the support polygon, precomputed once per map (rough_radius 0 below).
+      tg.roughness = rover_traversability::core::discMax(
+        f.roughness, std::hypot(phys_.wheelbase / 2.0, phys_.track / 2.0) / g.resolution);
+      auto e = eval_;
+      e.rough_radius = 0.0;
+      const auto y = rover_traversability::core::evaluateYaws(tg, phys_, e, yaw_);
+      writeLayer(out, L::kSafeYawMask, y.safe_yaw_mask);
+      writeLayer(out, L::kBestYaw, y.best_yaw);
+      writeLayer(out, L::kBestUtilisation, y.best_utilisation);
+      yaw_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - ty).count();
+    }
     out.basic_layers = {L::kElevation};
     pub_->publish(out);
 
     const double ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - t0).count();
-    RCLCPP_DEBUG(get_logger(), "features for %dx%d cells in %.1f ms", g.rows, g.cols, ms);
+    RCLCPP_DEBUG(
+      get_logger(), "features for %dx%d cells in %.1f ms (heading evaluation %.1f ms)", g.rows,
+      g.cols, ms, yaw_ms);
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 30000, "features %.1f ms per map, heading evaluation %.1f ms",
+      ms, yaw_ms);
   }
 
   FeatureParams fp_;
+  rover_traversability::core::PhysicalParams phys_;
+  rover_traversability::core::EvalParams eval_;
+  rover_traversability::core::YawParams yaw_;
+  bool evaluate_yaws_{true};
+  double wheel_radius_{0.15};
   NegativeObstacleParams np_;
   std::string sensor_frame_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;

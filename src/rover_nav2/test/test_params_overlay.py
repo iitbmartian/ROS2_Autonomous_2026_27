@@ -21,7 +21,7 @@ def test_inputs_not_modified():
     assert base == {'a': {'x': 1}} and over == {'a': {'x': 2}}
 
 
-def test_sim_3d_overlay_only_adds_the_layer(tmp_path):
+def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     base_path = os.path.join(CONFIG, 'nav2_params_sim.yaml')
     out = merge_files(base_path, os.path.join(CONFIG, 'nav2_params_sim_3d.yaml'),
                       str(tmp_path / 'merged.yaml'))
@@ -30,14 +30,17 @@ def test_sim_3d_overlay_only_adds_the_layer(tmp_path):
     with open(out) as f:
         merged = yaml.safe_load(f)
     local = merged['local_costmap']['local_costmap']['ros__parameters']
-    assert local['plugins'] == ['voxel_layer', 'traversability_layer', 'inflation_layer']
-    assert local['traversability_layer']['plugin'] == 'rover_traversability/TraversabilityLayer'
+    assert local['plugins'] == ['traversability_layer', 'inflation_layer']
+    assert local['traversability_layer']['cost_model'] == 'utilisation'
     assert local['traversability_layer']['map_topic'] == '/terrain/local_features'
-    # Everything else is the 2D tuning, untouched.
+    glob = merged['global_costmap']['global_costmap']['ros__parameters']
+    assert glob['plugins'] == ['traversability_layer', 'inflation_layer']
+    assert glob['traversability_layer']['map_topic'] == '/terrain/global_features'
+    # The 2D footprint and inflation tuning carry over untouched.
     base_local = base['local_costmap']['local_costmap']['ros__parameters']
-    for key, value in base_local.items():
-        if key != 'plugins':
-            assert local[key] == value, key
+    for key in ('footprint', 'footprint_padding', 'inflation_layer', 'resolution', 'global_frame'):
+        assert local[key] == base_local[key], key
+    # Everything outside the two costmaps is the 2D tuning, untouched.
     for section in base:
-        if section != 'local_costmap':
+        if section not in ('local_costmap', 'global_costmap'):
             assert merged[section] == base[section], section
