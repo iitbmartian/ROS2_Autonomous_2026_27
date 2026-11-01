@@ -4,7 +4,8 @@
 
 Reads the world SDF itself, so the result is exactly the terrain Gazebo simulates. For every
 grid cell a vertical ray is cast from above against every static collision shape, analytically:
-heightmap, box, ellipsoid, sphere, cylinder and plane. Meshes are skipped with a warning. The
+heightmap, mesh (STL), box, ellipsoid, sphere, cylinder and plane. Other mesh formats are skipped
+with a warning. The
 height of a cell is the highest hit, NaN where nothing is hit.
 
 Output .npz: z (rows, cols) in metres, row 0 at y_max and column 0 at x_min (image order), plus
@@ -161,6 +162,89 @@ def cast_heightmap(pose, size, pos, image, xy):
     return np.where(inside, z, np.nan)
 
 
+def load_stl(path):
+    """Triangles (N, 3, 3) from a binary or ASCII STL."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    if len(data) >= 84:
+        n = int(np.frombuffer(data[80:84], dtype='<u4')[0])
+        if len(data) == 84 + 50 * n:
+            rec = np.dtype([('normal', '<f4', 3), ('v', '<f4', (3, 3)), ('attr', '<u2')])
+            return np.frombuffer(data, dtype=rec, count=n, offset=84)['v'].astype(float)
+    verts = [[float(x) for x in line.split()[1:4]]
+             for line in data.decode('ascii', 'replace').splitlines()
+             if line.strip().startswith('vertex')]
+    return np.array(verts, dtype=float).reshape(-1, 3, 3)
+
+
+class MeshCaster:
+    """Top hit of vertical rays on a triangle soup. Triangles are binned into square buckets
+    in xy, so each ray only tests the few triangles over its bucket. Vertical triangles have no
+    xy area and are never hit by a vertical ray, so they are dropped."""
+
+    def __init__(self, tris):
+        a, b, c = tris[:, 0], tris[:, 1], tris[:, 2]
+        area = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (b[:, 1] - a[:, 1]) * (c[:, 0] - a[:, 0])
+        keep = np.abs(area) > 1e-12
+        self.tris, self.area = tris[keep], area[keep]
+        lo, hi = self.tris[:, :, :2].min(axis=1), self.tris[:, :, :2].max(axis=1)
+        self.lo = lo.min(axis=0) if len(lo) else np.zeros(2)
+        self.hi = hi.max(axis=0) if len(hi) else np.zeros(2)
+        ext = np.median(hi - lo, axis=0).max() if len(lo) else 1.0
+        self.bucket = max(float(ext), 1e-6)
+        i0 = np.floor((lo - self.lo) / self.bucket).astype(int)
+        i1 = np.floor((hi - self.lo) / self.bucket).astype(int)
+        self.nx = int(np.floor((self.hi[0] - self.lo[0]) / self.bucket)) + 1
+        span = i1 - i0 + 1
+        bids, tids = [], []
+        small = (span <= 4).all(axis=1)
+        for dx in range(4):
+            for dy in range(4):
+                m = small & (dx < span[:, 0]) & (dy < span[:, 1])
+                bids.append((i0[m, 1] + dy) * self.nx + i0[m, 0] + dx)
+                tids.append(np.nonzero(m)[0])
+        for t in np.nonzero(~small)[0]:
+            gx, gy = np.meshgrid(np.arange(i0[t, 0], i1[t, 0] + 1), np.arange(i0[t, 1], i1[t, 1] + 1))
+            bids.append((gy * self.nx + gx).ravel())
+            tids.append(np.full(gx.size, t))
+        bids, tids = np.concatenate(bids), np.concatenate(tids)
+        order = np.argsort(bids, kind='stable')
+        self.bids, self.tids = bids[order], tids[order]
+
+    def bounds(self):
+        return self.lo, self.hi
+
+    def cast(self, xy):
+        z = np.full(len(xy), np.nan)
+        g = np.floor((xy - self.lo) / self.bucket).astype(int)
+        ok = (xy >= self.lo).all(axis=1) & (xy <= self.hi).all(axis=1)
+        q = np.where(ok, g[:, 1] * self.nx + g[:, 0], -1)
+        start = np.searchsorted(self.bids, q, 'left')
+        end = np.where(ok, np.searchsorted(self.bids, q, 'right'), start)
+        count = end - start
+        for k in range(int(count.max()) if len(count) else 0):
+            m = np.nonzero(count > k)[0]
+            t = self.tids[start[m] + k]
+            a, b, c = self.tris[t, 0], self.tris[t, 1], self.tris[t, 2]
+            p = xy[m]
+            # Barycentric weights from signed sub-areas, normalised by the triangle's area.
+            wa = ((b[:, 0] - p[:, 0]) * (c[:, 1] - p[:, 1])
+                  - (b[:, 1] - p[:, 1]) * (c[:, 0] - p[:, 0])) / self.area[t]
+            wb = ((c[:, 0] - p[:, 0]) * (a[:, 1] - p[:, 1])
+                  - (c[:, 1] - p[:, 1]) * (a[:, 0] - p[:, 0])) / self.area[t]
+            wc = 1.0 - wa - wb
+            inside = (wa >= -1e-9) & (wb >= -1e-9) & (wc >= -1e-9)
+            h = wa * a[:, 2] + wb * b[:, 2] + wc * c[:, 2]
+            z[m] = np.fmax(z[m], np.where(inside, h, np.nan))
+        return z
+
+
+def mesh_world_triangles(tris, pose, scale):
+    """Mesh vertices in the world frame: scaled in the mesh frame, then posed."""
+    v = tris.reshape(-1, 3) * np.asarray(scale, dtype=float)
+    return (v @ pose.R.T + pose.t).reshape(-1, 3, 3)
+
+
 # --- SDF -----------------------------------------------------------------------------------
 
 def resolve_uri(uri, world_dir):
@@ -200,6 +284,8 @@ class Shape:
             return cast_plane(self.pose, p['normal'], xy)
         if self.kind == 'heightmap':
             return cast_heightmap(self.pose, p['size'], p['pos'], p['image'], xy)
+        if self.kind == 'mesh':
+            return p['caster'].cast(xy)
         raise ValueError(self.kind)
 
     def xy_bounds(self):
@@ -211,6 +297,8 @@ class Shape:
             c = self.pose.t[:2] + np.asarray(p['pos'][:2])
             h = np.asarray(p['size'][:2]) / 2
             return c - h, c + h
+        if self.kind == 'mesh':
+            return p['caster'].bounds()
         if self.kind == 'box':
             r = np.linalg.norm(p['size']) / 2
         elif self.kind == 'ellipsoid':
@@ -259,6 +347,10 @@ def load_shapes(world_path, warn=print):
                         'size': floats(g.find('size'), [img.shape[1], img.shape[0], 1]),
                         'pos': floats(g.find('pos'), [0, 0, 0]),
                         'image': img}, name))
+                elif g.tag == 'mesh' and g.find('uri').text.strip().lower().endswith('.stl'):
+                    tris = load_stl(resolve_uri(g.find('uri').text.strip(), world_dir))
+                    tris = mesh_world_triangles(tris, cpose, floats(g.find('scale'), [1, 1, 1]))
+                    shapes.append(Shape('mesh', cpose, {'caster': MeshCaster(tris)}, name))
                 else:
                     warn(f'ground_truth: skipping {g.tag} collision {name}')
     return shapes

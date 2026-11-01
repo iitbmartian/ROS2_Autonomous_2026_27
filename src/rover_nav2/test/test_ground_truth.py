@@ -118,3 +118,74 @@ def test_world_nested_poses_and_max(tmp_path):
     assert at(2.5, -2.0) == pytest.approx(0.0)
     assert at(-5.0 + 0.025, -5.0 - 0.025) == pytest.approx(0.2 - 0.4 * 0.025, abs=0.02)
     assert not np.isnan(z).any()
+
+
+def write_stl(path, tris, ascii_=False):
+    tris = np.asarray(tris, dtype=float)
+    if ascii_:
+        lines = ['solid t']
+        for t in tris:
+            lines += ['facet normal 0 0 1', 'outer loop']
+            lines += [f'vertex {v[0]} {v[1]} {v[2]}' for v in t]
+            lines += ['endloop', 'endfacet']
+        path.write_text('\n'.join(lines + ['endsolid t']) + '\n')
+        return
+    rec = np.zeros(len(tris), dtype=[('n', '<f4', 3), ('v', '<f4', (3, 3)), ('a', '<u2')])
+    rec['v'] = tris
+    path.write_bytes(b'\0' * 80 + np.uint32(len(tris)).tobytes() + rec.tobytes())
+
+
+def plane_square(n=10):
+    """Unit square split into n x n cells of two triangles each, on z = 0.1 x + 0.2 y."""
+    out = []
+    for i in range(n):
+        for j in range(n):
+            x0, y0, d = i / n, j / n, 1 / n
+            c = [(x0, y0), (x0 + d, y0), (x0 + d, y0 + d), (x0, y0 + d)]
+            v = [(x, y, 0.1 * x + 0.2 * y) for x, y in c]
+            out += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+    return out
+
+
+MESH_WORLD = """<?xml version="1.0"?>
+<sdf version="1.9"><world name="w">
+<model name="m"><static>true</static><pose>5 0 1 0 0 1.5707963267948966</pose>
+<link name="l"><collision name="c"><geometry><mesh><uri>t.stl</uri><scale>2 2 2</scale></mesh>
+</geometry></collision></link></model>
+</world></sdf>
+"""
+
+
+@pytest.mark.parametrize('ascii_', [False, True])
+def test_mesh_scaled_and_posed(tmp_path, ascii_):
+    write_stl(tmp_path / 't.stl', plane_square(), ascii_)
+    (tmp_path / 'w.sdf').write_text(MESH_WORLD)
+    shapes = gt.load_shapes(str(tmp_path / 'w.sdf'))
+    assert [s.kind for s in shapes] == ['mesh']
+    # Scale 2 makes the square [0, 2]^2 on z = 0.1 x + 0.2 y. Yaw 90 deg maps mesh (x, y) to
+    # world (5 - y, x), and z rises by 1. World (4.5, 1.0) is mesh (1.0, 0.5): 1 + 0.1 + 0.1.
+    # World (3.2, 0.4) is mesh (0.4, 1.8): 1 + 0.04 + 0.36. World (5.5, 1) is mesh y -0.5, a miss.
+    z = shapes[0].cast(pts((4.5, 1.0), (3.2, 0.4), (5.5, 1.0), (4.0, 1.234)))
+    assert z[0] == pytest.approx(1.2, abs=1e-6)
+    assert z[1] == pytest.approx(1.4, abs=1e-6)
+    assert math.isnan(z[2])
+    # Mesh (1.234, 1.0), on a triangle edge in neither bucket corner: 1 + 0.1234 + 0.2.
+    assert z[3] == pytest.approx(1.3234, abs=1e-6)
+    lo, hi = shapes[0].xy_bounds()
+    assert lo == pytest.approx([3.0, 0.0]) and hi == pytest.approx([5.0, 2.0])
+
+
+def test_mesh_large_and_overlapping_triangles_take_top_hit():
+    # One big triangle at z 0 over (0,0), (10,0), (0,10) and a small one at z 0.5 inside it.
+    # The big one spans many buckets, the small one sets the bucket size. A vertical triangle
+    # has no xy area and is dropped.
+    big = [(0, 0, 0), (10, 0, 0), (0, 10, 0)]
+    small = [(1, 1, 0.5), (1.5, 1, 0.5), (1, 1.5, 0.5)]
+    vertical = [(2, 2, 0), (3, 2, 0), (3, 2, 1)]
+    c = gt.MeshCaster(np.array([big, small, small, vertical], dtype=float))
+    z = c.cast(pts((1.1, 1.1), (6.0, 1.0), (4.9, 4.9), (5.1, 5.1), (2.5, 2.0)))
+    assert z[0] == pytest.approx(0.5)
+    assert z[1] == pytest.approx(0.0)
+    assert z[2] == pytest.approx(0.0)
+    assert math.isnan(z[3])     # beyond the hypotenuse x + y = 10
+    assert z[4] == pytest.approx(0.0)
