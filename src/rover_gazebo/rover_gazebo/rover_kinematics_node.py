@@ -50,7 +50,9 @@ it runs through explicit_step() unchanged -- but instead of handing the solved a
 and speed to ros2_control's ideal steer_controller/wheel_controller, it publishes them
 as *targets* on explicit_pid_control/steer_target and .../wheel_target for
 control_node.py to track with its own independent per-joint PID loops, and this node
-switches which pair of ros2_control controllers is active accordingly (see on_mode()).
+switches which pair of ros2_control controllers is active accordingly (see
+_reconcile_controllers()); the starting mode is applied at startup too, not only on a
+mode message.
 explicit and explicit_pid never run at once, so there is exactly one control law with
 authority over the 8 joints at any time.
 
@@ -66,7 +68,7 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from builtin_interfaces.msg import Duration
-from controller_manager_msgs.srv import SwitchController
+from controller_manager_msgs.srv import ListControllers, SwitchController
 from geometry_msgs.msg import TwistStamped
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
@@ -129,7 +131,7 @@ class RoverKinematics(Node):
         default_cfg = os.path.join(share, "config", "rover_kinematics.yaml")
 
         self.declare_parameter("kinematics_file", default_cfg)
-        self.declare_parameter("max_speed", 1.0)          # m/s
+        self.declare_parameter("max_speed", 3.0)          # m/s
         self.declare_parameter("min_turn_radius", 0.8)    # m, tightest arc
         self.declare_parameter("max_steer_angle", 1.5708) # rad
         self.declare_parameter("max_yaw_rate", 1.0)       # rad/s, ackermann/crab yaw-rate
@@ -167,6 +169,14 @@ class RoverKinematics(Node):
         self.mode = self.get_parameter("mode").value
         if self.mode not in MODES:
             self.mode = "ackermann"
+
+        # explicit_pid needs the PID controller pair active, every other mode the
+        # ideal pair. want_pid is what the current mode needs;
+        # _reconcile_controllers() keeps checking the controller manager until what
+        # is actually active matches it.
+        self.want_pid = self.mode == "explicit_pid"
+        self.controllers_settled = False
+        self.controller_call_pending = False
 
         # commanded, then ramped
         self.want = [0.0, 0.0, 0.0]     # vx, vy, omega
@@ -212,23 +222,27 @@ class RoverKinematics(Node):
         self.create_subscription(String, "rover/steer_mode", self.on_mode, MODE_QOS)
 
         # Hands off between {steer,wheel}_controller (ideal, modes 1-4) and
-        # {steer,wheel}_pid_controller (control_node.py, explicit_pid) whenever the
-        # mode crosses that boundary -- see on_mode()/_switch_controllers(). Waiting
+        # {steer,wheel}_pid_controller (control_node.py, explicit_pid) -- see
+        # _reconcile_controllers(). Checked once a second until the controller
+        # manager's actual state matches self.want_pid, so the starting mode is
+        # applied at startup, a failed call is retried, and a restart of this node
+        # mid-run picks up whatever is really active instead of assuming. Waiting
         # here in __init__, before the node starts spinning, is fine: it is not inside
-        # a callback, so there is nothing for a brief block to deadlock against. By the
-        # time this node is launched (after joint_state_broadcaster, per
-        # launch/rover_sim.launch.py) the controller manager is already up, so this
-        # should resolve almost immediately in practice.
+        # a callback, so there is nothing for a brief block to deadlock against.
         self.switch_cli = self.create_client(
             SwitchController, "/controller_manager/switch_controller")
+        self.list_cli = self.create_client(
+            ListControllers, "/controller_manager/list_controllers")
         if not self.switch_cli.wait_for_service(timeout_sec=5.0):
             self.get_logger().warn(
                 "controller_manager/switch_controller not available yet; "
-                "explicit_pid mode's controller hand-off may fail on first use")
+                "will keep retrying the controller hand-off")
 
         rate = self.get_parameter("update_rate").value
         self.dt = 1.0 / rate
         self.create_timer(self.dt, self.step)
+        self.create_timer(1.0, self._reconcile_controllers)
+        self._reconcile_controllers()
 
     # -- input ------------------------------------------------------------
     def on_cmd(self, msg: TwistStamped):
@@ -262,38 +276,82 @@ class RoverKinematics(Node):
                     # so there is nothing to take over from.
                     self.steer_aim = self.last_fl_angle
                     self.zeroing = True
-                was_pid, now_pid = self.mode == "explicit_pid", name == "explicit_pid"
-                if now_pid != was_pid:
-                    self._switch_controllers(to_pid=now_pid)
+                now_pid = name == "explicit_pid"
+                if now_pid != self.want_pid:
+                    self.want_pid = now_pid
+                    self.controllers_settled = False
+                    self._reconcile_controllers()
             self.mode = name
         else:
             self.get_logger().warn(f"unknown steer mode '{msg.data}', keeping {self.mode}")
 
-    def _switch_controllers(self, to_pid):
-        """Hand the 8 steer/drive joints from the ideal group controllers to
-        control_node.py's PID ones, or back. Fire-and-forget on purpose: on_mode() is
-        a subscription callback on this node's single-threaded executor, so blocking
-        here for the response (e.g. spin_until_future_complete) would deadlock the
-        node against itself rather than switch anything."""
-        if not self.switch_cli.service_is_ready():
-            self.get_logger().warn(
-                f"switch_controller service not ready; could not switch controllers "
-                f"for explicit_pid={to_pid}")
+    def _reconcile_controllers(self):
+        """Make the active controller pair match self.want_pid, retrying until it does.
+
+        Asks the controller manager what is actually active, then switches only the
+        difference. Never blocks: on_mode() and the 1 s timer both run on this node's
+        single-threaded executor, so waiting for a response here (e.g.
+        spin_until_future_complete) would deadlock the node against itself. Each
+        attempt is a chain of async calls instead, and the timer starts the next one
+        until the state is confirmed."""
+        if self.controllers_settled or self.controller_call_pending:
             return
+        if not (self.list_cli.service_is_ready() and self.switch_cli.service_is_ready()):
+            self.get_logger().warn(
+                "controller_manager services not ready; retrying controller hand-off "
+                f"for explicit_pid={self.want_pid}", throttle_duration_sec=5.0)
+            return
+        want_pid = self.want_pid
+        self.controller_call_pending = True
+        self.list_cli.call_async(ListControllers.Request()).add_done_callback(
+            lambda fut: self._on_controller_list(fut, want_pid))
+
+    def _on_controller_list(self, fut, want_pid):
+        try:
+            states = {c.name: c.state for c in fut.result().controller}
+        except Exception as exc:
+            self.controller_call_pending = False
+            self.get_logger().warn(f"list_controllers failed: {exc}",
+                                   throttle_duration_sec=5.0)
+            return
+        if want_pid != self.want_pid:
+            # The mode changed while this call was in flight; start over next tick.
+            self.controller_call_pending = False
+            return
+        if any(c not in states for c in IDEAL_CONTROLLERS + PID_CONTROLLERS):
+            # The PID pair is spawned in parallel with this node, so at startup it
+            # may not be loaded yet.
+            self.controller_call_pending = False
+            return
+
+        wanted, other = ((PID_CONTROLLERS, IDEAL_CONTROLLERS) if want_pid
+                         else (IDEAL_CONTROLLERS, PID_CONTROLLERS))
+        activate = [c for c in wanted if states[c] != "active"]
+        deactivate = [c for c in other if states[c] == "active"]
+        if not activate and not deactivate:
+            self.controller_call_pending = False
+            self.controllers_settled = True
+            return
+
+        # Only the difference is requested, so STRICT never sees an already-active
+        # controller, and ok=True really means the switch happened.
         req = SwitchController.Request()
-        req.activate_controllers = list(PID_CONTROLLERS if to_pid else IDEAL_CONTROLLERS)
-        req.deactivate_controllers = list(IDEAL_CONTROLLERS if to_pid else PID_CONTROLLERS)
-        req.strictness = SwitchController.Request.BEST_EFFORT
+        req.activate_controllers = activate
+        req.deactivate_controllers = deactivate
+        req.strictness = SwitchController.Request.STRICT
         req.activate_asap = True
         req.timeout = Duration(sec=2, nanosec=0)
 
         def done(fut):
+            self.controller_call_pending = False
             try:
                 res = fut.result()
                 level = self.get_logger().info if res.ok else self.get_logger().warn
-                level(f"controller switch (to_pid={to_pid}): ok={res.ok} {res.message}")
+                level(f"controller switch (to_pid={want_pid}): ok={res.ok} {res.message}")
             except Exception as exc:
-                self.get_logger().warn(f"controller switch (to_pid={to_pid}) failed: {exc}")
+                self.get_logger().warn(f"controller switch (to_pid={want_pid}) failed: {exc}")
+            # Not marked settled here even on ok: the next tick lists again and
+            # confirms against the real state.
 
         self.switch_cli.call_async(req).add_done_callback(done)
 

@@ -76,3 +76,6 @@ AMENT_IGNORE
 
 # rover_gazebo stress-test output (tools/run_stress_suite.sh)
 stress_runs/
+
+# Local audit report (not for the repo)
+src/rover_gazebo/pradyun-2.pdf

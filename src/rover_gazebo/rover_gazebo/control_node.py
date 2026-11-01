@@ -267,6 +267,8 @@ class ExplicitPidControl(Node):
         self.declare_parameter("wheel_max_effort_rate", 1000.0)   # N m/s
         self.declare_parameter("wheel_sync_kp", 0.0)  # N m / (rad/s)
         self.declare_parameter("update_rate", 200.0)  # Hz
+        self.declare_parameter("mode", "ackermann")  # starting mode; must match
+                                                      # rover_kinematics's own mode
 
         self.mode = "ackermann"     # rover_kinematics_node's own default; on_state()
                                      # and step() both no-op until this is
@@ -307,6 +309,10 @@ class ExplicitPidControl(Node):
         rate = self.get_parameter("update_rate").value
         self.dt = 1.0 / rate
         self.create_timer(2.0, self.report)
+
+        # Apply the starting mode the way a mode message would, so starting in
+        # explicit_pid sets up the subscriptions and loop without waiting for one.
+        self.on_mode(String(data=self.get_parameter("mode").value))
 
     def on_mode(self, msg: String):
         name = msg.data.strip().lower()

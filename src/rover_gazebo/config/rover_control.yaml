@@ -84,6 +84,7 @@ teleop_rover_gui:
 explicit_pid_control:
   ros__parameters:
     use_sim_time: true
+    mode: ackermann            # starting mode; keep equal to rover_kinematics's mode
     # Retuned 2026-10-12 from headless Gazebo runs (doc/VERIFICATION.md, "Explicit_PID
     # stability"). The earlier values (steer kp=1/kd=3, wheel kp=0.4/ki=0.4, plus sync
     # and chassis-yaw terms) were tuned while rocker_coupling was in a sustained

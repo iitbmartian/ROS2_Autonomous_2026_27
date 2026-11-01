@@ -109,10 +109,25 @@ The `rover_ekf` package in the ROS workspace next door already consumes `/imu` a
 
 Sensors go in `urdf/rover_sensors.xacro` next to the IMU, as a `<gazebo reference=...>`
 block with a `<sensor>` inside, and then a line in `config/bridge.yaml` to carry the
-topic across. The worlds deliberately declare no plugins, so Gazebo loads its default
-system set, which already includes the sensor systems. If you write your own world,
-either leave its plugin list empty or copy the default set in, or sensors will go quiet
-with no error.
+topic across.
+
+If you write your own world, it must list these five systems:
+
+```xml
+<plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+<plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+<plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+<plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+  <render_engine>ogre2</render_engine>
+</plugin>
+<plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+```
+
+Sensors and Imu are not in Gazebo's default system set, and listing any plugin at all
+switches the default set off, so the first three have to be listed as well. Every world
+in `worlds/` does this; copy the block from `worlds/flat.sdf`. Leave out Sensors or Imu
+and the world still loads and the rover still drives, but the lidar, camera and IMU
+publish nothing and no error is reported.
 
 ## Things that will bite
 
