@@ -7,7 +7,7 @@
 | Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
-| Waiting on Ram | (1) License of the prototype's Gale Crater mesh. (2) Confirm the blind-zone exemption to "unknown in braking distance is lethal" (decisions log). |
+| Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
@@ -81,6 +81,11 @@ One line each: the choice and the reason.
   definitions after `find_package(rover_traversability)`, since they broke FastDEM's build.
 - 2026-10-14: `rover_bringup/package.xml` does not yet list `rover_terrain_mapping` as a
   dependency. Adding it would edit an existing file in `rover_bringup`, so it is left for review.
+- 2026-11-01, Ram: the prototype's Gale Crater mesh may be copied, no license issue.
+- 2026-11-01, Ram: the blind-zone exemption (cells under the rover's footprint are not lethal
+  when unknown, even inside the braking distance) is confirmed.
+- 2026-11-01, Ram: Phase 2's NUC-class latency and CPU report waits for his next lab visit,
+  where the stack moves to the NUC.
 - 2026-11-01: The MPPI critic evaluates only the yaw-dependent checks (tip, articulation, step)
   along rollouts. Belly clearance and roughness are yaw independent and already applied by the
   costmap at every cell, so repeating them per rollout point would only cost time.
