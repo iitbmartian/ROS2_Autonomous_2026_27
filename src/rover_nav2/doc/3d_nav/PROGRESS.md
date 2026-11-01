@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| Current phase | Phase 0 closing (2D baseline finishing). Code for Phases 1 to 5 written and unit tested, not yet validated in sim. |
+| Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| In progress | 2D baseline (`~/.ros/rover_benchmark/2026-11-01_baseline_2d/`), then sim validation phase by phase |
+| In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
 | Waiting on Ram | (1) NVIDIA module for the running kernel, see next row. Phase 1's gate item "real-time factor of at least 0.7" cannot pass on CPU rendering. (2) License of the prototype's Gale Crater mesh before it can be copied into the team repo (see Phase 1 notes). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
@@ -333,4 +333,41 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   into `pipeline_3d.launch.py` with the collision monitor reading `/terrain/hazard_points`.
 - **Not yet done:** any of this in sim. Every Phase 1 to 5 gate needs sim runs, which start once
   the baseline finishes.
+
+## Phase 0 gate: met (2026-11-01)
+
+| Gate item | Evidence |
+|---|---|
+| `colcon build` in the container, `colcon test` passes | `tools/dk.sh 'colcon build --packages-up-to rover_bringup rover_terrain_mapping rover_traversability rover_nav2 && colcon test --packages-select rover_traversability rover_terrain_mapping rover_nav2 && colcon test-result --verbose'`: 9 packages built, **329 tests, 0 errors, 0 failures** (`evidence/phase0/container_build_test_final.log`). Image digest in Environment. |
+| Ported layer loads in Nav2 sim without errors (loads and goes current) | Session 2 entry above: plugin loaded, Nav2 active, goal SUCCEEDED with 0 recoveries, fail-safe abort when terrain stops. |
+| FastDEM elevation map from `/lidar/points` visible in RViz | Bag `evidence/phase0/phase0_terrain_marsyard`, rendering `phase0_terrain_marsyard.png`, `terrain_3d.rviz`. Screen capture is impossible on this desktop, so Ram should look once: commands in the session 2 entry. |
+| Baseline CSV and summary for marsyard, ledge, bars, 5 runs per goal | `ros2 run rover_nav2 benchmark --worlds marsyard ledge bars --runs 5 --config 2d --params-file <snapshot> --out ~/.ros/rover_benchmark/2026-11-01_baseline_2d`: `runs.csv`, `summary.md`, 35 runs, 5 per goal. |
+
+### 2D baseline (`~/.ros/rover_benchmark/2026-11-01_baseline_2d/summary.md`)
+
+| World, goal | Success | Time to goal [s] | Path [m] | Recoveries | Unsafe | Max roll / pitch [deg] | RTF |
+|---|---|---|---|---|---|---|---|
+| marsyard ahead_8m | 5/5 | 20.8 +- 0.2 | 7.94 | 0 | 0 | 0.1 / 1.0 | 0.38 |
+| marsyard left_diag | 3/5 | 108.8 +- 119.8 | 15.7 | 0 | 0 | 7.8 / 4.3 | 0.37 |
+| marsyard behind_left | 4/5 | 68.0 +- 96.2 | 11.5 | 0 | 0 | 6.3 / 4.4 | 0.36 |
+| ledge on_ledge_6m | 4/5 | 48.4 +- 71.8 | 7.8 | 0.4 | 0 | 12.8 / 1.8 | 0.50 |
+| ledge on_ledge_12m | 0/5 | aborted at 0.05 s | 0 | 0 | 0 | 0 / 0.1 | 0.51 |
+| bars past_bars_4m | 0/5 | 50.6 +- 30.3 | 4.2 | 0.4 | 0 | 2.9 / 3.7 | 0.51 |
+| bars past_bars_6m | 0/5 | 41.7 +- 15.3 | 4.4 | 0.4 | 0 | 6.9 / 6.6 | 0.42 |
+
+16 of 35 runs succeed. Outcomes: 26 Nav2 SUCCEEDED, 6 aborted, 3 timeouts.
+
+- **bars: 9 false successes.** Nav2 reports SUCCEEDED while ground truth puts the rover 2 to 4.4 m
+  short, stuck against the 8 cm bar with its wheels spinning: wheel odometry (and RTAB-Map on it)
+  believes it drove the distance. The 2D stack cannot tell a stuck rover from a moving one.
+- **ledge on_ledge_12m: rejected at once.** The 2D global costmap spans only RTAB-Map's map so
+  far, and a goal 12 m out lies off it.
+- **marsyard timeouts:** 3 runs among the rocks hit the 240 s limit.
+- No unsafe roll or pitch anywhere: the 2D stack never reaches steep ground on these worlds.
+- Sim at real-time factor 0.36 to 0.51 (CPU rendering, see the NVIDIA note). Runs 6 to 9 overlapped
+  my niced builds, their CPU numbers may be a little high, RTF did not change.
+- Run on the 2D params snapshot taken at start (`nav2_params_sim.yaml.snapshot` and the diff of
+  Ram's then-uncommitted retune in the results directory), commit `98ce60c+dirty`.
+- Mid-baseline, `rover_gazebo`'s symlink-installed kinematics node gained the swerve branch. The
+  ackermann path is unchanged, so the remaining runs are unaffected.
 
