@@ -12,7 +12,7 @@ import yaml
 KEYS = (
     'wheelbase', 'track', 'wheel_radius', 'wheel_width', 'footprint_length', 'footprint_width',
     'cg_height', 'cg_offset_x', 'cg_offset_y', 'mass', 'ground_clearance', 'rocker_max',
-    'step_max', 'stability_margin_min',
+    'step_max', 'stability_margin_min', 'roughness_max',
 )
 
 _KEY_LINE = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:.*#.*\bPLACEHOLDER\b')

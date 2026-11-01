@@ -32,6 +32,6 @@ def test_shipped_file():
     assert values['cg_height'] == 0.45
     assert values['track'] == 0.436
     assert ph == ['cg_height', 'cg_offset_x', 'cg_offset_y', 'mass', 'ground_clearance',
-                  'rocker_max', 'step_max', 'stability_margin_min']
+                  'rocker_max', 'step_max', 'stability_margin_min', 'roughness_max']
     assert 'cg_height' in physical_params.placeholder_warning(ph)
     assert physical_params.placeholder_warning([]) == ''

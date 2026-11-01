@@ -29,6 +29,7 @@ struct PhysicalParams
   double rocker_max{0.0};
   double step_max{0.0};
   double stability_margin_min{0.0};
+  double roughness_max{0.0};
 
   // Keys whose line carries the "# PLACEHOLDER" marker, in file order.
   std::vector<std::string> placeholders;

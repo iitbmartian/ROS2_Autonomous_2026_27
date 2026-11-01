@@ -38,6 +38,7 @@ std::map<std::string, double PhysicalParams::*> fieldMap()
     {"rocker_max", &PhysicalParams::rocker_max},
     {"step_max", &PhysicalParams::step_max},
     {"stability_margin_min", &PhysicalParams::stability_margin_min},
+    {"roughness_max", &PhysicalParams::roughness_max},
   };
 }
 
@@ -48,7 +49,7 @@ const std::vector<std::string> & physicalParamKeys()
   static const std::vector<std::string> keys = {
     "wheelbase", "track", "wheel_radius", "wheel_width", "footprint_length", "footprint_width",
     "cg_height", "cg_offset_x", "cg_offset_y", "mass", "ground_clearance", "rocker_max",
-    "step_max", "stability_margin_min"};
+    "step_max", "stability_margin_min", "roughness_max"};
   return keys;
 }
 

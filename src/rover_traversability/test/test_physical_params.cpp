@@ -65,7 +65,7 @@ TEST(PhysicalParams, ShippedFileMatchesSpec)
   EXPECT_DOUBLE_EQ(p.stability_margin_min, 0.17);
   const std::vector<std::string> expected = {
     "cg_height", "cg_offset_x", "cg_offset_y", "mass", "ground_clearance", "rocker_max",
-    "step_max", "stability_margin_min"};
+    "step_max", "stability_margin_min", "roughness_max"};
   EXPECT_EQ(p.placeholders, expected);
   EXPECT_NE(placeholderWarning(p).find("stability_margin_min"), std::string::npos);
 }
