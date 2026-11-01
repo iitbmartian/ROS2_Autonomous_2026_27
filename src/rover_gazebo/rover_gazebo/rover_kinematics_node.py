@@ -14,6 +14,10 @@ speed.
   Crab        body translates without yawing, so the rover slides while keeping its
               heading. linear.y is the sideways part.
   Spot        body yaws with no translation, so the rover spins in place.
+  Swerve      body translates and yaws at once: linear.x, linear.y and angular.z are all
+              honoured together, with no curvature cap. The general case the other three
+              are slices of, and what the 3D navigation stack's omnidirectional controller
+              commands (MPPI Omni). Selected on rover/steer_mode like the others.
 
 Writing it as one velocity field rather than three special cases means there is no
 singularity at zero speed and spot mode is just the case where linear.x is zero.
@@ -72,7 +76,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from std_msgs.msg import Float64, Float64MultiArray, String
 
-MODES = ("ackermann", "crab", "spot", "explicit", "explicit_pid")
+MODES = ("ackermann", "crab", "spot", "swerve", "explicit", "explicit_pid")
 STATIONS = ("FL", "FR", "BL", "BR")
 
 # rover/steer_mode is published only on change, not continuously, so it needs
@@ -323,6 +327,11 @@ class RoverKinematics(Node):
             elif self.mode == "spot":
                 spin = max(-p("max_spin_rate").value, min(p("max_spin_rate").value, omega))
                 wx, wy = -spin * y, spin * x
+            elif self.mode == "swerve":
+                # Full body twist: v_wheel = (vx, vy) + omega x (x, y). The fold and the
+                # turn-rate limit below handle the rest exactly as for the other modes.
+                w = max(-p("max_yaw_rate").value, min(p("max_yaw_rate").value, omega))
+                wx, wy = vx - w * y, vy + w * x
             else:
                 # Ackermann. Curvature is capped rather than yaw rate, so the turn
                 # stays inside the tightest arc the steering can reach at any speed.
