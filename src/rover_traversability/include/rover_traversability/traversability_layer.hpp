@@ -69,7 +69,8 @@ private:
   // Cost from the per-cell heading evaluation (cost_model utilisation, SPEC.md cell cost):
   // lethal when no heading is safe, max_soft_cost * u^2 otherwise. Unknown cells are lethal
   // within braking distance of the footprint edge and unknown_cost beyond it.
-  unsigned char utilisationCost(float u, float mask, double dist_to_robot) const;
+  // braking is set when the cell is lethal because of the braking rule.
+  unsigned char utilisationCost(float u, float mask, double dist_to_robot, bool & braking) const;
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
   // Widen lethal and high cost cells by the inscribed radius so that the
@@ -79,6 +80,10 @@ private:
   // traversability_core, see core/disc_dilation.hpp.
   core::DiscDilation dilation_;
   std::vector<unsigned char> lethal_buf_;      // utilisation mode: lethal cells only, dilated
+  // Cells made lethal by the braking rule. They are defined relative to the rover's own outline
+  // already, so dilating them again by the inscribed radius would push lethal cost into the
+  // rover itself (seen in sim: the planner's start cell became occupied).
+  std::vector<unsigned char> braking_mask_;
 
   rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr map_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
@@ -101,6 +106,7 @@ private:
   std::string utilisation_layer_, mask_layer_, odom_topic_;
   double braking_decel_{0.5};                  // m/s^2
   double braking_margin_{0.25};                // m beyond the stopping distance
+  bool unknown_lethal_in_braking_{true};       // off for the global costmap: a local safety rule
   std::string map_topic_;
   std::string slope_layer_, roughness_layer_, step_layer_;
   bool use_precomputed_traversability_{false};

@@ -56,6 +56,9 @@ global_costmap:
         cost_model: utilisation
         map_topic: /terrain/global_features
         map_timeout: 15.0       # global planning needs no sub-second freshness
+        # The braking rule is a local safety rule. On the global map it only boxes the rover in
+        # at start, where the ground under and around it is still unobserved.
+        unknown_lethal_in_braking: false
         unknown_cost: 200
         max_soft_cost: 252
         lethal_dilation_radius: 0.0

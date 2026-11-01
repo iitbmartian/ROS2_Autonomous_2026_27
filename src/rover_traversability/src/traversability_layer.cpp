@@ -52,6 +52,7 @@ void TraversabilityLayer::onInitialize()
   declareParameter("odom_topic", rclcpp::ParameterValue(std::string("/odom")));
   declareParameter("braking_decel", rclcpp::ParameterValue(0.5));
   declareParameter("braking_margin", rclcpp::ParameterValue(0.25));
+  declareParameter("unknown_lethal_in_braking", rclcpp::ParameterValue(true));
 
   int unknown_cost_i = 200, max_soft_cost_i = 252;
   node->get_parameter(name_ + ".enabled", enabled_);
@@ -78,6 +79,7 @@ void TraversabilityLayer::onInitialize()
   node->get_parameter(name_ + ".odom_topic", odom_topic_);
   node->get_parameter(name_ + ".braking_decel", braking_decel_);
   node->get_parameter(name_ + ".braking_margin", braking_margin_);
+  node->get_parameter(name_ + ".unknown_lethal_in_braking", unknown_lethal_in_braking_);
   if (cost_model_ != "legacy" && cost_model_ != "utilisation") {
     throw std::runtime_error("TraversabilityLayer: cost_model must be legacy or utilisation");
   }
@@ -101,8 +103,11 @@ void TraversabilityLayer::onInitialize()
   rclcpp::SubscriptionOptions sub_options;
   sub_options.callback_group = callback_group_;
 
+  // Reliable, newest map only. A feature map is about 2 MB: it does not fit Fast DDS's shared
+  // memory segment, travels as UDP fragments, and with best effort one lost fragment drops the
+  // whole map (in sim the layer saw maps up to 8 s old while the node published every 0.4 s).
   map_sub_ = node->create_subscription<grid_map_msgs::msg::GridMap>(
-    map_topic_, rclcpp::SensorDataQoS().keep_last(1),
+    map_topic_, rclcpp::QoS(1).reliable(),
     std::bind(&TraversabilityLayer::gridMapCallback, this, std::placeholders::_1),
     sub_options);
 
@@ -219,16 +224,20 @@ void TraversabilityLayer::odomCallback(const nav_msgs::msg::Odometry::SharedPtr 
   speed_.store(std::hypot(v.x, v.y));
 }
 
-unsigned char TraversabilityLayer::utilisationCost(float u, float mask, double dist) const
+unsigned char TraversabilityLayer::utilisationCost(
+  float u, float mask, double dist, bool & braking) const
 {
+  braking = false;
   if (!std::isfinite(u) || !std::isfinite(mask)) {
+    if (!unknown_lethal_in_braking_) {return unknown_cost_;}
     // Stopping distance at the current speed plus a margin, measured from the footprint's
     // circumscribed circle. Cells inside the footprint are exempt: every sensor has a blind
     // zone under the rover, and marking it lethal would put the rover inside its own obstacle.
     const double v = speed_.load();
     const double brake = v * v / (2.0 * braking_decel_) + braking_margin_;
     const double outside = dist - layered_costmap_->getCircumscribedRadius();
-    return (outside > 0.0 && outside <= brake) ? LETHAL_OBSTACLE : unknown_cost_;
+    braking = outside > 0.0 && outside <= brake;
+    return braking ? LETHAL_OBSTACLE : unknown_cost_;
   }
   if (mask == 0.0f || u > 1.0f) {
     return LETHAL_OBSTACLE;
@@ -276,6 +285,7 @@ void TraversabilityLayer::updateBounds(
   // rewrite. Everything not covered stays NO_INFORMATION and is skipped by
   // updateWithMax, which leaves other layers in control of those cells.
   resetMaps();
+  braking_mask_.assign(static_cast<size_t>(size_x_) * size_y_, 0);
 
   // The GridMap frame and the costmap global frame should both be odom. If they
   // differ, look up the transform once and apply a planar rigid transform per
@@ -331,10 +341,11 @@ void TraversabilityLayer::updateBounds(
     const double wy = sin_t * p.x() + cos_t * p.y() + ty;
 
     unsigned char cost;
+    bool braking = false;
     if (util) {
       cost = utilisationCost(
         (*u_layer)(idx(0), idx(1)), (*mask_layer)(idx(0), idx(1)),
-        std::hypot(wx - robot_x, wy - robot_y));
+        std::hypot(wx - robot_x, wy - robot_y), braking);
     } else if (use_precomputed_traversability_) {
       const float t = (*trav)(idx(0), idx(1));
       if (!std::isfinite(t)) {
@@ -362,6 +373,7 @@ void TraversabilityLayer::updateBounds(
     if (costmap_[index] == NO_INFORMATION || cost > costmap_[index]) {
       costmap_[index] = cost;
     }
+    if (braking) {braking_mask_[index] = 1;}
 
     touched_min_x = std::min(touched_min_x, wx);
     touched_min_y = std::min(touched_min_y, wy);
@@ -410,7 +422,11 @@ void TraversabilityLayer::updateCosts(
     // rover at that cell (pose evaluation), and dilating the unknown cost would flood every
     // known cell next to an unobserved one.
     lethal_buf_.assign(costmap_, costmap_ + static_cast<size_t>(sx) * sy);
-    for (auto & v : lethal_buf_) {v = (v == LETHAL_OBSTACLE) ? LETHAL_OBSTACLE : 0;}
+    for (size_t k = 0; k < lethal_buf_.size(); ++k) {
+      const bool terrain_lethal = lethal_buf_[k] == LETHAL_OBSTACLE &&
+        !(k < braking_mask_.size() && braking_mask_[k]);
+      lethal_buf_[k] = terrain_lethal ? LETHAL_OBSTACLE : 0;
+    }
     dilation_.apply(lethal_buf_.data(), sx, sy, min_i, min_j, max_i, max_j);
     for (int j = std::max(0, min_j); j < std::min(sy, max_j); ++j) {
       for (int i = std::max(0, min_i); i < std::min(sx, max_i); ++i) {

@@ -42,7 +42,8 @@ void TerrainCritic::initialize()
   clock_ = node->get_clock();
   frame_ = costmap_ros_->getGlobalFrameID();
   sub_ = node->create_subscription<grid_map_msgs::msg::GridMap>(
-    map_topic_, rclcpp::SensorDataQoS().keep_last(1),
+    // Reliable, newest only: a 2 MB map over best effort loses whole maps to one lost fragment.
+    map_topic_, rclcpp::QoS(1).reliable(),
     std::bind(&TerrainCritic::onMap, this, std::placeholders::_1));
   RCLCPP_INFO(
     logger_, "TerrainCritic: %s, weight %.1f, redirect %.1f, uphill %.1f, every %d points",

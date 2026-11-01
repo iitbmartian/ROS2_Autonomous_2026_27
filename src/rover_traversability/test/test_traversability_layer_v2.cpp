@@ -169,6 +169,9 @@ TEST_F(V2, UnknownIsLethalOnlyWithinBrakingDistanceOutsideTheFootprint)
   EXPECT_EQ(cost(2.4, 2.0), LETHAL_OBSTACLE);     // 0.4 + half a cell from the centre
   EXPECT_EQ(cost(3.0, 2.0), 200);                 // 1.0 m out
   EXPECT_EQ(cost(3.05, 2.0), 0);                  // the unknown cost did not spread
+  // The braking-band lethal cell is not dilated toward the rover: 4 cells (0.2 m) closer, still
+  // under the footprint's circumscribed circle, the cell is free.
+  EXPECT_EQ(cost(2.2, 2.0), 0);
 }
 
 int main(int argc, char ** argv)
