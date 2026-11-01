@@ -307,11 +307,22 @@ class Runner:
                    params_sha256=self.params_sha)
         self.log(f'[{run_id}] starting stack')
         w_start = time.time()
-        stack = Stack(self.launch_cmd(goalset, db), run_env, log_path, marker)
+        # Nav2's lifecycle manager sometimes waits forever for a service that DDS never
+        # discovers (seen in sim: bt_navigator/get_state). That is no result about the
+        # navigation stack, so a stalled start gets one fresh stack before the run is scored.
+        retried = ''
+        for attempt in (1, 2):
+            stack = Stack(self.launch_cmd(goalset, db), run_env, log_path, marker)
+            note = self.wait_ready(stack)
+            if note is None or attempt == 2:
+                break
+            self.log(f'[{run_id}] startup stalled ({note}), restarting the stack once')
+            stack.stop()
+            retried = f'startup retried after: {note}'
+        row['note'] = retried
         cpu = CpuSampler(stack)
         cpu.start()
         try:
-            note = self.wait_ready(stack)
             if note is None:
                 pt = self.planner_time(goal)
                 row['planner_time_s'] = f'{pt:.4f}'
