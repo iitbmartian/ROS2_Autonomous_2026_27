@@ -67,6 +67,7 @@ Config parse(const YAML::Node& root) {
     load(n, "type", estimation_str);
     if (!estimation_str.empty())
       m.estimation_type = parseEstimationType(estimation_str);
+    load(n, "cell_mean", m.cell_mean);  // rover_terrain_mapping PATCH 3
     if (auto k = n["kalman"]) {
       load(k, "min_variance", m.kalman.min_variance);
       load(k, "max_variance", m.kalman.max_variance);

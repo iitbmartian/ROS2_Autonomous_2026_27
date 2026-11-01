@@ -17,7 +17,7 @@ terrain_mapping:
     lidar:
       topic: /lidar/points
       sensor_model: lidar       # near-constant range noise
-      range_min: 1.0            # m. The body box below does the real self filtering.
+      range_min: 0.3            # m, the sensor mount only. The body box below removes the rover itself, a 1.0 m cut left the ring past the footprint unknown and lethal at standstill.
       range_max: 12.0           # m, beyond the 5 m half-width of the map
     depth:
       topic: /terrain/depth_points   # depth_range_cut output (Orin stand-in in sim)

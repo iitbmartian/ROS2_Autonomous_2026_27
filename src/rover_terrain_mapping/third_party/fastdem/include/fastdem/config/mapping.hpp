@@ -42,6 +42,9 @@ struct P2Quantile {
 /// Mapping configuration (consumed by ElevationMapping).
 struct Mapping {
   MappingMode mode = MappingMode::LOCAL;
+  // rover_terrain_mapping PATCH 3: which per-scan cell height feeds the estimator.
+  // false: the lowest point (upstream). true: the mean of the cell's points, variance / n.
+  bool cell_mean = false;
   EstimationType estimation_type = EstimationType::Kalman;
   Kalman kalman;
   P2Quantile p2;

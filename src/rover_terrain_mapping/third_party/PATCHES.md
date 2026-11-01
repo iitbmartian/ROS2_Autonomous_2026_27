@@ -9,6 +9,12 @@ can reapply them. Each patched spot is also marked `rover_terrain_mapping PATCH 
    falling back to `find_package(nanoGrid REQUIRED)` when built standalone.
 2. `fastdem/CMakeLists.txt`, install rules. Wrapped in a top-level check, since vendored FastDEM is
    linked statically into this package's executables and nothing of it is installed.
+3. `mapping.cell_mean` (`config/mapping.hpp`, `config_fastdem.cpp`, `mapping/elevation_mapping.hpp`,
+   `elevation_mapping.cpp`). Upstream feeds the estimator the lowest return in each cell per scan.
+   With 2 cm lidar noise that sits 1 to 5 cm below flat ground, more so near the sensor where
+   cells hold many returns. With `cell_mean: true` the measurement is the mean of the cell's
+   returns, with variance (mean point variance) / n. Default false keeps upstream behaviour.
+   Tested by `test/test_cell_mean.cpp`.
 
 Not patched, handled from `rover_terrain_mapping/CMakeLists.txt` instead:
 

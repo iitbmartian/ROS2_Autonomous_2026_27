@@ -4,6 +4,9 @@
 mapping:
   mode: "local"
   type: "kalman_filter"
+  # Mean of each cell's returns per scan (PATCH 3). Upstream's lowest return sat 1 to 5 cm under
+  # flat ground with 2 cm lidar noise, and the speckle it left tripped the step check.
+  cell_mean: true
   kalman:
     min_variance: 0.0001     # m^2
     max_variance: 0.01       # m^2
@@ -13,7 +16,7 @@ mapping:
 point_filter:
   z_min: -1.0                # m, deep enough for a crater floor
   z_max: 1.5                 # m, above anything the rover could drive under
-  range_min: 1.0             # m, drops the rover's own wheels (about 0.74 m from the lidar)
+  range_min: 0.3             # m, default for inputs without their own range_min
   range_max: 12.0            # m, beyond the 5 m half-width of the map
 
 sensor_model:

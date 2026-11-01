@@ -27,6 +27,10 @@ class ElevationMapping {
     float min_z = std::numeric_limits<float>::max();
     float min_z_var = 0.0f;
     float max_z = std::numeric_limits<float>::lowest();
+    // rover_terrain_mapping PATCH 3: sums for the cell mean.
+    double sum_z = 0.0;
+    double sum_var = 0.0;
+    int n = 0;
     float max_intensity = std::numeric_limits<float>::lowest();
     float color_packed = 0.0f;
     bool has_intensity = false;

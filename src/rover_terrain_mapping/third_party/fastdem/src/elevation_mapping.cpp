@@ -70,6 +70,9 @@ ElevationMapping::CellObservations ElevationMapping::rasterize(
     if (z > cell.max_z) {
       cell.max_z = z;
     }
+    cell.sum_z += z;          // rover_terrain_mapping PATCH 3
+    cell.sum_var += pt_z_var;
+    ++cell.n;
 
     if (has_intensity) {
       float val = cloud.intensity(i);
@@ -98,7 +101,15 @@ void ElevationMapping::estimate(const CellObservations& observations) {
         estimator.bind(map_);
 
         for (const auto& [index, cell] : observations) {
-          estimator.update(index, cell.min_z, cell.min_z_var);
+          if (cfg_.cell_mean && cell.n > 0) {
+            // rover_terrain_mapping PATCH 3: the minimum of n noisy returns sits about
+            // one to two sigma below the surface, the mean does not.
+            const double n = cell.n;
+            estimator.update(index, static_cast<float>(cell.sum_z / n),
+                             static_cast<float>(cell.sum_var / (n * n)));
+          } else {
+            estimator.update(index, cell.min_z, cell.min_z_var);
+          }
           estimator.computeBounds(index);
         }
       },

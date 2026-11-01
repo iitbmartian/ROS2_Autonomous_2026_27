@@ -124,6 +124,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_depth_range_cut test/test_depth_range_cut.cpp)
   target_link_libraries(test_depth_range_cut depth_range_cut)
 
+  ament_add_gtest(test_cell_mean test/test_cell_mean.cpp)
+  target_link_libraries(test_cell_mean fastdem)
+  target_compile_options(test_cell_mean PRIVATE -w)
+
   ament_add_gtest(test_tf_provider test/test_tf_provider.cpp)
   target_link_libraries(test_tf_provider tf_provider)
 
