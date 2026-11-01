@@ -80,7 +80,8 @@ def _launch(context):
         lowest = -0.2618
     env = [SetEnvironmentVariable('ROVER_LIDAR_MODEL', model),
            SetEnvironmentVariable('ROVER_LIDAR_INVERTED', 'true' if inverted else 'false'),
-           SetEnvironmentVariable('ROVER_LIDAR_TILT', str(tilt))]
+           SetEnvironmentVariable('ROVER_LIDAR_TILT', str(tilt)),
+           SetEnvironmentVariable('ROVER_LIDAR_XYZ', LaunchConfiguration('lidar_xyz').perform(context))]
 
     pipeline = GroupAction(scoped=True, actions=[IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, 'pipeline.launch.py')),
@@ -132,6 +133,10 @@ def generate_launch_description():
                                  description='Mount the L2 upside down so the dome sees the ground'),
            DeclareLaunchArgument('lidar_tilt', default_value='0.0',
                                  description='L2 nose-down mount tilt, rad'),
+           DeclareLaunchArgument('lidar_xyz', default_value='0 0 0.5',
+                                 description='L2 mount offset from the roof-lidar point, a '
+                                             '0.5 m mast by default (Phase 1 coverage sweep), '
+                                             '"x y z" in m, x forward, z up'),
            DeclareLaunchArgument('drive', default_value='ackermann',
                                  choices=['ackermann', 'swerve'],
                                  description='ackermann: Phase 3 controller. swerve: Phase 4, '
