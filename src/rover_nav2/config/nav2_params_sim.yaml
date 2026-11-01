@@ -125,7 +125,7 @@ controller_server:
       plugin: "nav2_controller::SimpleProgressChecker"
       # A rover on loose ground makes slow progress; allow more time for less
       # motion than the defaults (0.5 m in 10 s).
-      required_movement_radius: 0.15
+      required_movement_radius: 0.10
       movement_time_allowance: 15.0
 
     general_goal_checker:
@@ -139,17 +139,24 @@ controller_server:
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
 
-      time_steps: 25
+      # Raised from 25: at 1.25 s the horizon was too short to see the value
+      # of committing to a full back-up-then-approach maneuver, so MPPI kept
+      # re-deciding piecemeal every control tick instead of once. 2.5 s lets
+      # it score the whole reversal as one trajectory.
+      time_steps: 50
       model_dt: 0.05
       batch_size: 1000
-      prune_distance: 1.7
+      # Raised from 1.7 m to stay ahead of the longer horizon above, so
+      # PathAlignCritic/PathFollowCritic keep the whole maneuver in view
+      # rather than losing the path partway through a long reversal.
+      prune_distance: 3.0
       transform_tolerance: 0.3
 
       # Velocity limits of the simulated robot, not of the rover.
-      vx_max: 0.25
-      vx_min: -0.2
+      vx_max: 0.5
+      vx_min: -0.4
       vy_max: 0.0
-      wz_max: 1.2
+      wz_max: 2.4
 
       # Sampling noise. vy is zero: skid steer is a differential drive.
       vx_std: 0.1
@@ -157,6 +164,11 @@ controller_server:
       wz_std: 0.6
 
       # Acceleration limits — keep under what rover_controls can deliver.
+      # Reverted from the doubled 4.0/-4.0/3.0: that let every direction-flip
+      # during the near-obstacle dithering happen as a violent jerk rather
+      # than a gentle one, and the rover topped over. Top speed stays
+      # doubled above; acceleration is a separate, physical-stability
+      # question and is kept at the original, untested-beyond values.
       ax_max: 2.0
       ax_min: -2.0
       az_max: 1.5
@@ -282,10 +294,19 @@ local_costmap:
         lethal_override_cost: 200
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 1.5
-        # At least the footprint's circumscribed radius (0.78 m), or Smac and
-        # MPPI fall back to slow full-footprint collision checks everywhere.
-        inflation_radius: 0.85
+        # Raised from 1.5: at the minimum inflation_radius below, a gentler
+        # scaling factor was swallowing gaps between obstacles that are
+        # physically wide enough for the footprint. Steeper falloff keeps
+        # the halo required for footprint checks without costing out real
+        # corridors in cluttered worlds (obstacle_field.sdf).
+        cost_scaling_factor: 3.0
+        # At least the footprint's circumscribed radius (0.781025 m with
+        # footprint_padding), or Smac and MPPI fall back to slow
+        # full-footprint collision checks everywhere. 0.78 was 1 mm short of
+        # that and triggered the fallback on every control cycle near an
+        # obstacle; kept just above it rather than much larger, so it costs
+        # out as little real free space as possible.
+        inflation_radius: 0.79
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -382,10 +403,13 @@ global_costmap:
         map_subscribe_transient_local: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        # Low scaling factor keeps the plan near the centre of free space.
-        cost_scaling_factor: 1.5
-        # See the local costmap: above the 0.78 m circumscribed radius.
-        inflation_radius: 1.0
+        # See the local costmap: steeper falloff so a gentle scaling factor
+        # at this radius does not cost out real gaps in cluttered worlds.
+        cost_scaling_factor: 3.0
+        # See the local costmap: kept at the 0.78 m circumscribed-radius
+        # minimum, not larger, so it costs out as little free space as
+        # possible.
+        inflation_radius: 0.8
       always_send_full_costmap: true
 
 map_server:
@@ -488,8 +512,8 @@ waypoint_follower:
 route_server:
   ros__parameters:
     use_sim_time: true
-    boundary_radius_to_achieve_node: 1.0
-    radius_to_achieve_node: 2.0
+    boundary_radius_to_achieve_node: 0.7
+    radius_to_achieve_node: 1.7
     smooth_corners: true
     operations: ["AdjustSpeedLimit", "ReroutingService", "CollisionMonitor"]
     ReroutingService:
@@ -513,10 +537,10 @@ velocity_smoother:
     scale_velocities: false
     feedback: "OPEN_LOOP"
     # Matches the MPPI limits above; [x, y, theta].
-    max_velocity: [0.25, 0.0, 1.2]
-    min_velocity: [-0.2, 0.0, -1.2]
-    max_accel: [2.0, 0.0, 2.0]
-    max_decel: [-2.0, 0.0, -2.0]
+    max_velocity: [0.5, 0.0, 2.4]
+    min_velocity: [-0.4, 0.0, -2.4]
+    max_accel: [2.0, 0.0, 1.5]
+    max_decel: [-2.0, 0.0, -1.5]
     odom_topic: "odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]

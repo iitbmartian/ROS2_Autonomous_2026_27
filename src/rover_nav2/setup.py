@@ -34,6 +34,7 @@ setup(
         'console_scripts': [
             'benchmark = rover_nav2.benchmark.cli:main',
             'ground_truth_heightmap = rover_nav2.benchmark.ground_truth:main',
+            'terrain_eval = rover_nav2.benchmark.terrain_eval:main',
         ],
     },
 )
