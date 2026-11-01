@@ -1,0 +1,10 @@
+<library path="rover_terrain_critic">
+  <class name="rover_traversability::TerrainCritic"
+         type="rover_traversability::TerrainCritic"
+         base_class_type="mppi::critics::CriticFunction">
+    <description>
+      Scores MPPI rollouts on the terrain at their actual yaw: utilisation, collisions with
+      lethal poses, travel-direction changes and uphill time (SPEC.md controller cost).
+    </description>
+  </class>
+</library>

@@ -64,6 +64,11 @@ struct EvalParams
   double belly_radius{-1.0};
   // Roughness window: the circumscribed disc of the wheel rectangle. Computed unless set.
   double rough_radius{-1.0};
+  // The belly disc and the roughness disc do not depend on yaw. The MPPI critic leaves them to
+  // the costmap, which already applies them at every cell, and evaluates only the yaw-dependent
+  // checks along each rollout.
+  bool check_clearance{true};
+  bool check_roughness{true};
 };
 
 enum class PoseStatus { kOk, kLethal, kUnknown };

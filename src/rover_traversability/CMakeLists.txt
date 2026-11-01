@@ -22,6 +22,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 # The core first, before anything pulls in grid_map_core (see src/core/CMakeLists.txt).
 add_subdirectory(src/core)
 add_subdirectory(src/msg)
+add_subdirectory(src/critic)
 
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
@@ -48,6 +49,7 @@ target_link_libraries(rover_traversability_layer traversability_core)
 ament_target_dependencies(rover_traversability_layer ${layer_dependencies})
 
 pluginlib_export_plugin_description_file(nav2_costmap_2d costmap_plugins.xml)
+pluginlib_export_plugin_description_file(nav2_mppi_controller critics_plugins.xml)
 
 install(TARGETS rover_traversability_layer
   EXPORT export_${PROJECT_NAME}

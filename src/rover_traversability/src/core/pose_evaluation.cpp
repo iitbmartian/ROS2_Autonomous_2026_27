@@ -214,7 +214,7 @@ PoseResult evaluatePose(
   const double ox = g.x(ci) - x, oy = g.y(cj) - y;
   const bool with_sigma = cache->sigma.size() != 0 && k != 0.0;
   double h_max = 0.0;
-  for (const auto & o : cache->belly) {
+  for (const auto & o : e.check_clearance ? cache->belly : std::vector<EvalCache::Offset>{}) {
     const int ii = ci + o.di, jj = cj + o.dj;
     if (ii < 0 || jj < 0 || ii >= g.rows() || jj >= g.cols()) {continue;}
     const float zv = g.elevation(ii, jj);
@@ -234,7 +234,7 @@ PoseResult evaluatePose(
   // Roughness under the support polygon. rough_radius 0 means the layer is already the max
   // over that disc (precomputed), so only the centre cell is read.
   double rough = 0.0;
-  if (g.roughness.size() != 0) {
+  if (e.check_roughness && g.roughness.size() != 0) {
     const double rr = e.rough_radius >= 0.0 ? e.rough_radius : std::hypot(hx, hy);
     if (rr <= 0.0) {
       rough = at(g.roughness, ci, cj, 0.0f);
