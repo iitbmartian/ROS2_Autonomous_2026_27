@@ -232,6 +232,7 @@ class Runner:
                f'database_path:={db_path}', 'delete_db_on_start:=true']
         if self.a.params_file and self.a.config == '2d':
             cmd.append(f'nav_params_file:={self.a.params_file}')
+        cmd += list(self.a.launch_args)
         return cmd
 
     def wait_ready(self, stack):
@@ -295,13 +296,13 @@ class Runner:
         return status, t1 - t0, self.node.recoveries, (t1 - t0) / max(w1 - w0, 1e-6)
 
     def run_one(self, goalset, goal, rep, out_dir, env):
-        run_id = f"{self.a.config}_{goalset['name']}_{goal['id']}_r{rep}"
+        run_id = f"{self.a.tag or self.a.config}_{goalset['name']}_{goal['id']}_r{rep}"
         marker = f'{run_id}_{os.getpid()}_{int(time.time())}'
         run_env = dict(env, ROVER_BENCH_RUN=marker)
         db = os.path.join(out_dir, 'db', f'{run_id}.db')
         log_path = os.path.join(out_dir, 'logs', f'{run_id}.log')
         row = {k: '' for k in CSV_FIELDS}
-        row.update(run_id=run_id, config=self.a.config, world=goalset['world'],
+        row.update(run_id=run_id, config=self.a.tag or self.a.config, world=goalset['world'],
                    goal_id=goal['id'], rep=rep, git_commit=self.commit,
                    params_sha256=self.params_sha)
         self.log(f'[{run_id}] starting stack')
@@ -312,7 +313,10 @@ class Runner:
         try:
             note = self.wait_ready(stack)
             if note is None:
-                row['planner_time_s'] = f'{self.planner_time(goal):.4f}'
+                pt = self.planner_time(goal)
+                row['planner_time_s'] = f'{pt:.4f}'
+                if math.isnan(pt):
+                    row['note'] = 'planner gave no path within plan_timeout'
                 self.node.take_poses()
                 self.node.recording = True
                 status, ttg, rec, rtf = self.navigate(goal, goalset['timeout_s'])

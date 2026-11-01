@@ -75,8 +75,13 @@ def parse_args(argv):
     p.add_argument('--partition', default='rover_benchmark', help='GZ_PARTITION')
     p.add_argument('--success-radius', type=float, default=0.5, help='m, ground truth')
     p.add_argument('--startup-timeout', type=float, default=600.0, help='wall s to Nav2 active')
-    p.add_argument('--plan-timeout', type=float, default=300.0,
-                   help='wall s for the first plan to succeed')
+    p.add_argument('--plan-timeout', type=float, default=60.0,
+                   help='wall s for the timing plan to succeed. A goal the planner rejects '
+                        '(off the map) would otherwise hold every run this long')
+    p.add_argument('--launch-args', nargs='*', default=[], metavar='NAME:=VALUE',
+                   help='extra arguments for the launch file, e.g. drive:=swerve governor:=false')
+    p.add_argument('--tag', default=None,
+                   help='config name in run ids and results (default the --config value)')
     p.add_argument('--wall-factor', type=float, default=40.0,
                    help='wall timeout = goal timeout_s times this, if the sim stalls')
     p.add_argument('--repo', default=os.environ.get('ROVER_REPO', '/home/ram/ROS2_Autonomous_2026_27'))
@@ -112,7 +117,7 @@ def main(argv=None):
     goals_dir = a.goals_dir or default_goals_dir()
     params = a.params_file or default_params_file()
     stamp = datetime.datetime.now().strftime('%Y-%m-%d')
-    out = os.path.expanduser(a.out or f'~/.ros/rover_benchmark/{stamp}_{a.config}')
+    out = os.path.expanduser(a.out or f'~/.ros/rover_benchmark/{stamp}_{a.tag or a.config}')
     for sub in ('logs', 'poses', 'db'):
         os.makedirs(os.path.join(out, sub), exist_ok=True)
     csv_path = os.path.join(out, 'runs.csv')
@@ -126,8 +131,8 @@ def main(argv=None):
 
     rclpy.init()
     runner = Runner(a, phys, roll_lim, pitch_lim, params, log)
-    log(f'config {a.config}, worlds {a.worlds}, {a.runs} runs per goal, out {out}, '
-        f'commit {runner.commit}, params {params}')
+    log(f'config {a.config} (tag {a.tag or a.config}), worlds {a.worlds}, {a.runs} runs per '
+        f'goal, launch args {a.launch_args}, out {out}, commit {runner.commit}, params {params}')
     try:
         for name in a.worlds:
             gs = load_goalset(goals_dir, name)
@@ -135,7 +140,7 @@ def main(argv=None):
                 if a.goals and goal['id'] not in a.goals:
                     continue
                 for rep in range(1, a.runs + 1):
-                    run_id = f"{a.config}_{name}_{goal['id']}_r{rep}"
+                    run_id = f"{a.tag or a.config}_{name}_{goal['id']}_r{rep}"
                     if run_id in done:
                         continue
                     row = runner.run_one(gs, goal, rep, out, env)
@@ -151,7 +156,7 @@ def main(argv=None):
         runner.shutdown()
         rclpy.try_shutdown()
     if os.path.exists(csv_path):
-        log(f"summary: {write_summary(out, f'Benchmark {a.config} stack', [warn] if warn else [])}")
+        log(f"summary: {write_summary(out, f'Benchmark {a.tag or a.config} stack', [warn] if warn else [])}")
     return 0
 
 

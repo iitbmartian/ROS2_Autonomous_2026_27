@@ -47,3 +47,23 @@ def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     for section in base:
         if section not in ('local_costmap', 'global_costmap', 'collision_monitor'):
             assert merged[section] == base[section], section
+
+
+def test_swerve_overlay_chains_on_the_3d_overlay(tmp_path):
+    out = merge_files(os.path.join(CONFIG, 'nav2_params_sim.yaml'),
+                      [os.path.join(CONFIG, 'nav2_params_sim_3d.yaml'),
+                       os.path.join(CONFIG, 'nav2_params_sim_3d_swerve.yaml')],
+                      str(tmp_path / 'merged.yaml'))
+    with open(out) as f:
+        merged = yaml.safe_load(f)
+    fp = merged['controller_server']['ros__parameters']['FollowPath']
+    assert fp['motion_model'] == 'Omni'
+    assert 'TerrainCritic' in fp['critics'] and 'PathAngleCritic' not in fp['critics']
+    assert fp['TerrainCritic']['enabled'] is True
+    assert 'vx_max' in fp and 'batch_size' in fp           # the 2D MPPI tuning carries over
+    assert merged['planner_server']['ros__parameters']['GridBased']['plugin'] == \
+        'nav2_smac_planner::SmacPlanner2D'
+    # The 3D costmaps from the first overlay survive the second.
+    local = merged['local_costmap']['local_costmap']['ros__parameters']
+    assert local['traversability_layer']['cost_model'] == 'utilisation'
+

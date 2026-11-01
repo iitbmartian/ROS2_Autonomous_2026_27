@@ -20,13 +20,17 @@ def merge(base, overlay):
     return out
 
 
-def merge_files(base_path, overlay_path, out_path):
-    """Write the merge of two YAML files to out_path and return out_path."""
+def merge_files(base_path, overlay_paths, out_path):
+    """Write base with each overlay merged over it in order, return out_path. overlay_paths is
+    one path or a list of paths."""
+    if isinstance(overlay_paths, str):
+        overlay_paths = [overlay_paths]
     with open(base_path) as f:
-        base = yaml.safe_load(f) or {}
-    with open(overlay_path) as f:
-        overlay = yaml.safe_load(f) or {}
+        merged = yaml.safe_load(f) or {}
+    for path in overlay_paths:
+        with open(path) as f:
+            merged = merge(merged, yaml.safe_load(f) or {})
     with open(out_path, 'w') as f:
-        f.write(f'# Generated: {overlay_path} merged over {base_path}. Do not edit.\n')
-        yaml.safe_dump(merge(base, overlay), f, sort_keys=False, default_flow_style=None)
+        f.write(f"# Generated: {', '.join(overlay_paths)} merged over {base_path}. Do not edit.\n")
+        yaml.safe_dump(merged, f, sort_keys=False, default_flow_style=None)
     return out_path

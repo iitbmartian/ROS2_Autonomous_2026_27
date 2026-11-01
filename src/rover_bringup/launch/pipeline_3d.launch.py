@@ -23,8 +23,9 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (DeclareLaunchArgument, GroupAction, IncludeLaunchDescription,
-                            OpaqueFunction, SetEnvironmentVariable, TimerAction)
+from launch.actions import (DeclareLaunchArgument, ExecuteProcess, GroupAction,
+                            IncludeLaunchDescription, OpaqueFunction, SetEnvironmentVariable,
+                            TimerAction)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -59,10 +60,11 @@ def _launch(context):
 
     merged = os.path.join(
         tempfile.gettempdir(), f'rover_nav2_params_sim_3d_{os.getpid()}.yaml')
-    merge_files(
-        os.path.join(nav2_config, 'nav2_params_sim.yaml'),
-        LaunchConfiguration('nav_overlay').perform(context),
-        merged)
+    overlays = [LaunchConfiguration('nav_overlay').perform(context)]
+    drive = LaunchConfiguration('drive').perform(context)
+    if drive == 'swerve':
+        overlays.append(os.path.join(nav2_config, 'nav2_params_sim_3d_swerve.yaml'))
+    merge_files(os.path.join(nav2_config, 'nav2_params_sim.yaml'), overlays, merged)
 
     args = {k: LaunchConfiguration(k) for k in FORWARDED}
     args['nav_params_file'] = merged
@@ -104,8 +106,17 @@ def _launch(context):
         safety_nodes.append(Node(
             package='rover_traversability', executable='terrain_safety_monitor',
             output='screen', parameters=[{'use_sim_time': True}]))
-    return env + [pipeline, TimerAction(period=TERRAIN_DELAY, actions=[terrain] + safety_nodes),
-                  rviz]
+    # rover/steer_mode is latched (transient local), and a latched sample lives only as long as
+    # its publisher, so this keeps publishing at a low rate. The kinematics node acts on change.
+    drive_mode = []
+    if drive == 'swerve':
+        drive_mode.append(ExecuteProcess(
+            cmd=['ros2', 'topic', 'pub', '-r', '0.2', '--qos-durability', 'transient_local',
+                 '--qos-reliability', 'reliable', '/rover/steer_mode', 'std_msgs/msg/String',
+                 '{data: swerve}'],
+            output='log'))
+    return env + [pipeline, TimerAction(period=TERRAIN_DELAY,
+                                        actions=[terrain] + safety_nodes + drive_mode), rviz]
 
 
 def generate_launch_description():
@@ -121,6 +132,10 @@ def generate_launch_description():
                                  description='Mount the L2 upside down so the dome sees the ground'),
            DeclareLaunchArgument('lidar_tilt', default_value='0.0',
                                  description='L2 nose-down mount tilt, rad'),
+           DeclareLaunchArgument('drive', default_value='ackermann',
+                                 choices=['ackermann', 'swerve'],
+                                 description='ackermann: Phase 3 controller. swerve: Phase 4, '
+                                             'MPPI Omni with TerrainCritic, Smac 2D'),
            DeclareLaunchArgument('governor', default_value='true',
                                  description='terrain_speed_governor on /speed_limit'),
            DeclareLaunchArgument('safety', default_value='true',
