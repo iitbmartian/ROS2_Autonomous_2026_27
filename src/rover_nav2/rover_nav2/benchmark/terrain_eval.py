@@ -13,8 +13,11 @@ wheel track, the first time /terrain/local_features flags at least --min-cells c
 rim, against the first time the rover's footprint (ground truth) reaches the rim. SPEC.md's
 Phase 2 gate: every such crater flagged before the footprint reaches it.
 
-Gazebo's ground-truth /odom is relative to the spawn pose, which every goal set puts at the
-origin with yaw 0. --spawn-z adds the spawn height back.
+Gazebo's ground-truth /odom has its x, y origin at the spawn point, which every goal set puts at
+the world origin with yaw 0. Its z is already the height above the world origin: on marsyard the
+rover at rest reads z -0.0006 while the map built from its own odometry puts the ground at
++0.002 under a base_footprint at 0, so base_footprint sits on the ground and nothing is added.
+--spawn-z exists for spawns elsewhere.
 """
 
 import argparse
@@ -253,7 +256,7 @@ def main(argv=None):
     p.add_argument('--map-topic', default='/terrain/local')
     p.add_argument('--features-topic', default='/terrain/local_features')
     p.add_argument('--base-frame', default='base_footprint')
-    p.add_argument('--spawn-z', type=float, default=0.02)
+    p.add_argument('--spawn-z', type=float, default=0.0)
     p.add_argument('--min-cells', type=int, default=3)
     a = p.parse_args(sys.argv[1:] if argv is None else argv)
 
