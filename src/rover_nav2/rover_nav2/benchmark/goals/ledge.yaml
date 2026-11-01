@@ -1,0 +1,8 @@
+# Goals on ledge.sdf: a ramp from x 1 to 3 m lifts the left track onto a 10 cm ledge that runs
+# to x 19 m. Driving along +x holds the step across the track.
+world: ledge.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 240
+goals:
+  - {id: on_ledge_6m, x: 6.0, y: 0.0, yaw: 0.0}
+  - {id: on_ledge_12m, x: 12.0, y: 0.0, yaw: 0.0}

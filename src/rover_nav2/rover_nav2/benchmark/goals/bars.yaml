@@ -1,0 +1,8 @@
+# Goals on bars.sdf: an 8 cm bar under the right track at x 1.6 m, a 12 cm bar under the left
+# track at x 2.6 m.
+world: bars.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 180
+goals:
+  - {id: past_bars_4m, x: 4.0, y: 0.0, yaw: 0.0}
+  - {id: past_bars_6m, x: 6.0, y: 0.0, yaw: 0.0}

@@ -1,0 +1,9 @@
+# Goals on marsyard.sdf: rocks 0.10 to 0.45 m wide on an annulus from 3.5 m out (rover_gazebo
+# tools/make_marsyard.py). Goals in the map frame, which starts at the spawn pose.
+world: marsyard.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 240          # sim seconds per goal
+goals:
+  - {id: ahead_8m, x: 8.0, y: 0.0, yaw: 0.0}
+  - {id: left_diag, x: 6.0, y: 5.0, yaw: 0.7}
+  - {id: behind_left, x: -5.0, y: 4.0, yaw: 2.5}
