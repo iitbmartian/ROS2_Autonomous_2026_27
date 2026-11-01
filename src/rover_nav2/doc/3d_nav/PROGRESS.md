@@ -4,9 +4,10 @@
 
 | | |
 |---|---|
-| Current phase | Phase 0, foundation |
-| Done | `rover_traversability`, `rover_terrain_mapping`, 3D Nav2 overlay and launch files. Gate item 2 (layer loads and goes current in sim) proven. Gate item 3 evidence recorded, needs Ram's eyes in RViz. |
-| In progress | Benchmark runner, then the 2D baseline runs |
+| Current phase | Phase 0 closing (2D baseline running), Phase 1 code in parallel |
+| Done | Phase 0: packages, layer loads and goes current in sim, FastDEM map recorded, benchmark runner. Phase 1: L2-like lidar option, four terrain worlds, ground-truth heightmap export, goal sets for all worlds. |
+| In progress | 2D baseline, 35 runs, `~/.ros/rover_benchmark/2026-11-01_baseline_2d/` |
+| Waiting on Ram | (1) NVIDIA module for the running kernel, see next row. Phase 1's gate item "real-time factor of at least 0.7" cannot pass on CPU rendering. (2) License of the prototype's Gale Crater mesh before it can be copied into the team repo (see Phase 1 notes). |
 | Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
@@ -34,6 +35,8 @@
 
 | Branch | Package | Change | State |
 |---|---|---|---|
+| `ram/rover_gazebo-l2-lidar` | `rover_gazebo` (Pradyun) | `rover_sensors.xacro`: optional L2-like lidar (`lidar_model:=l2`, 360 x 96 deg, -6 to 90 deg vertical, 10 Hz, 48 x 360 samples, 2 cm noise), with `lidar_inverted` and `lidar_tilt`. Arguments default from `ROVER_LIDAR_MODEL`, `ROVER_LIDAR_INVERTED`, `ROVER_LIDAR_TILT`, so no launch file changes. Unset, the generated URDF is byte-identical to `main` (checked with xacro, paths normalised). | Committed locally (b82ed2e), merged into `ram/3d_nav`, not pushed. |
+| `ram/rover_gazebo-terrain-worlds` | `rover_gazebo` (Pradyun) | `tools/make_terrain_worlds.py` and its output: `slopes`, `crater_field`, `rock_field`, `urc_mix` worlds, heightmap models `TerrainSlopes`, `TerrainCraterField`, `TerrainUrcMix`, `TerrainFlatNormal`. Existing worlds untouched. | Committed locally (2e8cf65), merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_bringup-nav-params-arg` | `rover_bringup` (unassigned owner) | `pipeline.launch.py` gains a `nav_params_file` argument. Its default is the same `nav2_params_sim.yaml` that `navigation.launch.py` picks with `sim:=true`, so the 2D pipeline behaves exactly as before. | Committed locally (d46e027), merged into `ram/3d_nav` (3269f82), not pushed. |
 
 ## Notes on history
@@ -77,6 +80,20 @@ One line each: the choice and the reason.
   definitions after `find_package(rover_traversability)`, since they broke FastDEM's build.
 - 2026-10-14: `rover_bringup/package.xml` does not yet list `rover_terrain_mapping` as a
   dependency. Adding it would edit an existing file in `rover_bringup`, so it is left for review.
+- 2026-11-01: The baseline uses a snapshot of `nav2_params_sim.yaml` as it was on disk at start,
+  Ram's uncommitted retune included (`nav2_params_sim.yaml.snapshot` and the diff are in the
+  results directory), so live edits during the run cannot change it. Rows carry the params hash
+  and `+dirty`.
+- 2026-11-01: Benchmark success is judged by ground truth within 0.5 m of the goal, plus Nav2
+  SUCCEEDED. Nav2's goal checker uses 0.15 m in its own (drifting) map frame, so 0.5 m leaves
+  room for localisation error while still catching false successes.
+- 2026-11-01: Benchmark runs a fresh stack per run with its own RTAB-Map database under the
+  results directory, never the default `~/.ros/rover_slam.db` that Ram's own runs use.
+- 2026-11-01: Terrain worlds use 16-bit heightmaps at 5 cm for smooth terrain, not stacked boxes,
+  so ramps and craters have no step edges. A ground plane sits 0.5 m below the lowest terrain
+  point, never propping up a crater floor.
+- 2026-11-01: L2 lidar is a 48 x 360 grid (2 deg rows, about 5 cm apart on the ground 1.5 m out)
+  instead of the real non-repeating pattern, which Gazebo's gpu_lidar cannot produce.
 - 2026-11-01: FastDEM `min_valid_neighbors` 8 of about 13 disc cells (was 4). With the sparse
   16-ring lidar a 4-cell disc is often one ring arc, and the plane fit returned slope 90 degrees.
   A coverage rule, not a cost threshold.
@@ -180,3 +197,39 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   not dilate the unknown cost**, only lethal and graded terrain cost.
 - Launch shutdown can leave `gz sim` running as an orphan. The benchmark runner kills the whole
   process group and checks no Gazebo process is left before the next run.
+
+#### Benchmark runner
+
+- `ros2 run rover_nav2 benchmark` (`rover_nav2/benchmark/`): fresh stack per run in ROS domain 42
+  and Gazebo partition `rover_benchmark`, scores from ground-truth `/odom`, writes `runs.csv`
+  after each run and `summary.md`, resumes an interrupted run, stops stray processes by an
+  environment marker. Metric tests: 11, hand-computed (tip limits 16.11 and 29.87 deg).
+- First smoke-test crash: my `CpuSampler` shadowed `threading.Thread._stop`, so cleanup raised
+  before the stack was stopped and left 29 processes running. Found them by the marker, stopped
+  them, fixed the name. This is why stray-process cleanup runs in a `finally` block.
+- **Smoke test finding, 2D stack on `bars`, goal (4, 0):** Nav2 reported SUCCEEDED after 28 s,
+  but ground truth shows the rover stopped at x 0.92 m with its front wheels against the 8 cm bar
+  and stayed there, wheels spinning, while wheel odometry (and RTAB-Map on it) believed it drove
+  4 m. Path 2.16 m, final error 3.06 m. Scored as a failure. Wheel slip fools the 2D stack's
+  localisation. Results: `~/.ros/rover_3d_nav/evidence/phase0/bench_smoke/`.
+- `collision_monitor` segfaults (exit -11) during launch shutdown after a TF extrapolation error.
+  Teardown only, not ours.
+
+### Phase 1 work (started while the Phase 0 baseline runs)
+
+- **L2-like lidar** on `ram/rover_gazebo-l2-lidar` (see branches). Not yet run in sim, waiting for
+  the baseline to finish so CPU numbers stay clean.
+- **Worlds** on `ram/rover_gazebo-terrain-worlds`. All four pass `gz sdf -k`. Ramp angles measured
+  from the generated pixels: 15.0, 25.0, 35.0 deg, plateaus 0.800 m. First sidehill draft had a
+  71 deg cliff on its high side and 2 m end tapers. Fixed: the high side holds a plateau and the
+  tapers are sized to stay under 15 deg (measured 20.0 deg cross slope, 15.0 deg along).
+  Not yet loaded in Gazebo.
+- **Gale Crater patch:** the prototype's `mars_gale_crater_patch1` is an 18 MB STL, 570 x 420 m,
+  93 m relief, triangles about 1 m apart, authored by Jasmeet Singh with no license file. Not
+  copied: the license must be confirmed first, and at 1 m triangles it carries no rock-scale
+  detail, so it suits Phase 6 long routes only. Ground-truth export skips meshes for now.
+- **Ground-truth heightmaps:** `ros2 run rover_nav2 ground_truth_heightmap <world> --out x.npz
+  --png`, analytic ray casts against the world SDF. 9 hand-computed tests (shapes, nested poses,
+  the real `ledge.sdf` ramp). Exported for all 7 worlds to `~/.ros/rover_3d_nav/ground_truth/`.
+- **Goal sets** for all 7 worlds, goal heights checked against ground truth.
+
