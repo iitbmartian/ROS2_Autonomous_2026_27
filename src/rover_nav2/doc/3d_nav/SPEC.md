@@ -70,7 +70,21 @@ In simulation everything runs on one machine, with `depth_range_cut` standing in
 Every elevation map carries `elevation`, `variance`, `observations`, `last_seen`.
 Every feature map adds `slope`, `roughness`, `step`, `normal_x`, `normal_y`, `normal_z`,
 `curvature`, `negative_obstacle`, `safe_yaw_mask`, `best_yaw`, `best_utilisation`.
-Names are constants in one header, used by all nodes and plugins.
+Names are constants in one header (`rover_traversability/layer_names.hpp`), used by all nodes
+and plugins. Feature maps may carry extra layers (currently `slope_std`).
+
+Units and definitions (`terrain_features_node`, `rover_terrain_mapping/features.hpp`):
+
+| Layer | Definition |
+|---|---|
+| `elevation`, `variance` | FastDEM Kalman estimate, m and m^2, gravity-aligned |
+| `observations` | points fused into the cell (FastDEM `n_points`) |
+| `last_seen` | age in seconds of the newest point in the cell, relative to the map stamp (an age keeps millisecond precision in float, an absolute stamp would not) |
+| `slope`, `normal_*`, `slope_std` | variance-weighted least-squares plane over a disc of radius `wheelbase / 2` (chassis scale). The disc must be at least 30 percent observed and its cells spread in both directions, so a single scan line yields NaN instead of an arbitrary tilt. `slope_std` propagates the fit covariance. |
+| `roughness` | RMS residual to that plane, m |
+| `step` | max minus min elevation over a disc of radius `wheel_radius`, m, no trimming |
+| `curvature` | smallest over total eigenvalue of the plane window's 3D covariance |
+| `negative_obstacle` | 1 where occlusion reasoning finds a hole: along a ray from the sensor, an unknown run that flat ground at the last observed height would have exposed (within the sensor's range and above its lowest beam, and clear of the terrain horizon), longer than both 0.3 m and twice the sensor's row spacing at that distance. Shadows behind higher terrain and the blind zone under the sensor stay plain unknown. |
 
 ## Cost model
 
@@ -82,20 +96,29 @@ Soft cost comes from the worst utilisation, so no hand-tuned feature weights exi
 
 For a pose (x, y, yaw):
 
-1. Place the four wheel contact points from `wheelbase` and `track`. Read their heights. Use the
+1. Place the four wheel contact points from `wheelbase` and `track`. Read their heights
+   (bilinear: the nearest cell alone understates a 10 degree tilt by about 0.8 degree). Use the
    risk-adjusted height `z + kappa * sigma` where it makes the check stricter (CVaR-style tail
-   handling of map uncertainty).
+   handling of map uncertainty). In practice: plane slopes are taken at the worst corner of
+   their `kappa * sigma` box, the articulation difference and the steps are widened by `kappa`
+   times their standard deviation, belly heights raised by `kappa * sigma`.
 2. Fit the support plane. Get roll and pitch in the body frame.
 3. **Stability margin**: the minimum, over the edges of the wheel-contact support polygon, of the
-   tip-over angle of the CG about that edge.
+   tip-over angle of the CG about that edge. Exact in 3D, with the wheels body-fixed on the
+   support plane: per edge, the angle between the edge-to-CG vector and the vertical, both
+   projected on the plane perpendicular to the edge.
    `u_tip = (margin_flat - margin) / (margin_flat - stability_margin_min)`, where `margin_flat` is
    the margin on level ground. This is 0 on flat ground and 1 at the minimum allowed margin.
 4. **Belly clearance**: highest terrain point inside the chassis polygon (wheel patches excluded),
-   measured from the support plane. `u_clear = height / ground_clearance`.
+   measured from the support plane. `u_clear = height / ground_clearance`. The belly is taken as
+   the circumscribed disc of the rectangle `(wheelbase - 2 wheel_radius) x (track -
+   wheel_width)`: larger than the true belly, so strict, and independent of yaw, which keeps the
+   per-heading evaluation affordable.
 5. **Articulation**: left and right rocker angles from the front and rear contact heights per side.
    `u_art = |rocker_left - rocker_right| / 2 / rocker_max`.
 6. **Wheel step**: step layer at each contact. `u_step = max_i(step_i) / step_max`.
-7. **Roughness**: `u_rough = roughness / roughness_max` under the footprint.
+7. **Roughness**: `u_rough = roughness / roughness_max`, the largest roughness in the
+   circumscribed disc of the wheel rectangle.
 8. `u = max(u_tip, u_clear, u_art, u_step, u_rough)`. Lethal if `u > 1` or any contact cell is a
    negative obstacle.
 
@@ -154,6 +177,8 @@ the current Ackermann configuration.
 | `rocker_max` | 0.35 rad | PLACEHOLDER |
 | `step_max` | 0.10 m | PLACEHOLDER (sim climbs 10 to 12 cm bars) |
 | `stability_margin_min` | 0.17 rad | PLACEHOLDER |
+| `roughness_max` | 0.05 m | PLACEHOLDER (prototype layer's limit). Added: the cost model needs it and the table lacked it. |
+| `wheel_width` | 0.14 m | `rover_kinematics.yaml`. Added: belly disc. |
 
 ## Benchmark
 
@@ -165,3 +190,9 @@ ground-truth heightmap export.
 Per run: time to goal, success, recovery count, unsafe entries (ground-truth roll, pitch, or
 footprint over terrain beyond the limits), path length, planner time, CPU load. Every
 configuration runs each goal at least 5 times. The baseline is the current 2D stack.
+
+Definitions used by `rover_nav2/benchmark/`: success needs Nav2 SUCCEEDED and the ground-truth
+position within 0.5 m of the goal (Nav2 checks 0.15 m in its own drifting map frame). Roll and
+pitch limits are the flat tip-over angles minus `stability_margin_min` (16.1 and 29.9 degrees
+with the placeholder values). An unsafe entry is a violation lasting at least 0.2 s, roll and
+pitch together counting once. Planner time is one `ComputePathToPose` call per run.

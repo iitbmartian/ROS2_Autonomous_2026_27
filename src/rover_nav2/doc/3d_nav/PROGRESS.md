@@ -80,6 +80,15 @@ One line each: the choice and the reason.
   definitions after `find_package(rover_traversability)`, since they broke FastDEM's build.
 - 2026-10-14: `rover_bringup/package.xml` does not yet list `rover_terrain_mapping` as a
   dependency. Adding it would edit an existing file in `rover_bringup`, so it is left for review.
+- 2026-11-01: SPEC.md updated (minor, logged here): feature definitions and units, `last_seen`
+  as an age, the extra `slope_std` layer, the risk adjustment in practice, the exact 3D margin
+  with body-fixed wheels, the belly disc approximation, the roughness disc, `roughness_max` and
+  `wheel_width` in the physical table, the benchmark's definitions.
+- 2026-11-01: `last_seen` is published as an age (s since the cell's newest point, at the map
+  stamp), because float32 cannot hold an absolute stamp to better than about 100 s.
+- 2026-11-01: Belly clearance uses the circumscribed disc of the belly rectangle: strict, and
+  yaw independent so the per-heading evaluation stays affordable.
+- 2026-11-01: The ground-truth z of Gazebo's `/odom` is absolute (terrain_eval `--spawn-z` 0).
 - 2026-11-01: The baseline uses a snapshot of `nav2_params_sim.yaml` as it was on disk at start,
   Ram's uncommitted retune included (`nav2_params_sim.yaml.snapshot` and the diff are in the
   results directory), so live edits during the run cannot change it. Rows carry the params hash
@@ -232,4 +241,50 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   --png`, analytic ray casts against the world SDF. 9 hand-computed tests (shapes, nested poses,
   the real `ledge.sdf` ramp). Exported for all 7 worlds to `~/.ros/rover_3d_nav/ground_truth/`.
 - **Goal sets** for all 7 worlds, goal heights checked against ground truth.
+
+### Phase 2 work (started while the Phase 0 baseline runs)
+
+- **Feature math** (`rover_terrain_mapping/features.hpp`), 17 hand-computed tests. A real bug
+  found by them: `0.15 / 0.05` is 2.9999999999999996 in floating point and the disc builder
+  floored it, shrinking every window by one cell ring. Fixed with an epsilon.
+- **terrain_features_node** reads and writes `grid_map_msgs` itself (circular buffer included,
+  3 tests), because grid_map_core's Eigen plugin definitions break FastDEM's build in the same
+  package. Same issue later hit `traversability_core` once it used Eigen: it now builds in its
+  own CMake directory added before grid_map_core is found.
+- **Replay of the Phase 0 marsyard bag, same map, bridge vs native features**
+  (`tools/features_from_bag.sh`, `evidence/phase0/features_native_after_reach_fix.txt`):
+  slope median 0.082 -> 0.017 rad, cells over the 0.45 rad limit 536 -> 0. Step p99 0.064 ->
+  0.080 m, cells over 0.15 m 43 -> 79 (stricter by design). Negative-obstacle cells on hole-free
+  ground: 3723 before the sensor-reach fix, 22 after.
+- **Two harness mistakes, both mine, both caught:** (1) killing `ros2 run` leaves its child node
+  running, so four stale `terrain_features_node` processes kept publishing old results into the
+  comparison. The replay script now runs the binary directly with a trap. (2) An eval command
+  backgrounded its own `source` step. Neither touched committed results.
+- **Negative-obstacle limit, recorded honestly:** the 16-ring roof lidar cannot see the ground
+  closer than 0.75 / tan(15 deg) = 2.8 m, so a hole nearer than that is invisible to it, and at
+  3 m a gap must exceed 0.84 m along the ray to be told apart from row spacing. An inverted L2
+  sees a 0.6 m hole at 2 m (tests `RoofLidarMissesANearHole`, `InvertedDomeSeesANearHole`).
+- **terrain_mapping_node**: named inputs with their own sensor model and range limits, body-box
+  self filter from `rover_physical.yaml`, gravity from TF or IMU (planar EKF on the real rover),
+  `last_seen`, optional global map in `map` on `/terrain/global`. `depth_range_cut_node` added.
+  Tests: contract layers 7, gravity alignment 2, range cut 2.
+- **terrain_eval** (`ros2 run rover_nav2 terrain_eval`): elevation RMSE against ground truth in
+  the world frame through ground-truth pose, and crater flag-before-reach timing. First number,
+  Phase 0 bag (16-ring lidar, FastDEM local map, marsyard): **RMSE 1.7 cm within 6 m**, bias
+  +0.8 cm, 69 maps. My first run showed 3.2 cm with a +2.8 cm bias: I had added the 0.02 m
+  spawn height to Gazebo's ground-truth z, which is already absolute. Found by checking that the
+  map's own ground sits at +0.002 m under base_footprint.
+- Not yet run in sim: the new mapping node, depth input, features node live, crater check.
+
+### Phase 3 work (started while the Phase 0 baseline runs)
+
+- **Pose evaluation** (`traversability_core`, `core/pose_evaluation.hpp`), 13 hand-computed
+  tests (flat, 10 deg sidehill, facing up the same slope, 20 deg uphill, one wheel on a block,
+  rock under the belly, step over the limit, hole under a wheel, unknown contact, roughness,
+  uncertainty, CG offset). The tests caught two real errors before any use: contacts read from
+  the nearest cell understated a 10 degree tilt by 0.8 degree (now bilinear), and the first
+  margin code placed wheels horizontally instead of body-fixed on the plane, overstating the
+  margin on slopes. Both lenient, both fixed. My own first hand constant (0.451384 for the flat
+  margin) was also wrong. The right value, 0.451126 rad, agrees with the benchmark's 16.11 deg
+  roll limit.
 
