@@ -109,10 +109,35 @@ float max4(const Eigen::MatrixXf & m, const Bilinear & b, float fallback)
 
 }  // namespace
 
+EvalCache makeEvalCache(const TerrainGrid & g, const PhysicalParams & p, const EvalParams & e)
+{
+  EvalCache c;
+  c.flat_margin = flatStabilityMargin(p);
+  c.belly_radius = e.belly_radius >= 0.0 ? e.belly_radius :
+    std::hypot(p.wheelbase / 2.0 - p.wheel_radius, p.track / 2.0 - p.wheel_width / 2.0);
+  const int br = static_cast<int>(std::ceil(c.belly_radius / g.resolution));
+  for (int di = -br; di <= br; ++di) {
+    for (int dj = -br; dj <= br; ++dj) {
+      // Rows run along -x and columns along -y.
+      const double dx = -di * g.resolution, dy = -dj * g.resolution;
+      if (dx * dx + dy * dy <= c.belly_radius * c.belly_radius) {c.belly.push_back({di, dj, dx, dy});}
+    }
+  }
+  if (g.variance.size() != 0) {
+    c.sigma = g.variance.array().max(0.0f).sqrt().matrix();
+  }
+  return c;
+}
+
 PoseResult evaluatePose(
   const TerrainGrid & g, double x, double y, double yaw, const PhysicalParams & p,
-  const EvalParams & e)
+  const EvalParams & e, const EvalCache * cache)
 {
+  EvalCache local;
+  if (cache == nullptr) {
+    local = makeEvalCache(g, p, e);
+    cache = &local;
+  }
   PoseResult r;
   const double hx = p.wheelbase / 2.0, hy = p.track / 2.0;
   const double cyaw = std::cos(yaw), syaw = std::sin(yaw);
@@ -166,7 +191,7 @@ PoseResult evaluatePose(
           a + da * k * sa, b + db * k * sb, hx, hy, p.cg_offset_x, p.cg_offset_y, p.cg_height));
     }
   }
-  const double m_flat = flatStabilityMargin(p);
+  const double m_flat = cache->flat_margin;
   r.u_tip = std::max(0.0, (m_flat - r.margin) / (m_flat - p.stability_margin_min));
 
   // Articulation: rocker angles from front and rear contact heights per side.
@@ -182,25 +207,26 @@ PoseResult evaluatePose(
   r.u_step = step_max / p.step_max;
 
   // Belly clearance: highest terrain (plus kappa sigma) above the support plane in the belly
-  // disc. Unknown cells there are left to the unknown-space rules.
-  const double belly_r = e.belly_radius >= 0.0 ? e.belly_radius :
-    std::hypot(hx - p.wheel_radius, hy - p.wheel_width / 2.0);
-  const int br = static_cast<int>(std::ceil(belly_r / g.resolution));
+  // disc around the centre cell. Unknown cells there are left to the unknown-space rules.
   int ci, cj;
   g.cell(x, y, ci, cj);
+  // The centre cell sits up to half a cell from (x, y). Plane offsets are taken from (x, y).
+  const double ox = g.x(ci) - x, oy = g.y(cj) - y;
+  const bool with_sigma = cache->sigma.size() != 0 && k != 0.0;
   double h_max = 0.0;
-  for (int di = -br; di <= br; ++di) {
-    for (int dj = -br; dj <= br; ++dj) {
-      const int ii = ci + di, jj = cj + dj;
-      if (ii < 0 || jj < 0 || ii >= g.rows() || jj >= g.cols()) {continue;}
-      const double wx = g.x(ii) - x, wy = g.y(jj) - y;
-      if (wx * wx + wy * wy > belly_r * belly_r) {continue;}
-      const float zv = g.elevation(ii, jj);
-      if (!std::isfinite(zv)) {continue;}
-      const double bx = cyaw * wx + syaw * wy, by = -syaw * wx + cyaw * wy;
-      const double h = zv + k * std::sqrt(at(g.variance, ii, jj, 0.0f)) - (a * bx + b * by + c);
-      h_max = std::max(h_max, h);
+  for (const auto & o : cache->belly) {
+    const int ii = ci + o.di, jj = cj + o.dj;
+    if (ii < 0 || jj < 0 || ii >= g.rows() || jj >= g.cols()) {continue;}
+    const float zv = g.elevation(ii, jj);
+    if (!std::isfinite(zv)) {continue;}
+    const double wx = o.dx + ox, wy = o.dy + oy;
+    const double bx = cyaw * wx + syaw * wy, by = -syaw * wx + cyaw * wy;
+    double h = zv - (a * bx + b * by + c);
+    if (with_sigma) {
+      const float s = cache->sigma(ii, jj);
+      if (std::isfinite(s)) {h += k * s;}
     }
+    h_max = std::max(h_max, h);
   }
   r.clearance_height = h_max;
   r.u_clear = h_max / p.ground_clearance;

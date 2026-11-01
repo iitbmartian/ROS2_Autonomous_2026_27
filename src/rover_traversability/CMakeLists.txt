@@ -28,10 +28,11 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 set(layer_dependencies
   rclcpp pluginlib nav2_costmap_2d nav2_util grid_map_core grid_map_ros grid_map_msgs
-  tf2 tf2_ros tf2_geometry_msgs geometry_msgs)
+  tf2 tf2_ros tf2_geometry_msgs geometry_msgs nav_msgs)
 
 add_library(rover_traversability_layer SHARED src/traversability_layer.cpp)
 target_include_directories(rover_traversability_layer PUBLIC
@@ -60,6 +61,11 @@ if(BUILD_TESTING)
     TIMEOUT 120 SKIP_LINKING_MAIN_LIBRARIES)
   target_link_libraries(test_traversability_layer rover_traversability_layer)
   ament_target_dependencies(test_traversability_layer ${layer_dependencies})
+
+  ament_add_gtest(test_traversability_layer_v2 test/test_traversability_layer_v2.cpp
+    TIMEOUT 120 SKIP_LINKING_MAIN_LIBRARIES)
+  target_link_libraries(test_traversability_layer_v2 rover_traversability_layer)
+  ament_target_dependencies(test_traversability_layer_v2 ${layer_dependencies})
 
   ament_add_pytest_test(test_physical_params_py test/test_physical_params.py)
 endif()

@@ -23,6 +23,8 @@
 #ifndef ROVER_TRAVERSABILITY__CORE__POSE_EVALUATION_HPP_
 #define ROVER_TRAVERSABILITY__CORE__POSE_EVALUATION_HPP_
 
+#include <vector>
+
 #include <Eigen/Core>
 
 #include "rover_traversability/core/physical_params.hpp"
@@ -80,9 +82,22 @@ struct PoseResult
 // Stability margin on flat ground: the smallest tip-over angle about the support polygon edges.
 double flatStabilityMargin(const PhysicalParams & p);
 
+// Per-map values that do not change from pose to pose. Build once with makeEvalCache when
+// evaluating many poses on one grid. The grid must outlive the cache.
+struct EvalCache
+{
+  double flat_margin{0.0};
+  double belly_radius{0.0};
+  struct Offset {int di, dj; double dx, dy;};
+  std::vector<Offset> belly;        // cells of the belly disc, offsets in metres
+  Eigen::MatrixXf sigma;            // sqrt(variance), empty without variance
+};
+
+EvalCache makeEvalCache(const TerrainGrid & g, const PhysicalParams & p, const EvalParams & e);
+
 PoseResult evaluatePose(
   const TerrainGrid & g, double x, double y, double yaw, const PhysicalParams & p,
-  const EvalParams & e = EvalParams());
+  const EvalParams & e = EvalParams(), const EvalCache * cache = nullptr);
 
 // Stability margin (rad) of a CG at body offset (cx, cy, h above the support plane) for a
 // rectangular support polygon (half extents hx, hy) on a plane with body-frame slopes

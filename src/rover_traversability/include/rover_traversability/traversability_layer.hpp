@@ -25,6 +25,8 @@
 #include "nav2_costmap_2d/layered_costmap.hpp"
 #include "grid_map_core/GridMap.hpp"
 #include "grid_map_msgs/msg/grid_map.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include <atomic>
 #include "nav2_util/node_thread.hpp"
 #include "rover_traversability/core/disc_dilation.hpp"
 
@@ -61,8 +63,14 @@ public:
 private:
   void gridMapCallback(const grid_map_msgs::msg::GridMap::SharedPtr msg);
 
-  // Blend the three hazard channels into a single 0 to 254 cost.
+  // Blend the three hazard channels into a single 0 to 254 cost (cost_model legacy).
   unsigned char computeCost(float slope_rad, float roughness_m, float step_m) const;
+
+  // Cost from the per-cell heading evaluation (cost_model utilisation, SPEC.md cell cost):
+  // lethal when no heading is safe, max_soft_cost * u^2 otherwise. Unknown cells are lethal
+  // within braking distance of the footprint edge and unknown_cost beyond it.
+  unsigned char utilisationCost(float u, float mask, double dist_to_robot) const;
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
   // Widen lethal and high cost cells by the inscribed radius so that the
   // planner does not clip a hazard with the edge of the footprint. The Nav2
@@ -70,8 +78,11 @@ private:
   // graded costs need their own dilation. The disc dilation lives in
   // traversability_core, see core/disc_dilation.hpp.
   core::DiscDilation dilation_;
+  std::vector<unsigned char> lethal_buf_;      // utilisation mode: lethal cells only, dilated
 
   rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr map_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  std::atomic<double> speed_{0.0};
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
   std::unique_ptr<nav2_util::NodeThread> executor_thread_;
@@ -86,6 +97,10 @@ private:
   bool has_last_bounds_{false};
 
   // Parameters
+  std::string cost_model_{"legacy"};           // legacy (prototype blend) or utilisation
+  std::string utilisation_layer_, mask_layer_, odom_topic_;
+  double braking_decel_{0.5};                  // m/s^2
+  double braking_margin_{0.25};                // m beyond the stopping distance
   std::string map_topic_;
   std::string slope_layer_, roughness_layer_, step_layer_;
   bool use_precomputed_traversability_{false};

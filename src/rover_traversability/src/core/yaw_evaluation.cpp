@@ -52,6 +52,7 @@ YawLayers evaluateYaws(
   const bool symmetric = p.cg_offset_x == 0.0 && y.yaw_bins % 2 == 0;
   const int evals = symmetric ? y.yaw_bins / 2 : y.yaw_bins;
 
+  const EvalCache cache = makeEvalCache(g, p, e);
   auto work = [&](int r0, int r1) {
       for (int i = r0; i < r1; ++i) {
         for (int j = 0; j < cols; ++j) {
@@ -63,7 +64,7 @@ YawLayers evaluateYaws(
           bool any_known = false;
           for (int k = 0; k < evals; ++k) {
             const double yaw = 2.0 * M_PI * k / y.yaw_bins;
-            const PoseResult r = evaluatePose(g, x, yy, yaw, p, e);
+            const PoseResult r = evaluatePose(g, x, yy, yaw, p, e, &cache);
             if (r.status == PoseStatus::kUnknown) {continue;}
             any_known = true;
             if (r.status == PoseStatus::kOk) {

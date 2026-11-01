@@ -46,6 +46,12 @@ void TraversabilityLayer::onInitialize()
   declareParameter("lethal_dilation_radius", rclcpp::ParameterValue(0.0));
   declareParameter("map_timeout", rclcpp::ParameterValue(1.0));
   declareParameter("combination_method", rclcpp::ParameterValue(1));
+  declareParameter("cost_model", rclcpp::ParameterValue(std::string("legacy")));
+  declareParameter("utilisation_layer", rclcpp::ParameterValue(std::string(layers::kBestUtilisation)));
+  declareParameter("mask_layer", rclcpp::ParameterValue(std::string(layers::kSafeYawMask)));
+  declareParameter("odom_topic", rclcpp::ParameterValue(std::string("/odom")));
+  declareParameter("braking_decel", rclcpp::ParameterValue(0.5));
+  declareParameter("braking_margin", rclcpp::ParameterValue(0.25));
 
   int unknown_cost_i = 200, max_soft_cost_i = 252;
   node->get_parameter(name_ + ".enabled", enabled_);
@@ -66,6 +72,15 @@ void TraversabilityLayer::onInitialize()
   node->get_parameter(name_ + ".lethal_dilation_radius", lethal_dilation_radius_);
   node->get_parameter(name_ + ".map_timeout", map_timeout_);
   node->get_parameter(name_ + ".combination_method", combination_method_);
+  node->get_parameter(name_ + ".cost_model", cost_model_);
+  node->get_parameter(name_ + ".utilisation_layer", utilisation_layer_);
+  node->get_parameter(name_ + ".mask_layer", mask_layer_);
+  node->get_parameter(name_ + ".odom_topic", odom_topic_);
+  node->get_parameter(name_ + ".braking_decel", braking_decel_);
+  node->get_parameter(name_ + ".braking_margin", braking_margin_);
+  if (cost_model_ != "legacy" && cost_model_ != "utilisation") {
+    throw std::runtime_error("TraversabilityLayer: cost_model must be legacy or utilisation");
+  }
   unknown_cost_ = static_cast<unsigned char>(std::clamp(unknown_cost_i, 0, 252));
   max_soft_cost_ = static_cast<unsigned char>(std::clamp(max_soft_cost_i, 1, 252));
 
@@ -91,6 +106,12 @@ void TraversabilityLayer::onInitialize()
     std::bind(&TraversabilityLayer::gridMapCallback, this, std::placeholders::_1),
     sub_options);
 
+  if (cost_model_ == "utilisation") {
+    odom_sub_ = node->create_subscription<nav_msgs::msg::Odometry>(
+      odom_topic_, rclcpp::SensorDataQoS().keep_last(1),
+      std::bind(&TraversabilityLayer::odomCallback, this, std::placeholders::_1), sub_options);
+  }
+
   executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   executor_->add_callback_group(callback_group_, node->get_node_base_interface());
   executor_thread_ = std::make_unique<nav2_util::NodeThread>(executor_);
@@ -99,8 +120,8 @@ void TraversabilityLayer::onInitialize()
   current_ = false;
 
   RCLCPP_INFO(
-    logger_, "TraversabilityLayer '%s' subscribed to %s, inscribed dilation %.2f m",
-    name_.c_str(), map_topic_.c_str(), lethal_dilation_radius_);
+    logger_, "TraversabilityLayer '%s' (%s) subscribed to %s, inscribed dilation %.2f m",
+    name_.c_str(), cost_model_.c_str(), map_topic_.c_str(), lethal_dilation_radius_);
 }
 
 void TraversabilityLayer::matchSize()
@@ -147,9 +168,9 @@ void TraversabilityLayer::gridMapCallback(const grid_map_msgs::msg::GridMap::Sha
   }
 
   const std::vector<std::string> required =
-    use_precomputed_traversability_
-    ? std::vector<std::string>{traversability_layer_}
-  : std::vector<std::string>{slope_layer_, roughness_layer_, step_layer_};
+    cost_model_ == "utilisation" ? std::vector<std::string>{utilisation_layer_, mask_layer_} :
+    use_precomputed_traversability_ ? std::vector<std::string>{traversability_layer_} :
+    std::vector<std::string>{slope_layer_, roughness_layer_, step_layer_};
 
   for (const auto & layer : required) {
     if (!map->exists(layer)) {
@@ -190,6 +211,30 @@ unsigned char TraversabilityLayer::computeCost(
   const double cost = std::clamp(blended / norm, 0.0, 1.0);
 
   return static_cast<unsigned char>(cost * static_cast<double>(max_soft_cost_));
+}
+
+void TraversabilityLayer::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+  const auto & v = msg->twist.twist.linear;
+  speed_.store(std::hypot(v.x, v.y));
+}
+
+unsigned char TraversabilityLayer::utilisationCost(float u, float mask, double dist) const
+{
+  if (!std::isfinite(u) || !std::isfinite(mask)) {
+    // Stopping distance at the current speed plus a margin, measured from the footprint's
+    // circumscribed circle. Cells inside the footprint are exempt: every sensor has a blind
+    // zone under the rover, and marking it lethal would put the rover inside its own obstacle.
+    const double v = speed_.load();
+    const double brake = v * v / (2.0 * braking_decel_) + braking_margin_;
+    const double outside = dist - layered_costmap_->getCircumscribedRadius();
+    return (outside > 0.0 && outside <= brake) ? LETHAL_OBSTACLE : unknown_cost_;
+  }
+  if (mask == 0.0f || u > 1.0f) {
+    return LETHAL_OBSTACLE;
+  }
+  const double c = static_cast<double>(max_soft_cost_) * static_cast<double>(u) * u;
+  return static_cast<unsigned char>(std::clamp(c, 0.0, static_cast<double>(max_soft_cost_)));
 }
 
 void TraversabilityLayer::updateBounds(
@@ -254,11 +299,17 @@ void TraversabilityLayer::updateBounds(
     }
   }
 
+  const bool util = cost_model_ == "utilisation";
   const grid_map::Matrix * slope = nullptr;
   const grid_map::Matrix * rough = nullptr;
   const grid_map::Matrix * step = nullptr;
   const grid_map::Matrix * trav = nullptr;
-  if (use_precomputed_traversability_) {
+  const grid_map::Matrix * u_layer = nullptr;
+  const grid_map::Matrix * mask_layer = nullptr;
+  if (util) {
+    u_layer = &(*map)[utilisation_layer_];
+    mask_layer = &(*map)[mask_layer_];
+  } else if (use_precomputed_traversability_) {
     trav = &(*map)[traversability_layer_];
   } else {
     slope = &(*map)[slope_layer_];
@@ -274,8 +325,17 @@ void TraversabilityLayer::updateBounds(
   for (grid_map::GridMapIterator it(*map); !it.isPastEnd(); ++it) {
     const grid_map::Index idx = *it;
 
+    grid_map::Position p;
+    map->getPosition(idx, p);
+    const double wx = cos_t * p.x() - sin_t * p.y() + tx;
+    const double wy = sin_t * p.x() + cos_t * p.y() + ty;
+
     unsigned char cost;
-    if (use_precomputed_traversability_) {
+    if (util) {
+      cost = utilisationCost(
+        (*u_layer)(idx(0), idx(1)), (*mask_layer)(idx(0), idx(1)),
+        std::hypot(wx - robot_x, wy - robot_y));
+    } else if (use_precomputed_traversability_) {
       const float t = (*trav)(idx(0), idx(1));
       if (!std::isfinite(t)) {
         cost = unknown_cost_;
@@ -289,11 +349,6 @@ void TraversabilityLayer::updateBounds(
       cost = computeCost(
         (*slope)(idx(0), idx(1)), (*rough)(idx(0), idx(1)), (*step)(idx(0), idx(1)));
     }
-
-    grid_map::Position p;
-    map->getPosition(idx, p);
-    const double wx = cos_t * p.x() - sin_t * p.y() + tx;
-    const double wy = sin_t * p.x() + cos_t * p.y() + ty;
 
     unsigned int mx, my;
     if (!worldToMap(wx, wy, mx, my)) {
@@ -349,8 +404,23 @@ void TraversabilityLayer::updateCosts(
     return;
   }
 
-  dilation_.apply(
-    costmap_, static_cast<int>(size_x_), static_cast<int>(size_y_), min_i, min_j, max_i, max_j);
+  const int sx = static_cast<int>(size_x_), sy = static_cast<int>(size_y_);
+  if (cost_model_ == "utilisation") {
+    // Only lethal cells grow by the inscribed radius. Graded costs already describe the whole
+    // rover at that cell (pose evaluation), and dilating the unknown cost would flood every
+    // known cell next to an unobserved one.
+    lethal_buf_.assign(costmap_, costmap_ + static_cast<size_t>(sx) * sy);
+    for (auto & v : lethal_buf_) {v = (v == LETHAL_OBSTACLE) ? LETHAL_OBSTACLE : 0;}
+    dilation_.apply(lethal_buf_.data(), sx, sy, min_i, min_j, max_i, max_j);
+    for (int j = std::max(0, min_j); j < std::min(sy, max_j); ++j) {
+      for (int i = std::max(0, min_i); i < std::min(sx, max_i); ++i) {
+        const unsigned int k = getIndex(i, j);
+        if (lethal_buf_[k] == LETHAL_OBSTACLE) {costmap_[k] = LETHAL_OBSTACLE;}
+      }
+    }
+  } else {
+    dilation_.apply(costmap_, sx, sy, min_i, min_j, max_i, max_j);
+  }
 
   if (combination_method_ == 0) {
     updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
