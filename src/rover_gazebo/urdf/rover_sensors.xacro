@@ -9,6 +9,7 @@
 
     imu_link        2 cm box, centre of the chassis cube, on /imu/data at 100 Hz
     lidar3d_link    3D gpu lidar, roof mount, /lidar/points at 5 Hz, 360 deg
+                    (lidar_model:=l2 swaps in an L2-like dome lidar, see below)
     camera_link     RGBD camera, front mount, /camera at 15 Hz, plus the
                     REP-103 optical frame the image data is published in
 
@@ -19,6 +20,26 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:property name="ros_frame" value="1.5708 0 3.14159"/>
+
+  <!-- Lidar selection. Each argument defaults from an environment variable so a launch file
+       (or a benchmark) can pick the lidar without every launch file in between forwarding a
+       new argument. Unset, the model is the 16-ring default, exactly as before.
+
+         lidar_model     default | l2      ROVER_LIDAR_MODEL
+         lidar_tilt      rad, nose down    ROVER_LIDAR_TILT      (l2 only)
+         lidar_inverted  true | false      ROVER_LIDAR_INVERTED  (l2 only)
+
+       l2 approximates a Unitree L2: a dome field of view of 360 deg horizontally and about
+       -6 to 90 deg vertically about the sensor, 10 Hz, 2 cm range noise. Upright, the dome
+       looks at the sky. Mounted inverted it covers -90 to +6 deg and sees the ground all
+       round the rover, which is what terrain mapping needs. lidar_tilt pitches it about the
+       rover's lateral axis after the inversion. -->
+  <xacro:arg name="lidar_model" default="$(optenv ROVER_LIDAR_MODEL default)"/>
+  <xacro:arg name="lidar_tilt" default="$(optenv ROVER_LIDAR_TILT 0.0)"/>
+  <xacro:arg name="lidar_inverted" default="$(optenv ROVER_LIDAR_INVERTED false)"/>
+  <xacro:property name="lidar_model" value="$(arg lidar_model)"/>
+  <xacro:property name="lidar_tilt" value="$(arg lidar_tilt)"/>
+  <xacro:property name="lidar_roll" value="${pi if '$(arg lidar_inverted)'.lower() in ('true', '1') else 0.0}"/>
 
   <link name="imu_link">
     <inertial>
@@ -70,6 +91,7 @@
       <material name="lidar_black"><color rgba="0.05 0.05 0.05 1"/></material>
     </visual>
   </link>
+  <xacro:unless value="${lidar_model == 'l2'}">
   <joint name="lidar3d_joint" type="fixed">
     <origin xyz="0 0.03 0" rpy="${ros_frame}"/>
     <parent link="chassis_link"/>
@@ -105,6 +127,61 @@
       </lidar>
     </sensor>
   </gazebo>
+  </xacro:unless>
+
+  <xacro:if value="${lidar_model == 'l2'}">
+  <!-- The mount frame carries the ROS-convention rotation of the default lidar, so the
+       inversion and tilt below are plain roll and pitch in the rover's axes. -->
+  <link name="lidar3d_mount"/>
+  <joint name="lidar3d_mount_joint" type="fixed">
+    <origin xyz="0 0.03 0" rpy="${ros_frame}"/>
+    <parent link="chassis_link"/>
+    <child link="lidar3d_mount"/>
+  </joint>
+  <joint name="lidar3d_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="${lidar_roll} ${lidar_tilt} 0"/>
+    <parent link="lidar3d_mount"/>
+    <child link="lidar3d_link"/>
+  </joint>
+  <gazebo reference="lidar3d_link">
+    <sensor name="lidar3d" type="gpu_lidar">
+      <always_on>1</always_on>
+      <update_rate>10</update_rate>
+      <topic>/lidar/points</topic>
+      <gz_frame_id>lidar3d_link</gz_frame_id>
+      <visualize>false</visualize>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <!-- 48 rows at 2 deg: about 5 cm between rows on the ground 1.5 m out, the map's
+               resolution. The real L2 scans a non-repeating pattern that fills in over
+               frames. A fixed grid at this density stands in for it. -->
+          <vertical>
+            <samples>48</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.104720</min_angle>
+            <max_angle>1.570796</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </lidar>
+    </sensor>
+  </gazebo>
+  </xacro:if>
 
   <link name="camera_link">
     <inertial>
