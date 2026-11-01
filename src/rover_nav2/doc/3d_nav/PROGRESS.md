@@ -5,8 +5,9 @@
 | | |
 |---|---|
 | Current phase | Phase 0, foundation |
-| Done | `rover_traversability` (core dilation, ported layer, physical parameters). `rover_terrain_mapping` (FastDEM vendored, `terrain_mapping_node`). 3D Nav2 overlay config and launch files. All build in the container and on the host. |
-| Not yet done in Phase 0 | Sim checks (layer goes current, FastDEM map in RViz), benchmark runner, 2D baseline runs |
+| Done | `rover_traversability`, `rover_terrain_mapping`, 3D Nav2 overlay and launch files. Gate item 2 (layer loads and goes current in sim) proven. Gate item 3 evidence recorded, needs Ram's eyes in RViz. |
+| In progress | Benchmark runner, then the 2D baseline runs |
+| Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
 ## Environment
@@ -16,6 +17,11 @@
 - **Container build command** (repo `src/` mounted into a separate workspace so container and host
   builds never mix):
   `docker run --rm --network host --ipc host -u $(id -u):$(id -g) -e HOME=/tmp/h -v <cws>:/cws -v $PWD/src:/cws/src -w /cws <image@digest> bash -c "source /opt/ros/jazzy/setup.bash && colcon build ... && colcon test ... && colcon test-result --verbose"`
+- **Evidence and tools** live outside the repo in `~/.ros/rover_3d_nav/` (`evidence/phase0/`,
+  `tools/`), because the session scratchpad under `/tmp` is wiped on reboot.
+- **Sim isolation:** sim runs use `ROS_DOMAIN_ID=42`, `GZ_PARTITION=rover3d`,
+  `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`tools/simenv.sh`), so they never collide with
+  Ram's own sessions.
 - **Missing from the image:** `grid_map_rviz_plugin` (host RViz only). Nothing has been installed
   into the image.
 - **DDS between host RViz and the container:** the host has `ROS_DOMAIN_ID=0`,
@@ -71,6 +77,11 @@ One line each: the choice and the reason.
   definitions after `find_package(rover_traversability)`, since they broke FastDEM's build.
 - 2026-10-14: `rover_bringup/package.xml` does not yet list `rover_terrain_mapping` as a
   dependency. Adding it would edit an existing file in `rover_bringup`, so it is left for review.
+- 2026-11-01: FastDEM `min_valid_neighbors` 8 of about 13 disc cells (was 4). With the sparse
+  16-ring lidar a 4-cell disc is often one ring arc, and the plane fit returned slope 90 degrees.
+  A coverage rule, not a cost threshold.
+- 2026-11-01: `terrain_3d.rviz` (nav2_sim.rviz plus grid_map displays) and
+  `pipeline_3d.launch.py terrain_rviz:=true`.
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
 
@@ -114,3 +125,58 @@ disc, the prototype's step window) on a 0.05 m map, about 13 cells.
   rover_traversability rover_nav2` builds 9 packages. `rover_nav2` pytest: 3 passed.
   Host build of the 4 changed packages also succeeds.
 - Stopped at this checkpoint on Ram's instruction, before any sim run.
+
+### 2026-10-31 and 2026-11-01, session 2
+
+- Ram lifted the commit ban: commit freely, Ram sole author, no Claude attribution, ask before
+  pushing. AGENT.md updated. Pending Phase 0 files committed.
+- Found the repo checked out on `main` (someone switched branches). All commits were intact on
+  `ram/3d_nav`. Switched back. Untracked leftovers under `third_party/fastdem/lib/nanoPCL/sandbox/`
+  are upstream experiments that the vendored `.gitignore` excludes on purpose, not lost files.
+- `ram/docker-setup` (pushed, not merged) holds the Dockerfile the `rover-dev` image comes from.
+  It rosdeps every `package.xml`, so the dependencies our packages declare are what the image gets.
+
+#### Gate item 2: the ported layer loads and goes current in Nav2 sim, with FastDEM feeding it
+
+Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gui:=false viz:=false`
+(log `~/.ros/rover_3d_nav/evidence/phase0/launch_pipeline_3d_marsyard.log`).
+
+- Plugin loaded: `TraversabilityLayer 'traversability_layer' subscribed to /terrain/local_features`.
+- Nav2 lifecycle: `Managed nodes are active`.
+- Goal to (3, 0) in `map`: **SUCCEEDED, 0 recoveries** (`goal_3m_marsyard.log`). The controller
+  only computes while the local costmap is current, so the layer was current throughout.
+- Fail-safe: after stopping `terrain_mapping_node`, the layer warned `elevation map is 1.01 s
+  old` and kept reporting not current, the controller logged `Costmap timed out waiting for
+  update`, and a new goal **ABORTED** instead of driving blind (`goal_failsafe_marsyard.log`).
+- ERROR lines in the whole run: 2 from `ekf_filter_node` (update rate, not ours), plus the
+  deliberate fail-safe abort. None from the new packages.
+- Surprise: while the node was alive the layer still warned 3 times that the map was 1.00 to
+  1.04 s old, right at `map_timeout` 1.0 s. At a real-time factor around 0.2 the publish chain
+  lags in sim time. Revisit `map_timeout` once the sim runs at full speed.
+
+#### Gate item 3: FastDEM elevation map from `/lidar/points` in RViz
+
+- Bag `~/.ros/rover_3d_nav/evidence/phase0/phase0_terrain_marsyard` (86.5 s: 167 lidar scans,
+  75 `/terrain/local`, 76 `/terrain/local_features`, 60 local costmaps, TF, odom, clock).
+- Rendering of the last maps from the bag: `phase0_terrain_marsyard.png` (elevation, slope, step,
+  costmap at the same stamp), made with `tools/render_terrain_bag.py`.
+- No screenshot tool works on this desktop (Wayland, X grab fails), so the RViz view itself needs
+  Ram: `ros2 bag play ~/.ros/rover_3d_nav/evidence/phase0/phase0_terrain_marsyard` with
+  `rviz2 -d $(ros2 pkg prefix rover_nav2)/share/rover_nav2/rviz/terrain_3d.rviz`, or live with
+  `pipeline_3d.launch.py terrain_rviz:=true` (the bag uses ROS domain 42).
+
+#### What the bridge produces on marsyard (expected limits, recorded honestly)
+
+- Standing still, the 16-ring lidar fills about 4 percent of the 10 x 10 m map, and with the
+  coverage rule no feature cell at all, so the costmap reads unknown (200) everywhere. After the
+  3 m drive: elevation 56 percent, features 49 percent.
+- 536 of 19,780 feature cells (2.7 percent) exceed the prototype's 0.45 rad slope limit, step adds
+  43, roughness none (`tools/lethal_cells.py`, `lethal_cells.txt`). Median slope 0.082 rad, p99
+  0.587. The tail is range noise (2 cm) across a 0.2 m disc. This is the "slope reads high" entry
+  in the bridge table. Thresholds stay untuned, per Ram.
+- The prototype layer dilates every graded cost, including the unknown cost 200, by the inscribed
+  radius (0.5 m). With NaN stripes between lidar rings almost every known cell has an unknown cell
+  within 0.5 m, so the costmap is mostly 200 even where terrain is known. **Phase 3 layer v2 must
+  not dilate the unknown cost**, only lethal and graded terrain cost.
+- Launch shutdown can leave `gz sim` running as an orphan. The benchmark runner kills the whole
+  process group and checks no Gazebo process is left before the next run.
