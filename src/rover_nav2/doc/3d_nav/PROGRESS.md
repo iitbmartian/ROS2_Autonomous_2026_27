@@ -4,11 +4,11 @@
 
 | | |
 |---|---|
-| Current phase | Phase 1 (sim validation). **Phase 0 gate met, evidence below.** |
+| Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| In progress | Phase 1 sim checks: L2 near-field coverage, worlds in Gazebo, baseline rerun |
+| In progress | Phase 2: the first 3D goal on a ramp succeeded on 2026-11-02 (`lane15_top`, slopes.sdf) after the fixes in "Phase 2: live sim findings". Next: the rest of the slopes goals, per-world RMSE (`phase2_all.sh`), the crater check, then the 2D baseline rerun on all 7 worlds. |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
-| Blocker for speed (not for correctness) | The NVIDIA kernel module is missing for the running kernel `7.0.0-38-generic` (installed only for `7.0.0-31`), so Gazebo renders sensors on the CPU and runs at a real-time factor of about 0.15 to 0.25. Fix needs sudo: `sudo apt install linux-modules-nvidia-595-open-7.0.0-38-generic` then reboot, or boot `7.0.0-31`. The baseline takes several times longer until then. |
+| Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
 
 ## Environment
@@ -36,7 +36,8 @@
 | Branch | Package | Change | State |
 |---|---|---|---|
 | `ram/rover_gazebo-l2-lidar` | `rover_gazebo` (Pradyun) | `rover_sensors.xacro`: optional L2-like lidar (`lidar_model:=l2`, 360 x 96 deg, -6 to 90 deg vertical, 10 Hz, 48 x 360 samples, 2 cm noise), with `lidar_inverted` and `lidar_tilt`. Arguments default from `ROVER_LIDAR_MODEL`, `ROVER_LIDAR_INVERTED`, `ROVER_LIDAR_TILT`, so no launch file changes. Unset, the generated URDF is byte-identical to `main` (checked with xacro, paths normalised). | Committed locally (b82ed2e), merged into `ram/3d_nav`, not pushed. |
-| `ram/rover_gazebo-terrain-worlds` | `rover_gazebo` (Pradyun) | `tools/make_terrain_worlds.py` and its output: `slopes`, `crater_field`, `rock_field`, `urc_mix` worlds, heightmap models `TerrainSlopes`, `TerrainCraterField`, `TerrainUrcMix`, `TerrainFlatNormal`. Existing worlds untouched. | Committed locally (2e8cf65), merged into `ram/3d_nav`, not pushed. |
+| `ram/rover_gazebo-terrain-worlds` | `rover_gazebo` (Pradyun) | `tools/make_terrain_worlds.py` and its output: `slopes`, `crater_field`, `rock_field`, `urc_mix` worlds, terrain models `TerrainSlopes`, `TerrainCraterField`, `TerrainUrcMix` as binary STL meshes (0.1 m, or 0.2 m for urc_mix, about 131k triangles each) for both collision and visual. Heightmaps were dropped on 2026-11-01: Gazebo's heightmap physics and rendering disagreed by about 8 cm on slopes (see Phase 2 findings). Existing worlds untouched. | Committed locally (650aaab), merged into `ram/3d_nav`, not pushed. |
+| `ram/rover_gazebo-l2-lidar` (addition) | `rover_gazebo` (Pradyun) | `lidar_xyz` argument and `ROVER_LIDAR_XYZ`, so the L2 can sit on a 0.5 m mast. | Committed locally, merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_gazebo-swerve-mode` | `rover_gazebo` (Pradyun) | `rover_kinematics_node.py`: `swerve` mode, vx, vy and wz together, `v_wheel = (vx, vy) + w x r`, through the existing fold and turn-rate limit. Default stays ackermann. Hand check FL at (0.2, 0.1, 0.3): 57.55 deg, 0.2509 m/s. | Committed locally (2ab6b54), merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_bringup-nav-params-arg` | `rover_bringup` (unassigned owner) | `pipeline.launch.py` gains a `nav_params_file` argument. Its default is the same `nav2_params_sim.yaml` that `navigation.launch.py` picks with `sim:=true`, so the 2D pipeline behaves exactly as before. | Committed locally (d46e027), merged into `ram/3d_nav` (3269f82), not pushed. |
 
@@ -129,6 +130,41 @@ One line each: the choice and the reason.
   A coverage rule, not a cost threshold.
 - 2026-11-01: `terrain_3d.rviz` (nav2_sim.rviz plus grid_map displays) and
   `pipeline_3d.launch.py terrain_rviz:=true`.
+- 2026-11-02: SPEC change, configuration space. Utilisation verdicts already place the whole
+  rover at a cell, so the 3D overlay gives Nav2 a 0.1 m point footprint, drops the layer's lethal
+  dilation (`dilate_terrain_lethal: false`), keeps inflation to one local cell (0.08 m, only so
+  Smac keeps its fast collision check), and gives the collision monitor a centre polygon. The
+  braking band for unknown cells is still measured from the physical footprint
+  (`braking_from_physical_footprint`). Footprint, inflation and dilation together counted the
+  rover's width two or three times and closed slopes.sdf's 2.5 m causeway to the planner.
+  Flagged for Ram, since SPEC.md said "dilated by the inscribed radius".
+- 2026-11-02: SPEC change, `step` is second highest minus second lowest over the wheel disc,
+  after subtracting the chassis plane's gradient. Raw max minus min measured the slope itself
+  (0.16 m on a 15 deg ramp on the 0.2 m global grid) and, untrimmed over about 37 cells, had a
+  noise floor near 4 sigma, 6 to 8 cm at the sim lidar's 1.5 to 2 cm. An abrupt step keeps its
+  height less at most one cell of plane slope (under 12 percent). One stray cell at either end
+  is trimmed. A cliff's hazard band narrows by one cell on each side. Flagged for Ram, since
+  SPEC.md said "no trimming".
+- 2026-11-02: SPEC clarification, the `variance` layer is the Kalman estimate's P, as SPEC.md
+  always said. The node had been publishing FastDEM's own `variance` layer, which is the sample
+  spread of raw returns and never shrinks, so kappa sigma widened every step check by the full
+  2 to 3 cm lidar spread.
+- 2026-11-02: Unknown cells under the footprint take the plane the rover stands on (TF), in the
+  features node only, never in the published elevation. This is how Ram's "exempt the rover
+  itself" reaches the pose checks: without it every pose near the rover reached into the blind
+  zone under the body and came back with no verdict, which the braking rule made lethal.
+- 2026-11-02: FastDEM PATCH 3, `mapping.cell_mean`: each scan feeds the estimator the mean of a
+  cell's returns, with variance / n, instead of the lowest return. The lowest of n returns with
+  2 cm noise sat 1 to 5 cm below flat ground. Default false keeps upstream behaviour.
+- 2026-11-02: Self-filter box reaches 100 m below ground, not 0.05 m. Ground under the body is
+  hidden anyway, and the 0.05 m floor let through only the returns noise pushed below it: a
+  false 5 cm dip all round the rover that tripped the step check.
+- 2026-11-02: Lidar `range_min` 0.3 m, not 1.0 m. The body box does the self filtering, and the
+  1.0 m cut left a uniform unknown ring out to 1.0 m that the braking rule made lethal at start.
+- 2026-11-02: Sim runs pin Fast DDS to shared memory plus loopback UDP
+  (`tools/fastdds_loopback.xml`) and set `GZ_IP=127.0.0.1`. A Wi-Fi change mid-run had cut DDS
+  discovery and left a sim with no topics.
+- 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
 
@@ -296,6 +332,7 @@ Command: `ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf gu
   spawn height to Gazebo's ground-truth z, which is already absolute. Found by checking that the
   map's own ground sits at +0.002 m under base_footprint.
 - Not yet run in sim: the new mapping node, depth input, features node live, crater check.
+  (Superseded, see "Phase 2: live sim findings" below.)
 
 ### Phase 3 work (started while the Phase 0 baseline runs)
 
@@ -442,4 +479,37 @@ suspension constraints), and other owners' Python nodes running at joint-state r
 ### Gate item 3: baseline rerun on all worlds: pending
 
 Starts after the Phase 2 evaluation runs, so the two never share the CPU.
+
+## Phase 2: live sim findings (2026-11-01 and 2026-11-02)
+
+The 3D stack on slopes.sdf first could not leave its spawn point: MPPI found no collision-free
+rollout ("Optimizer fail to compute path"), then Smac found no path up the ramp lanes. Each cause
+below was found with a probe from `~/.ros/rover_3d_nav/tools/` and checked again after its fix.
+The goal was `lane15_top` (8.5, 0) on slopes.sdf, sent with `ros2 action send_goal
+/navigate_to_pose ...` against `sim_up.sh phase2 <name> world:=slopes.sdf`.
+
+| # | Finding | Probe and evidence | Fix |
+|---|---|---|---|
+| 1 | Gazebo heightmaps disagree with themselves: on slopes the rover rested 5.3 cm high and the lidar saw ground 7.8 cm low relative to physics (0.0 cm on flat.sdf). | `mesh_probe_slopes.txt` | Terrain as STL meshes: rover at z -0.0006 m, lidar ground error 0.0 cm. |
+| 2 | Lidar `range_min` 1.0 m left a uniform unknown disc to 1.0 m, the same at every bearing, lethal under the braking rule. | `ring.py` by bearing: 0.76 to 1.01 m known 16 to 21 percent, after 99 to 100 percent | `range_min` 0.3 m |
+| 3 | FastDEM fed the lowest return per cell per scan. | Raw returns unbiased with 1.7 cm noise, map 1 to 5 cm low | PATCH 3, cell mean (tests `test_cell_mean`) |
+| 4 | Self-filter box floor at -0.05 m let only noise-low returns through under the body edge: a ring of -5 to -6 cm cells. | `elev_near.py` grid, `lethal_near.py`: all lethal cells limited by step (`limiting_check` 3) | Box reaches 100 m down |
+| 5 | Published `variance` was the raw-return spread, so kappa sigma added 2 to 3 cm to every step. | variance 6.8e-4 at lethal cells, after 1e-4 (the Kalman floor) | `variance` is the Kalman P (`test_contract_layers`) |
+| 6 | Cells next to the rover had elevation but no verdict, since the pose check reached into the blind zone under the body. | `costmap_near.py`: 0.76 to 1.01 m verdict known 72 percent, after 100 percent | Footprint fill with the rover's own plane (`FillFootprint` test) |
+| 7 | Step measured the ramp: 0.11 to 0.17 m on the 15 deg lane in the global map, so the lane was lethal from x 3.4 m. | `features_line.py /terrain/global_features 0 0 8.5 0` | Step relative to the chassis plane (`SmoothRampIsNotAStep`, `CliffOnARampKeepsItsHeight`) |
+| 8 | Untrimmed step had a noise floor near the 10 cm limit. The sim lidar's fixed ray pattern leaves a 1.4 to 1.9 cm per-cell error that averaging cannot remove (`lidar_cells.py`: cell means over 40 scans spread as much as single returns), since range noise also moves each return sideways and sorts low and high returns into neighbouring cells. A real L2 sweeps its pattern, so this is partly a sim artefact. | `map_vs_gt.py`: front (lidar plus depth) 1.0 to 1.4 cm, lidar only 1.4 to 1.9 cm | Trimmed step (`SingleCellSpikeIsTrimmedButTwoCellsCount`) |
+| 9 | The causeway was closed to Smac: verdict lethal from abs(y) 0.8 m, then inflation and the footprint check took another 0.5 m each side. | `global_line.py 6 -2 6 2` | Configuration space: point footprint, no dilation, minimal inflation |
+
+Result: **`lane15_top` SUCCEEDED**, rover on the plateau at (8.00, 0.35, 0.797) by Gazebo's
+`gz model -m rover -p` (log `evidence/phase2/lane15_success.log`). Tests after the changes:
+rover_terrain_mapping 240, rover_traversability 66, all pass. The legacy and v2 layer tests
+share topics and once clashed under `ctest -j4`; run alone they pass.
+
+Open from these findings:
+- The per-heading layers are the most expensive part of the features node. Not re-measured after
+  the changes.
+- Ramp cells still score u 0.6 to 0.9 (step at contacts plus kappa sigma), so the planner pays a
+  high cost on ramps. Phase 3 tuning will look at this against the benchmark.
+- The fixed ray pattern of the sim L2 is a sim limitation worth raising with `rover_gazebo`'s
+  owner: a slow yaw spin of the sensor would sweep the pattern like the real one.
 

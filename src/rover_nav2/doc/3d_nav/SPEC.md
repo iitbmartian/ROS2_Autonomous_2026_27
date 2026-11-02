@@ -131,8 +131,17 @@ For a pose (x, y, yaw):
   is safe.
 - Unknown cells: lethal inside the braking distance `v^2 / (2 a_brake) + margin`, otherwise
   `unknown_cost`.
-- Worst value wins when several map cells land in one costmap cell. Lethal cells are dilated by the
-  inscribed radius (the prototype's verified disc dilation).
+- Worst value wins when several map cells land in one costmap cell.
+- Verdicts are configuration space: each already places the whole rover at the cell. So the 3D
+  stack gives Nav2 a point footprint, lethal cells are not dilated (`dilate_terrain_lethal:
+  false`), and inflation only reaches one local cell. The braking band for unknown cells is still
+  measured from the physical footprint in `rover_physical.yaml`. The prototype's inscribed-radius
+  dilation stays available for the legacy cost model. (Changed 2026-11-02: footprint, inflation
+  and dilation together counted the rover's width two or three times and closed a 2.5 m causeway
+  to the planner.)
+- Unknown cells under the rover's footprint take the plane the rover stands on (from TF), in the
+  feature computation only. The wheels prove that ground carries the rover, and without it every
+  pose check near the rover reaches into the blind zone under the body.
 
 ### Controller cost (`TerrainCritic`)
 
