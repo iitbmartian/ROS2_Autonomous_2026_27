@@ -120,9 +120,11 @@ public:
     const auto phys = rover_traversability::core::loadPhysicalParams(phys_path);
     const auto warn = rover_traversability::core::placeholderWarning(phys);
     if (!warn.empty()) {RCLCPP_WARN(get_logger(), "%s", warn.c_str());}
-    // Body box in base_footprint: the footprint plus padding, from the ground to body height.
+    // Body box in base_footprint: the footprint plus padding, from far below the ground to body
+    // height. Ground under the rover is hidden by the body, and a floor at -0.05 m let through
+    // only the returns noise pushed below it, a false 5 cm dip around the rover.
     body_min_ = fastdem::Point(-phys.footprint_length / 2 - pad, -phys.footprint_width / 2 - pad,
-        -0.05);
+        -100.0);
     body_max_ = fastdem::Point(phys.footprint_length / 2 + pad, phys.footprint_width / 2 + pad,
         body_h);
 
@@ -315,7 +317,7 @@ private:
       std::shared_lock lock(local_.mutex);
       if (local_.integrated == 0 || local_.map.isEmpty()) {return;}
       snap = local_.map.snapshot(
-        {fastdem::layer::elevation, fastdem::layer::variance, fastdem::layer::n_points,
+        {fastdem::layer::elevation, fastdem::layer::kalman_p, fastdem::layer::n_points,
           kLastSeenInternal});
     }
     const double now_s = secondsSinceStart(snap.getTimestamp());
@@ -342,7 +344,7 @@ private:
       std::shared_lock lock(global_->mutex);
       if (global_->integrated == 0) {return;}
       snap = global_->map.snapshot(
-        {fastdem::layer::elevation, fastdem::layer::variance, fastdem::layer::n_points,
+        {fastdem::layer::elevation, fastdem::layer::kalman_p, fastdem::layer::n_points,
           kLastSeenInternal});
     }
     const double now_s = secondsSinceStart(snap.getTimestamp());

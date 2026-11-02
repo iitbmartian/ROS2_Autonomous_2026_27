@@ -40,15 +40,20 @@ constexpr float kNaN = std::numeric_limits<float>::quiet_NaN();
 class V2 : public ::testing::Test
 {
 protected:
+  // Overrides added by derived fixtures.
+  virtual std::vector<rclcpp::Parameter> extraParams() const {return {};}
+
   void SetUp() override
   {
     rclcpp::NodeOptions opts;
-    opts.parameter_overrides({
-        {"trav.map_topic", std::string(kTopic)},
-        {"trav.cost_model", std::string("utilisation")},
-        {"trav.odom_topic", std::string("/test_traversability_v2/odom_unused")},
-        {"trav.map_timeout", 5.0},
-      });
+    std::vector<rclcpp::Parameter> params{
+      {"trav.map_topic", std::string(kTopic)},
+      {"trav.cost_model", std::string("utilisation")},
+      {"trav.odom_topic", std::string("/test_traversability_v2/odom_unused")},
+      {"trav.map_timeout", 5.0},
+    };
+    for (const auto & p : extraParams()) {params.push_back(p);}
+    opts.parameter_overrides(params);
     node_ = std::make_shared<nav2_util::LifecycleNode>("test_costmap_v2", "", opts);
     pub_node_ = std::make_shared<rclcpp::Node>("test_map_publisher_v2");
     pub_ = pub_node_->create_publisher<grid_map_msgs::msg::GridMap>(kTopic, 10);
@@ -117,6 +122,19 @@ protected:
   std::shared_ptr<nav2_costmap_2d::Layer> layer_;
 };
 
+// Point footprint in Nav2, as the 3D overlays configure it: utilisation verdicts are already
+// configuration space, so lethal cells stay single cells, and the braking band starts at the
+// physical footprint (rover_physical.yaml: 1.1 x 0.9 m, circumscribed 0.711 m).
+class V2Point : public V2
+{
+protected:
+  std::vector<rclcpp::Parameter> extraParams() const override
+  {
+    return {{"trav.dilate_terrain_lethal", false},
+      {"trav.braking_from_physical_footprint", true}};
+  }
+};
+
 }  // namespace
 
 TEST_F(V2, GradedCostIsQuadraticInUtilisation)
@@ -172,6 +190,30 @@ TEST_F(V2, UnknownIsLethalOnlyWithinBrakingDistanceOutsideTheFootprint)
   // The braking-band lethal cell is not dilated toward the rover: 4 cells (0.2 m) closer, still
   // under the footprint's circumscribed circle, the cell is free.
   EXPECT_EQ(cost(2.2, 2.0), 0);
+}
+
+TEST_F(V2Point, TerrainLethalIsNotDilated)
+{
+  auto m = benign();
+  set(m, layers::kSafeYawMask, 0.5, 3.5, 0.0f);
+  feed(m);
+  EXPECT_EQ(cost(0.5, 3.5), LETHAL_OBSTACLE);
+  EXPECT_EQ(cost(0.55, 3.5), 0);                  // the next cell
+}
+
+TEST_F(V2Point, BrakingBandStartsAtThePhysicalFootprint)
+{
+  // Robot at (2, 2). Nav2's footprint here is the fixture's 0.4 m square (circumscribed 0.283),
+  // smaller than the physical 0.711 m, so the band runs from 0.711 to 0.961 m (speed 0).
+  // Cell centres sit half a cell (0.025 m) beyond the x values below.
+  auto m = benign();
+  for (auto x : {2.6, 2.8, 3.0}) {
+    set(m, layers::kBestUtilisation, x, 2.0, kNaN);
+  }
+  feed(m);
+  EXPECT_EQ(cost(2.6, 2.0), 200);                 // 0.625 m, inside the physical footprint
+  EXPECT_EQ(cost(2.8, 2.0), LETHAL_OBSTACLE);     // 0.825 m, in the band
+  EXPECT_EQ(cost(3.0, 2.0), 200);                 // 1.025 m, beyond it
 }
 
 int main(int argc, char ** argv)

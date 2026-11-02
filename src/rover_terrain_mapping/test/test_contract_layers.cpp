@@ -7,6 +7,7 @@
 #include <set>
 #include <string>
 
+#include "fastdem/mapping/kalman_estimation.hpp"
 #include "fastdem/postprocess/feature_extraction.hpp"
 #include "rover_terrain_mapping/contract_layers.hpp"
 #include "rover_traversability/layer_names.hpp"
@@ -24,6 +25,7 @@ fastdem::ElevationMap featureMap()
   m.setTimestamp(123456789ULL);
   m.get(fastdem::layer::elevation).setConstant(0.5f);
   m.add(fastdem::layer::variance, 0.01f);
+  m.add(fastdem::layer::kalman_p, 0.0004f);
   m.add(fastdem::layer::n_points, 3.0f);
   m.add(fastdem::layer::slope, 30.0f);      // degrees, as FastDEM publishes it
   m.add(fastdem::layer::step, 0.07f);
@@ -77,7 +79,7 @@ TEST(ContractLayers, NamesAreContractNamesOnly)
 TEST(ContractLayers, ElevationLayersRenamed)
 {
   const auto out = toElevationContract(featureMap());
-  EXPECT_FLOAT_EQ(out.get(L::kVariance)(0, 0), 0.01f);
+  EXPECT_FLOAT_EQ(out.get(L::kVariance)(0, 0), 0.0004f);   // Kalman P, not the 0.01 sample spread
   EXPECT_FLOAT_EQ(out.get(L::kObservations)(0, 0), 3.0f);
   EXPECT_FLOAT_EQ(out.get(L::kElevation)(0, 0), 0.5f);
 }
@@ -112,4 +114,10 @@ TEST(ContractLayers, LastSeenBecomesAnAge)
   EXPECT_TRUE(std::isnan(out.get(L::kLastSeen)(0, 2)));
   const auto & names = rover_terrain_mapping::elevationContractLayers();
   EXPECT_NE(std::find(names.begin(), names.end(), std::string(L::kLastSeen)), names.end());
+}
+
+TEST(ContractLayers, VarianceIsTheKalmanEstimateNotTheSampleSpread)
+{
+  const auto out = toElevationContract(featureMap(), 0.0);
+  EXPECT_FLOAT_EQ(out.get(L::kVariance)(1, 1), 0.0004f);
 }

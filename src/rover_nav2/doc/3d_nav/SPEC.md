@@ -77,12 +77,12 @@ Units and definitions (`terrain_features_node`, `rover_terrain_mapping/features.
 
 | Layer | Definition |
 |---|---|
-| `elevation`, `variance` | FastDEM Kalman estimate, m and m^2, gravity-aligned |
+| `elevation`, `variance` | FastDEM Kalman estimate and its variance P (not FastDEM's sample spread of raw returns), m and m^2, gravity-aligned. Each scan feeds the mean of a cell's returns (FastDEM PATCH 3). |
 | `observations` | points fused into the cell (FastDEM `n_points`) |
 | `last_seen` | age in seconds of the newest point in the cell, relative to the map stamp (an age keeps millisecond precision in float, an absolute stamp would not) |
 | `slope`, `normal_*`, `slope_std` | variance-weighted least-squares plane over a disc of radius `wheelbase / 2` (chassis scale). The disc must be at least 30 percent observed and its cells spread in both directions, so a single scan line yields NaN instead of an arbitrary tilt. `slope_std` propagates the fit covariance. |
 | `roughness` | RMS residual to that plane, m |
-| `step` | max minus min elevation over a disc of radius `wheel_radius`, m, no trimming |
+| `step` | second highest minus second lowest elevation over a disc of radius `wheel_radius` (at least 1.5 cells), after subtracting the chassis-scale plane's gradient, m. A smooth ramp is not a step, and an abrupt jump keeps its height, less at most one cell of plane slope. One stray cell at either end is trimmed: any real feature under a wheel covers two or more cells, while untrimmed max minus min over about 37 cells has a noise floor near 4 sigma (6 to 8 cm at the sim lidar's 1.5 to 2 cm). Plain max minus min with fewer than 4 cells, raw heights where the plane fit is invalid. |
 | `curvature` | smallest over total eigenvalue of the plane window's 3D covariance |
 | `negative_obstacle` | 1 where occlusion reasoning finds a hole: along a ray from the sensor, an unknown run that flat ground at the last observed height would have exposed (within the sensor's range and above its lowest beam, and clear of the terrain horizon), longer than both 0.3 m and twice the sensor's row spacing at that distance. Shadows behind higher terrain and the blind zone under the sensor stay plain unknown. |
 

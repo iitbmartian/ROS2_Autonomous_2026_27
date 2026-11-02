@@ -15,6 +15,9 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <vector>
+
+#include <Eigen/Geometry>
 
 #include "grid_map_msgs/msg/grid_map.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -64,6 +67,10 @@ public:
     yaw_.threads = static_cast<int>(declare_parameter<int>("threads", yaw_.threads));
     eval_.risk_kappa = declare_parameter<double>("risk_kappa", eval_.risk_kappa);
     evaluate_yaws_ = declare_parameter<bool>("evaluate_yaws", true);
+    base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
+    fill_footprint_ = declare_parameter<bool>("fill_footprint", true);
+    // Same padding as the mapping node's self filter, which empties exactly this box.
+    footprint_padding_ = declare_parameter<double>("footprint_padding", 0.10);
     const auto phys = rover_traversability::core::loadPhysicalParams(phys_path);
     phys_ = phys;
     const auto warn = rover_traversability::core::placeholderWarning(phys);
@@ -98,6 +105,9 @@ private:
     }
     const auto t0 = std::chrono::steady_clock::now();
     const GridGeometry g = geometryOf(in);
+    // The published elevation and variance stay as observed. Only features see the fill.
+    const Eigen::MatrixXf z_obs = z, var_obs = var;
+    if (fill_footprint_) {fillUnderRover(in, g, z, var);}
     fp_.resolution = g.resolution;
     np_.resolution = g.resolution;
     // On a coarse grid (the global map) a wheel-radius window would hold a single cell and step
@@ -127,8 +137,8 @@ private:
     out.info = in.info;
     out.outer_start_index = 0;
     out.inner_start_index = 0;
-    writeLayer(out, L::kElevation, z);
-    writeLayer(out, L::kVariance, var);
+    writeLayer(out, L::kElevation, z_obs);
+    writeLayer(out, L::kVariance, var_obs);
     Eigen::MatrixXf obs;
     if (readLayer(in, L::kObservations, obs)) {writeLayer(out, L::kObservations, obs);}
     writeLayer(out, L::kSlope, f.slope);
@@ -178,6 +188,41 @@ private:
       ms, yaw_ms);
   }
 
+  void fillUnderRover(
+    const grid_map_msgs::msg::GridMap & in, const GridGeometry & g, Eigen::MatrixXf & z,
+    Eigen::MatrixXf & var)
+  {
+    geometry_msgs::msg::TransformStamped tf;
+    try {
+      tf = tf_buffer_->lookupTransform(
+        in.header.frame_id, base_frame_, in.header.stamp, tf2::durationFromSec(0.1));
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000, "no rover pose, footprint not filled: %s", e.what());
+      return;
+    }
+    const auto & q = tf.transform.rotation;
+    const Eigen::Matrix3d R = Eigen::Quaterniond(q.w, q.x, q.y, q.z).toRotationMatrix();
+    rover_terrain_mapping::FootprintPlane fp;
+    fp.x = tf.transform.translation.x;
+    fp.y = tf.transform.translation.y;
+    fp.z = tf.transform.translation.z;
+    fp.yaw = std::atan2(R(1, 0), R(0, 0));
+    fp.nx = R(0, 2);
+    fp.ny = R(1, 2);
+    fp.nz = R(2, 2);
+    fp.half_length = phys_.footprint_length / 2.0 + footprint_padding_;
+    fp.half_width = phys_.footprint_width / 2.0 + footprint_padding_;
+    std::vector<double> row_x(g.rows), col_y(g.cols);
+    for (int i = 0; i < g.rows; ++i) {row_x[i] = g.x(i);}
+    for (int j = 0; j < g.cols; ++j) {col_y[j] = g.y(j);}
+    // 1 cm, the Kalman floor of observed cells: the wheels pin the plane about as well.
+    rover_terrain_mapping::fillFootprint(z, var, row_x, col_y, fp, 1e-4f);
+  }
+
+  std::string base_frame_;
+  bool fill_footprint_{true};
+  double footprint_padding_{0.10};
   FeatureParams fp_;
   rover_traversability::core::PhysicalParams phys_;
   rover_traversability::core::EvalParams eval_;

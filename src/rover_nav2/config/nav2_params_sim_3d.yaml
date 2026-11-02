@@ -18,7 +18,18 @@ local_costmap:
     ros__parameters:
       # The terrain layer replaces the voxel layer: the voxel layer marks anything 0.15 m above
       # base_footprint as an obstacle, ramps included, which is what stops the 2D stack on slopes.
+      # Configuration space. A utilisation verdict already places the whole rover, wheels and
+      # belly, at the cell, so Nav2 gets a point footprint and no inflation layer. A full
+      # footprint, inflation and dilation would count the rover's width two or three times and
+      # close a 2.5 m causeway to the planner (slopes.sdf).
+      footprint: "[[0.05, 0.05], [0.05, -0.05], [-0.05, -0.05], [-0.05, 0.05]]"
+      footprint_padding: 0.0
       plugins: ["traversability_layer", "inflation_layer"]
+      # Just past the point footprint's 0.071 m circumscribed radius: Smac needs an inflation
+      # layer for its fast collision check, and this one grows nothing beyond one local cell.
+      inflation_layer:
+        inflation_radius: 0.08
+        cost_scaling_factor: 10.0
       traversability_layer:
         plugin: "rover_traversability/TraversabilityLayer"
         enabled: true
@@ -31,7 +42,9 @@ local_costmap:
         map_timeout: 2.0
         unknown_cost: 200       # never 255, updateWithMax would drop it
         max_soft_cost: 252
-        lethal_dilation_radius: 0.0   # follow the footprint's inscribed radius
+        dilate_terrain_lethal: false  # verdicts are configuration space already
+        # Unknown cells are judged against the real outline, not the point footprint above.
+        braking_from_physical_footprint: true
         combination_method: 1   # max
         odom_topic: /odom
         braking_decel: 0.5      # m/s^2, conservative for loose ground
@@ -42,7 +55,18 @@ global_costmap:
     ros__parameters:
       # The same layer on the coarse global terrain map replaces RTAB-Map's 2D grid, which also
       # marks ramps as walls. Fixed 100 m square in map, like terrain_mapping_node's global map.
+      # Configuration space. A utilisation verdict already places the whole rover, wheels and
+      # belly, at the cell, so Nav2 gets a point footprint and no inflation layer. A full
+      # footprint, inflation and dilation would count the rover's width two or three times and
+      # close a 2.5 m causeway to the planner (slopes.sdf).
+      footprint: "[[0.05, 0.05], [0.05, -0.05], [-0.05, -0.05], [-0.05, 0.05]]"
+      footprint_padding: 0.0
       plugins: ["traversability_layer", "inflation_layer"]
+      # Just past the point footprint's 0.071 m circumscribed radius: Smac needs an inflation
+      # layer for its fast collision check, and this one grows nothing beyond one local cell.
+      inflation_layer:
+        inflation_radius: 0.08
+        cost_scaling_factor: 10.0
       rolling_window: false
       width: 100
       height: 100
@@ -61,7 +85,8 @@ global_costmap:
         unknown_lethal_in_braking: false
         unknown_cost: 200
         max_soft_cost: 252
-        lethal_dilation_radius: 0.0
+        dilate_terrain_lethal: false
+        braking_from_physical_footprint: true
         combination_method: 1
         odom_topic: /odom
         braking_decel: 0.5
@@ -73,6 +98,18 @@ collision_monitor:
     # treats anything 0.15 m above base_footprint as an obstacle, ramps included. The monitor
     # publishes (possibly empty) clouds while terrain is fresh, so stale terrain times the source
     # out and stops the rover.
+    # Hazard points are lethal verdicts, configuration space for the rover's centre, so the
+    # approach zone is a small polygon at the centre, not the published footprint.
+    polygons: ["CentreApproach"]
+    CentreApproach:
+      type: "polygon"
+      action_type: "approach"
+      points: "[[0.1, 0.1], [0.1, -0.1], [-0.1, -0.1], [-0.1, 0.1]]"
+      time_before_collision: 1.2
+      simulation_time_step: 0.1
+      min_points: 1
+      visualize: false
+      enabled: true
     observation_sources: ["terrain_hazards"]
     terrain_hazards:
       type: "pointcloud"

@@ -10,6 +10,8 @@
 #ifndef ROVER_TERRAIN_MAPPING__FEATURES_HPP_
 #define ROVER_TERRAIN_MAPPING__FEATURES_HPP_
 
+#include <vector>
+
 #include <Eigen/Core>
 
 namespace rover_terrain_mapping
@@ -94,6 +96,25 @@ struct NegativeObstacleParams
 Grid negativeObstacles(
   const Grid & elevation, double si, double sj, double sensor_z,
   const NegativeObstacleParams & p);
+
+// The rover's own footprint, as support: its wheels stand on that ground, so unknown cells under
+// it are filled with the plane the rover rests on. Only the feature copy is filled, never the
+// elevation map. Without it every pose check near the rover reaches into the sensor's blind
+// zone under the body and returns no verdict.
+struct FootprintPlane
+{
+  double x{0.0}, y{0.0}, z{0.0};          // base_footprint origin in the map frame
+  double yaw{0.0};                        // heading of the footprint rectangle
+  double nx{0.0}, ny{0.0}, nz{1.0};       // base_footprint z axis in the map frame
+  double half_length{0.0}, half_width{0.0};
+};
+
+// Fills NaN cells whose centre lies inside the rectangle, setting elevation from the plane and
+// variance to fill_variance. row_x[i] and col_y[j] are the map-frame cell centres. Returns the
+// number of cells filled.
+int fillFootprint(
+  Grid & elevation, Grid & variance, const std::vector<double> & row_x,
+  const std::vector<double> & col_y, const FootprintPlane & fp, float fill_variance);
 
 }  // namespace rover_terrain_mapping
 

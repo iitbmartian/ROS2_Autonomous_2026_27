@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "fastdem/mapping/kalman_estimation.hpp"
 #include "fastdem/postprocess/feature_extraction.hpp"
 #include "rover_traversability/layer_names.hpp"
 
@@ -24,7 +25,9 @@ const Renames & elevationRenames()
 {
   static const Renames r = {
     {fastdem::layer::elevation, L::kElevation},
-    {fastdem::layer::variance, L::kVariance},
+    // The Kalman estimate's variance, as SPEC.md defines it. FastDEM's own "variance" layer is
+    // the spread of the raw returns, which never shrinks with more scans.
+    {fastdem::layer::kalman_p, L::kVariance},
     {fastdem::layer::n_points, L::kObservations},
   };
   return r;

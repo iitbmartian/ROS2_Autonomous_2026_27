@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <limits>
+#include <vector>
 
 #include "rover_terrain_mapping/features.hpp"
 
@@ -53,16 +54,22 @@ TEST(Features, TiltedPlaneSlopeAndNormal)
   EXPECT_NEAR(f.curvature(20, 20), 0.0, 1e-5);
 }
 
-TEST(Features, StepIsMaxMinusMinInTheWheelWindow)
+TEST(Features, StepIsTrimmedRangeInTheWheelWindow)
 {
   // A 0.10 m block of 2 x 2 cells at rows 20..21, cols 20..21.
   const int n = 41;
   Grid z = flat(n);
   z.block(20, 20, 2, 2).setConstant(0.10f);
   const auto f = rover_terrain_mapping::computeFeatures(z, var(n), params());
-  EXPECT_NEAR(f.step(20, 20), 0.10, 1e-6);
-  EXPECT_NEAR(f.step(17, 20), 0.10, 1e-6);   // 3 cells away, on the window edge
-  EXPECT_NEAR(f.step(16, 20), 0.0, 1e-6);    // 4 cells away, outside
+  // Step is taken relative to the chassis plane, which the block tilts slightly, so the values
+  // move by under a millimetre at the block and under a centimetre on the flat cells beyond.
+  // The top and bottom cell are trimmed, so the block counts once two of its cells are in the
+  // 3-cell disc. From row 18, (20, 20) and (20, 21) are at 2 and sqrt(5) cells, both inside.
+  // From row 17 only (20, 20) is, at 3 cells: one cell is trimmed as noise.
+  EXPECT_NEAR(f.step(20, 20), 0.10, 1e-3);
+  EXPECT_NEAR(f.step(18, 20), 0.10, 1e-3);
+  EXPECT_LT(f.step(17, 20), 0.01);
+  EXPECT_LT(f.step(16, 20), 0.01);           // 4 cells away, outside
 }
 
 TEST(Features, CheckerboardRoughness)
@@ -271,4 +278,92 @@ TEST(NegativeObstacles, NothingInferredBeyondRange)
   const Grid neg = rover_terrain_mapping::negativeObstacles(z, kC, kC, 0.75, negParams());
   EXPECT_TRUE(std::isnan(neg(kC + 119, kC + 119)));   // 8.4 m diagonal, beyond 7 m
   EXPECT_TRUE(std::isnan(neg(kC, kC)));               // blind zone, never a reference
+}
+
+TEST(FillFootprint, PlaneUnderRotatedTiltedRover)
+{
+  // 5 x 5 grid at 0.1 m, cell centres x 0.2..-0.2 down the rows and y 0.2..-0.2 across. Rover
+  // at the origin, z 0.5, heading 90 deg so its 0.3 m length runs along y and its 0.2 m width
+  // along x. Normal (sin 10 deg, 0, cos 10 deg): z = 0.5 - tan(10 deg) dx. Cells with
+  // |dx| <= 0.1 and |dy| <= 0.15 are inside, 3 x 3 = 9, one already observed, 8 filled.
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  Grid z = Grid::Constant(5, 5, static_cast<float>(nan));
+  Grid var = Grid::Constant(5, 5, static_cast<float>(nan));
+  z(2, 1) = 0.9f;                 // x 0, y 0.1, observed, must stay
+  var(2, 1) = 0.02f;
+  const std::vector<double> row_x{0.2, 0.1, 0.0, -0.1, -0.2}, col_y{0.2, 0.1, 0.0, -0.1, -0.2};
+  rover_terrain_mapping::FootprintPlane fp;
+  fp.z = 0.5;
+  fp.yaw = M_PI / 2.0;
+  fp.nx = std::sin(10.0 * M_PI / 180.0);
+  fp.nz = std::cos(10.0 * M_PI / 180.0);
+  fp.half_length = 0.15;
+  fp.half_width = 0.1;
+  EXPECT_EQ(rover_terrain_mapping::fillFootprint(z, var, row_x, col_y, fp, 1e-4f), 8);
+  EXPECT_FLOAT_EQ(z(2, 1), 0.9f);
+  EXPECT_FLOAT_EQ(var(2, 1), 0.02f);
+  EXPECT_NEAR(z(2, 2), 0.5, 1e-6);
+  EXPECT_NEAR(z(1, 3), 0.482367, 1e-6);     // dx 0.1
+  EXPECT_NEAR(z(3, 1), 0.517633, 1e-6);     // dx -0.1
+  EXPECT_FLOAT_EQ(var(1, 3), 1e-4f);
+  EXPECT_TRUE(std::isnan(z(2, 0)));         // dy 0.2, past the half length
+  EXPECT_TRUE(std::isnan(z(0, 2)));         // dx 0.2, past the half width
+}
+
+TEST(Features, SmoothRampIsNotAStep)
+{
+  // z = tan(15 deg) * x. Raw max minus min over the 3-cell (0.15 m) disc would be
+  // 0.30 * tan(15 deg) = 0.0804 m. Relative to the chassis plane it is 0.
+  const int n = 41;
+  Grid z(n, n);
+  const double t = std::tan(15.0 * M_PI / 180.0);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < n; ++j) {z(i, j) = static_cast<float>(t * (-i * kRes));}
+  }
+  const auto f = rover_terrain_mapping::computeFeatures(z, var(n), params());
+  EXPECT_NEAR(f.step(20, 20), 0.0, 1e-5);
+}
+
+TEST(Features, CliffOnARampKeepsItsHeight)
+{
+  // 15 deg ramp along x with a 0.10 m rise between rows 20 and 21 (all columns). Detrending
+  // can take off at most one cell of plane slope: the fitted gradient a is at most
+  // tan(15 deg) + 0.85 * 0.10 / 0.35 = 0.511 per m, times 0.05 m, about 0.026 m. Checked at
+  // every cell whose wheel disc holds two or more cells on each side of the edge (rows 19 to
+  // 22). Rows 18 and 23 reach across through the single cell at offset 3, which is trimmed.
+  const int n = 41;
+  Grid z(n, n);
+  const double t = std::tan(15.0 * M_PI / 180.0);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < n; ++j) {
+      z(i, j) = static_cast<float>(t * (-i * kRes) + (i <= 20 ? 0.10 : 0.0));
+    }
+  }
+  const auto f = rover_terrain_mapping::computeFeatures(z, var(n), params());
+  for (int i = 19; i <= 22; ++i) {
+    EXPECT_GE(f.step(i, 20), 0.10 - 0.026) << "row " << i;
+    EXPECT_LE(f.step(i, 20), 0.10 + 1e-5) << "row " << i;
+  }
+  EXPECT_NEAR(f.step(30, 20), 0.0, 1e-5);   // far from the edge, plain ramp
+}
+
+TEST(Features, SingleCellSpikeIsTrimmedButTwoCellsCount)
+{
+  // A lone 0.10 m cell is one stray return. A pair of them is a feature under the wheel.
+  const int n = 41;
+  Grid z = flat(n);
+  z(20, 20) = 0.10f;
+  auto f = rover_terrain_mapping::computeFeatures(z, var(n), params());
+  EXPECT_LT(f.step(20, 20), 0.01);
+  z(20, 21) = 0.10f;
+  f = rover_terrain_mapping::computeFeatures(z, var(n), params());
+  EXPECT_NEAR(f.step(20, 20), 0.10, 1e-3);
+  // A deep single-cell hole is trimmed the same way, a pair is not.
+  Grid h = flat(n);
+  h(20, 20) = -0.10f;
+  f = rover_terrain_mapping::computeFeatures(h, var(n), params());
+  EXPECT_LT(f.step(20, 20), 0.01);
+  h(21, 20) = -0.10f;
+  f = rover_terrain_mapping::computeFeatures(h, var(n), params());
+  EXPECT_NEAR(f.step(20, 20), 0.10, 1e-3);
 }

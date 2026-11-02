@@ -107,6 +107,13 @@ private:
   double braking_decel_{0.5};                  // m/s^2
   double braking_margin_{0.25};                // m beyond the stopping distance
   bool unknown_lethal_in_braking_{true};       // off for the global costmap: a local safety rule
+  // Utilisation verdicts already place the whole rover at the cell, so with a point footprint
+  // in Nav2 the lethal cells must not grow again.
+  bool dilate_terrain_lethal_{true};
+  // The braking band starts at the larger of Nav2's circumscribed radius and the physical
+  // footprint's (rover_physical.yaml), so a point footprint in Nav2 keeps the rule's meaning.
+  bool braking_from_physical_footprint_{false};
+  double physical_circumscribed_{0.0};
   std::string map_topic_;
   std::string slope_layer_, roughness_layer_, step_layer_;
   bool use_precomputed_traversability_{false};

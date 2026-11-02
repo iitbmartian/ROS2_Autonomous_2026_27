@@ -12,6 +12,7 @@
 #include "pluginlib/class_list_macros.hpp"
 #include "tf2/utils.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "rover_traversability/core/physical_params.hpp"
 #include "rover_traversability/layer_names.hpp"
 
 using nav2_costmap_2d::LETHAL_OBSTACLE;
@@ -53,6 +54,10 @@ void TraversabilityLayer::onInitialize()
   declareParameter("braking_decel", rclcpp::ParameterValue(0.5));
   declareParameter("braking_margin", rclcpp::ParameterValue(0.25));
   declareParameter("unknown_lethal_in_braking", rclcpp::ParameterValue(true));
+  declareParameter("dilate_terrain_lethal", rclcpp::ParameterValue(true));
+  declareParameter("braking_from_physical_footprint", rclcpp::ParameterValue(false));
+  declareParameter(
+    "physical_params_file", rclcpp::ParameterValue(core::defaultPhysicalParamsPath()));
 
   int unknown_cost_i = 200, max_soft_cost_i = 252;
   node->get_parameter(name_ + ".enabled", enabled_);
@@ -80,6 +85,17 @@ void TraversabilityLayer::onInitialize()
   node->get_parameter(name_ + ".braking_decel", braking_decel_);
   node->get_parameter(name_ + ".braking_margin", braking_margin_);
   node->get_parameter(name_ + ".unknown_lethal_in_braking", unknown_lethal_in_braking_);
+  node->get_parameter(name_ + ".dilate_terrain_lethal", dilate_terrain_lethal_);
+  node->get_parameter(
+    name_ + ".braking_from_physical_footprint", braking_from_physical_footprint_);
+  if (braking_from_physical_footprint_) {
+    std::string phys_path;
+    node->get_parameter(name_ + ".physical_params_file", phys_path);
+    const auto phys = core::loadPhysicalParams(phys_path);
+    const auto warn = core::placeholderWarning(phys);
+    if (!warn.empty()) {RCLCPP_WARN(logger_, "%s", warn.c_str());}
+    physical_circumscribed_ = std::hypot(phys.footprint_length / 2.0, phys.footprint_width / 2.0);
+  }
   if (cost_model_ != "legacy" && cost_model_ != "utilisation") {
     throw std::runtime_error("TraversabilityLayer: cost_model must be legacy or utilisation");
   }
@@ -235,7 +251,9 @@ unsigned char TraversabilityLayer::utilisationCost(
     // zone under the rover, and marking it lethal would put the rover inside its own obstacle.
     const double v = speed_.load();
     const double brake = v * v / (2.0 * braking_decel_) + braking_margin_;
-    const double outside = dist - layered_costmap_->getCircumscribedRadius();
+    const double origin = std::max(
+      layered_costmap_->getCircumscribedRadius(), physical_circumscribed_);
+    const double outside = dist - origin;
     braking = outside > 0.0 && outside <= brake;
     return braking ? LETHAL_OBSTACLE : unknown_cost_;
   }
@@ -427,7 +445,9 @@ void TraversabilityLayer::updateCosts(
         !(k < braking_mask_.size() && braking_mask_[k]);
       lethal_buf_[k] = terrain_lethal ? LETHAL_OBSTACLE : 0;
     }
-    dilation_.apply(lethal_buf_.data(), sx, sy, min_i, min_j, max_i, max_j);
+    if (dilate_terrain_lethal_) {
+      dilation_.apply(lethal_buf_.data(), sx, sy, min_i, min_j, max_i, max_j);
+    }
     for (int j = std::max(0, min_j); j < std::min(sy, max_j); ++j) {
       for (int i = std::max(0, min_i); i < std::min(sx, max_i); ++i) {
         const unsigned int k = getIndex(i, j);

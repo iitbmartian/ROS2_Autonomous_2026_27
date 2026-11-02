@@ -148,21 +148,32 @@ FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeaturePar
     for (int j = 0; j < cols; ++j) {
       if (!std::isfinite(z(i, j))) {continue;}
 
-      float lo = std::numeric_limits<float>::infinity();
-      float hi = -lo;
+      const PlaneFit f = fitPlaneOffsets(z, var, i, j, plane_disc, p.plane_radius, p);
+
+      // Step relative to the chassis-scale plane, so a smooth ramp is not a step. An abrupt
+      // jump keeps its height, less one cell of plane slope. Raw heights where no plane fits.
+      const double ga = f.valid ? f.a : 0.0, gb = f.valid ? f.b : 0.0;
+      // Second highest minus second lowest: one stray cell is sensor noise, any real feature
+      // under a wheel covers two or more cells. Plain max minus min with fewer than 4 cells.
+      const double inf = std::numeric_limits<double>::infinity();
+      double lo1 = inf, lo2 = inf, hi1 = -inf, hi2 = -inf;
       int n = 0;
       for (const auto & [di, dj] : step_disc) {
         const int ii = i + di, jj = j + dj;
         if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
         const float v = z(ii, jj);
         if (!std::isfinite(v)) {continue;}
-        lo = std::min(lo, v);
-        hi = std::max(hi, v);
+        const double r = v - (ga * (-di * p.resolution) + gb * (-dj * p.resolution));
+        if (r < lo1) {lo2 = lo1; lo1 = r;} else if (r < lo2) {lo2 = r;}
+        if (r > hi1) {hi2 = hi1; hi1 = r;} else if (r > hi2) {hi2 = r;}
         ++n;
       }
-      if (n >= 2) {out.step(i, j) = hi - lo;}
+      if (n >= 4) {
+        out.step(i, j) = static_cast<float>(hi2 - lo2);
+      } else if (n >= 2) {
+        out.step(i, j) = static_cast<float>(hi1 - lo1);
+      }
 
-      const PlaneFit f = fitPlaneOffsets(z, var, i, j, plane_disc, p.plane_radius, p);
       if (!f.valid) {continue;}
       out.slope(i, j) = static_cast<float>(f.slope);
       out.slope_std(i, j) = static_cast<float>(f.slope_std);
@@ -262,6 +273,28 @@ Grid negativeObstacles(
     close_gap(gap, last_d);
   }
   return out;
+}
+
+int fillFootprint(
+  Grid & elevation, Grid & variance, const std::vector<double> & row_x,
+  const std::vector<double> & col_y, const FootprintPlane & fp, float fill_variance)
+{
+  if (fp.nz <= 1e-6) {return 0;}
+  const double c = std::cos(fp.yaw), s = std::sin(fp.yaw);
+  int filled = 0;
+  for (int i = 0; i < elevation.rows(); ++i) {
+    for (int j = 0; j < elevation.cols(); ++j) {
+      if (std::isfinite(elevation(i, j))) {continue;}
+      const double dx = row_x[i] - fp.x, dy = col_y[j] - fp.y;
+      const double along = c * dx + s * dy, across = -s * dx + c * dy;
+      if (std::abs(along) > fp.half_length || std::abs(across) > fp.half_width) {continue;}
+      // Plane through the base origin with normal n: n . (p - origin) = 0.
+      elevation(i, j) = static_cast<float>(fp.z - (fp.nx * dx + fp.ny * dy) / fp.nz);
+      variance(i, j) = fill_variance;
+      ++filled;
+    }
+  }
+  return filled;
 }
 
 }  // namespace rover_terrain_mapping
