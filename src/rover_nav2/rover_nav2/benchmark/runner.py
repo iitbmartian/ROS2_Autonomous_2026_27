@@ -366,6 +366,11 @@ class Runner:
             if left:
                 row['note'] = (row['note'] + f'; stopped {left} stray processes').lstrip('; ')
             row['wall_s'] = f'{time.time() - w_start:.1f}'
+            # About 17 MB per run, and the metrics need only the poses. Kept with --keep-db.
+            if not getattr(self.a, 'keep_db', False):
+                for f in (db, db + '-shm', db + '-wal'):
+                    if os.path.exists(f):
+                        os.remove(f)
         self.log(f"[{run_id}] {row['status']} success={row['success']} "
                  f"t={row['time_to_goal_s']} unsafe={row['unsafe_entries']} "
                  f"rtf={row['rtf']} {row['note']}")

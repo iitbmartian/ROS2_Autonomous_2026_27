@@ -5,8 +5,8 @@
     ros2 run rover_nav2 benchmark --report-only ~/.ros/rover_benchmark/<dir>
 
 Results go to --out (default ~/.ros/rover_benchmark/<date>_<config>): runs.csv, appended after
-every run, summary.md, one launch log, one ground-truth pose CSV and one RTAB-Map database per
-run. Rerunning with the same --out skips runs already in runs.csv, so an interrupted benchmark
+every run, summary.md, one launch log and one ground-truth pose CSV per run (and its RTAB-Map
+database with --keep-db). Rerunning with the same --out skips runs already in runs.csv, so an interrupted benchmark
 resumes where it stopped.
 """
 
@@ -86,6 +86,8 @@ def parse_args(argv):
     p.add_argument('--wall-factor', type=float, default=40.0,
                    help='wall timeout = goal timeout_s times this, if the sim stalls')
     p.add_argument('--repo', default=os.environ.get('ROVER_REPO', '/home/ram/ROS2_Autonomous_2026_27'))
+    p.add_argument('--keep-db', action='store_true',
+                   help='keep each run\'s RTAB-Map database (about 17 MB per run)')
     p.add_argument('--report-only', default=None, metavar='OUT_DIR')
     return p.parse_args(argv)
 

@@ -20,6 +20,11 @@
   `docker run --rm --network host --ipc host -u $(id -u):$(id -g) -e HOME=/tmp/h -v <cws>:/cws -v $PWD/src:/cws/src -w /cws <image@digest> bash -c "source /opt/ros/jazzy/setup.bash && colcon build ... && colcon test ... && colcon test-result --verbose"`
 - **Evidence and tools** live outside the repo in `~/.ros/rover_3d_nav/` (`evidence/phase0/`,
   `tools/`), because the session scratchpad under `/tmp` is wiped on reboot.
+- **Results archive for publication:** `~/rover_3d_nav_results/` (Ram, 2026-11-02). `RESULTS.md`
+  logs every headline number with commit and command, `figures/` and `snapshots/` hold PNG and SVG
+  figures with their data, and benchmarks, evidence, ground truth and tools are linked in.
+- **Disk:** 96 percent full on 2026-11-02. Benchmark runs drop their RTAB-Map database unless
+  `--keep-db`.
 - **Sim isolation:** sim runs use `ROS_DOMAIN_ID=42`, `GZ_PARTITION=rover3d`,
   `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`tools/simenv.sh`), so they never collide with
   Ram's own sessions.
