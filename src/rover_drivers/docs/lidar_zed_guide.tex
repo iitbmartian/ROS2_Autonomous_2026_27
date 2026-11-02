@@ -1,0 +1,128 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{black!5},
+  frame=single,
+  rulecolor=\color{black!20},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Running the Lidar and ZED 2i}
+\author{Rover Drivers Quick Guide}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Before you start}
+
+Build the workspace once (from the repo root) and source it in every new terminal:
+
+\begin{lstlisting}[language=bash]
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+\end{lstlisting}
+
+The ZED needs the \textbf{ZED SDK} and \textbf{CUDA} installed on the machine. If the build fails on the ZED part, this is usually why.
+
+\section{Unitree 4D Lidar L2}
+
+\subsection{Connect it}
+
+The lidar talks over Ethernet (UDP) by default.
+
+\begin{itemize}
+  \item Plug the lidar into the computer with the Ethernet cable and power it on.
+  \item Lidar IP: \texttt{192.168.1.62}
+  \item Set your computer's wired IP to a fixed address: \texttt{192.168.1.2}, netmask \texttt{255.255.255.0}.
+  \item Check the link: \texttt{ping 192.168.1.62}
+\end{itemize}
+
+\subsection{Run it}
+
+\begin{lstlisting}[language=bash]
+ros2 launch unitree_lidar_ros2 launch.py
+\end{lstlisting}
+
+This starts the driver and opens RViz with the point cloud.
+
+\subsection{Check it works}
+
+\begin{lstlisting}[language=bash]
+ros2 topic list
+ros2 topic hz /unilidar/cloud
+ros2 topic hz /unilidar/imu
+\end{lstlisting}
+
+\begin{tabular}{ll}
+  Point cloud & \texttt{/unilidar/cloud} (frame \texttt{unilidar\_lidar}) \\
+  IMU         & \texttt{/unilidar/imu} (frame \texttt{unilidar\_imu}) \\
+\end{tabular}
+
+\subsection{Using USB/serial instead}
+
+In the launch file (\texttt{unitree\_lidar\_ros2/launch/launch.py}), \texttt{initialize\_type} is \texttt{2} for UDP. Change it to \texttt{1} for serial. The serial port is \texttt{/dev/ttyACM0}.
+
+\section{ZED 2i}
+
+\subsection{Connect it}
+
+\begin{itemize}
+  \item Plug the camera into a \textbf{USB 3} port (blue port, USB 3 cable).
+  \item Check the camera is seen: \texttt{lsusb | grep -i stereolabs}
+\end{itemize}
+
+\subsection{Run it}
+
+\begin{lstlisting}[language=bash]
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i
+\end{lstlisting}
+
+The first start can take a few minutes because the SDK optimizes its neural depth model. After that it starts fast.
+
+\subsection{Check it works}
+
+\begin{lstlisting}[language=bash]
+ros2 topic list | grep zed
+ros2 topic hz /zed/zed_node/rgb/color/rect/image
+\end{lstlisting}
+
+Useful topics:
+
+\begin{tabular}{ll}
+  Color image & \texttt{/zed/zed\_node/rgb/color/rect/image} \\
+  Depth       & \texttt{/zed/zed\_node/depth/depth\_registered} \\
+  Point cloud & \texttt{/zed/zed\_node/point\_cloud/cloud\_registered} \\
+  IMU         & \texttt{/zed/zed\_node/imu/data} \\
+  Odometry    & \texttt{/zed/zed\_node/odom} \\
+\end{tabular}
+
+Look at it in RViz: \texttt{rviz2}, then add the image or point cloud topic.
+
+\section{Run both together}
+
+Open two terminals (source the workspace in each) and run the lidar launch in one, the ZED launch in the other. They do not clash: the lidar uses Ethernet, the ZED uses USB.
+
+\section{Common problems}
+
+\begin{tabular}{p{5cm}p{9cm}}
+  \textbf{Problem} & \textbf{Fix} \\ \hline
+  No lidar data & Check the computer IP is \texttt{192.168.1.2} and \texttt{ping 192.168.1.62} works. \\
+  Lidar serial permission error & \texttt{sudo usermod -aG dialout \$USER}, then log out and in. \\
+  ZED not found & Use a USB 3 port and cable. Replug the camera. \\
+  ZED build error & ZED SDK or CUDA is missing or the versions do not match. \\
+  ZED slow first start & Normal. It is optimizing the model once. \\
+  Topics missing & Did you \texttt{source install/setup.bash} in this terminal? \\
+\end{tabular}
+
+\end{document}
