@@ -99,6 +99,16 @@ def wait_future(fut, timeout):
     return fut.result() if fut.done() else None
 
 
+def clean_fastdds_shm():
+    """Removes Fast DDS shared memory left by killed stacks. Only zombie segments go, live ones
+    are untouched. Stale port locks there were stalling Nav2's lifecycle startup."""
+    try:
+        subprocess.run(['fastdds', 'shm', 'clean'], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, timeout=30, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
 class Stack:
     """The simulated stack as a process group, with a marker in its environment so stragglers
     that escape the group (gz sim has been seen to) can be found and stopped."""
@@ -106,6 +116,7 @@ class Stack:
     def __init__(self, cmd, env, log_path, marker):
         self.marker = marker
         self.log = open(log_path, 'w')
+        clean_fastdds_shm()
         self.proc = subprocess.Popen(cmd, env=env, stdout=self.log, stderr=subprocess.STDOUT,
                                      start_new_session=True)
 

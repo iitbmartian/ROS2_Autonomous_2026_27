@@ -36,12 +36,24 @@ def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     glob = merged['global_costmap']['global_costmap']['ros__parameters']
     assert glob['plugins'] == ['traversability_layer', 'inflation_layer']
     assert glob['traversability_layer']['map_topic'] == '/terrain/global_features'
-    # The 2D footprint and inflation tuning carry over untouched.
+    # Configuration space: utilisation verdicts already place the whole rover, so both costmaps
+    # get a point footprint, inflation only past its 0.071 m circumscribed radius, no dilation.
     base_local = base['local_costmap']['local_costmap']['ros__parameters']
-    for key in ('footprint', 'footprint_padding', 'inflation_layer', 'resolution', 'global_frame'):
+    for cm_params in (local, glob):
+        assert cm_params['footprint'].startswith('[[0.05, 0.05]')
+        assert cm_params['footprint_padding'] == 0.0
+        assert cm_params['inflation_layer']['inflation_radius'] == 0.08
+        # The base's inflation plugin type and the rest of its keys still merge in.
+        assert cm_params['inflation_layer']['plugin'] == 'nav2_costmap_2d::InflationLayer'
+        assert cm_params['traversability_layer']['dilate_terrain_lethal'] is False
+        assert cm_params['traversability_layer']['braking_from_physical_footprint'] is True
+    for key in ('resolution', 'global_frame'):
         assert local[key] == base_local[key], key
+    # The 2D file itself keeps its full footprint.
+    assert base_local['footprint'].startswith('[[0.55, 0.45]')
     cm = merged['collision_monitor']['ros__parameters']
     assert cm['observation_sources'] == ['terrain_hazards']
+    assert cm['polygons'] == ['CentreApproach']
     assert cm['terrain_hazards']['topic'] == '/terrain/hazard_points'
     # Everything else is the 2D tuning, untouched.
     for section in base:
