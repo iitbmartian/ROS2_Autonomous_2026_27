@@ -1,0 +1,897 @@
+<?xml version="1.0"?>
+<!--
+  Dense cluttered field for exercising Nav2 obstacle avoidance: scattered
+  cylindrical pillars, a few crates, and three short walls that force real
+  detours. Unlike marsyard.sdf's rocks (too small/sparse to matter to the
+  lidar or costmap), every obstacle here is tall and wide enough to show up
+  as a hard costmap cell. Ground is flat, so suspension/terrain is not being
+  tested -- only planning and local-controller behaviour around obstacles.
+
+  Rover spawns at the origin (x<1 is kept clear); the field runs from about
+  x=1 to x=19, y=-6 to y=6. Drive forward along +x.
+-->
+<sdf version="1.8">
+  <world name="obstacle_field">
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <physics name="1ms" type="dart">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <gravity>0 0 -9.80665</gravity>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.25 0.25 0.25 1</specular>
+      <direction>-0.5 0.2 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <material>
+            <ambient>0.4 0.4 0.4 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_1">
+      <static>true</static>
+      <pose>1.74 -2.78 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_2">
+      <static>true</static>
+      <pose>1.83 -1.45 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_3">
+      <static>true</static>
+      <pose>2.20 1.77 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_4">
+      <static>true</static>
+      <pose>1.94 3.89 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_5">
+      <static>true</static>
+      <pose>3.41 -1.15 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_6">
+      <static>true</static>
+      <pose>3.64 2.07 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_7">
+      <static>true</static>
+      <pose>3.58 3.85 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_8">
+      <static>true</static>
+      <pose>3.72 5.05 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_9">
+      <static>true</static>
+      <pose>5.34 -6.13 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_10">
+      <static>true</static>
+      <pose>5.15 -0.92 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_11">
+      <static>true</static>
+      <pose>5.20 2.18 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_12">
+      <static>true</static>
+      <pose>5.30 3.34 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_13">
+      <static>true</static>
+      <pose>6.90 -6.29 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_14">
+      <static>true</static>
+      <pose>6.80 -4.57 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_15">
+      <static>true</static>
+      <pose>7.05 -2.80 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_16">
+      <static>true</static>
+      <pose>7.03 -1.01 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_17">
+      <static>true</static>
+      <pose>6.91 0.33 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_18">
+      <static>true</static>
+      <pose>8.45 -6.14 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_19">
+      <static>true</static>
+      <pose>8.47 -4.51 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_20">
+      <static>true</static>
+      <pose>8.62 -2.53 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_21">
+      <static>true</static>
+      <pose>8.34 -1.21 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_22">
+      <static>true</static>
+      <pose>9.72 0.62 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_23">
+      <static>true</static>
+      <pose>10.27 2.06 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_24">
+      <static>true</static>
+      <pose>10.30 3.58 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_25">
+      <static>true</static>
+      <pose>11.74 -6.01 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_26">
+      <static>true</static>
+      <pose>11.52 -2.69 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_27">
+      <static>true</static>
+      <pose>11.82 -1.08 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_28">
+      <static>true</static>
+      <pose>11.51 0.23 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_29">
+      <static>true</static>
+      <pose>11.67 2.17 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_30">
+      <static>true</static>
+      <pose>11.44 3.61 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_31">
+      <static>true</static>
+      <pose>11.77 5.18 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_32">
+      <static>true</static>
+      <pose>13.46 -5.71 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_33">
+      <static>true</static>
+      <pose>13.10 -2.81 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_34">
+      <static>true</static>
+      <pose>13.11 -1.11 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_35">
+      <static>true</static>
+      <pose>13.35 0.39 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_36">
+      <static>true</static>
+      <pose>13.33 3.58 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_37">
+      <static>true</static>
+      <pose>14.98 -3.01 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_38">
+      <static>true</static>
+      <pose>14.51 0.58 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_39">
+      <static>true</static>
+      <pose>15.06 1.96 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_40">
+      <static>true</static>
+      <pose>16.26 -4.45 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_41">
+      <static>true</static>
+      <pose>16.50 -2.61 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_42">
+      <static>true</static>
+      <pose>16.41 -1.49 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_43">
+      <static>true</static>
+      <pose>16.19 0.18 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_44">
+      <static>true</static>
+      <pose>16.30 2.01 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_45">
+      <static>true</static>
+      <pose>16.13 3.41 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_46">
+      <static>true</static>
+      <pose>16.56 5.45 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_47">
+      <static>true</static>
+      <pose>17.97 -5.98 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_48">
+      <static>true</static>
+      <pose>18.23 -4.13 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.9</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_49">
+      <static>true</static>
+      <pose>17.78 -3.03 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+          <material><ambient>0.75 0.45 0.2 1</ambient><diffuse>0.75 0.45 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_50">
+      <static>true</static>
+      <pose>17.96 -1.37 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_51">
+      <static>true</static>
+      <pose>18.09 0.32 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.3 0.55 0.3 1</ambient><diffuse>0.3 0.55 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_52">
+      <static>true</static>
+      <pose>17.94 3.59 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.2 0.45 0.75 1</ambient><diffuse>0.2 0.45 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pillar_53">
+      <static>true</static>
+      <pose>18.30 5.14 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.18</radius><length>0.4</length></cylinder></geometry>
+          <material><ambient>0.55 0.2 0.2 1</ambient><diffuse>0.55 0.2 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="crate_1">
+      <static>true</static>
+      <pose>6.00 2.50 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.1 1</ambient><diffuse>0.6 0.6 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="crate_2">
+      <static>true</static>
+      <pose>9.00 -2.00 0.30 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.8 0.4 0.6</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.8 0.4 0.6</size></box></geometry>
+          <material><ambient>0.6 0.6 0.1 1</ambient><diffuse>0.6 0.6 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="crate_3">
+      <static>true</static>
+      <pose>13.00 1.00 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.4 1.2 0.5</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.4 1.2 0.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.1 1</ambient><diffuse>0.6 0.6 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="crate_4">
+      <static>true</static>
+      <pose>4.00 -3.50 0.20 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.6 0.6 0.4</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.6 0.6 0.4</size></box></geometry>
+          <material><ambient>0.6 0.6 0.1 1</ambient><diffuse>0.6 0.6 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_1">
+      <static>true</static>
+      <pose>8.00 5.00 0.30 0 0 0.0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.0 0.3 0.6</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.0 0.3 0.6</size></box></geometry>
+          <material><ambient>0.45 0.45 0.45 1</ambient><diffuse>0.45 0.45 0.45 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_2">
+      <static>true</static>
+      <pose>8.00 -5.00 0.30 0 0 0.0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.0 0.3 0.6</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.0 0.3 0.6</size></box></geometry>
+          <material><ambient>0.45 0.45 0.45 1</ambient><diffuse>0.45 0.45 0.45 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_3">
+      <static>true</static>
+      <pose>16.00 0.00 0.30 0 0 0.0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 6.0 0.6</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 6.0 0.6</size></box></geometry>
+          <material><ambient>0.45 0.45 0.45 1</ambient><diffuse>0.45 0.45 0.45 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>
