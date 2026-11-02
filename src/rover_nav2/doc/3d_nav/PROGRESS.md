@@ -47,9 +47,16 @@
   Ram's instruction (messages rewritten, trees unchanged, nothing pushed). Pre-rewrite copies:
   branches `backup/3d_nav-before-trailer-strip` and `backup/bringup-before-trailer-strip`, to
   delete once Ram is happy.
-- Not mine and left out of every commit: the edits in `src/rover_nav2/config/nav2_params_sim.yaml`,
-  `src/rover_gazebo/worlds/obstacle_field.sdf`, `src/rover_drivers/docs/`, the deleted
-  `unitree_lidar_ros2/COLCON_IGNORE` and the Unitree binaries.
+- Ram's own local changes, committed on 2026-11-02 at his request ("make sure any other change i
+  did on my local directory goes to git"): `obstacle_field.sdf`, `rover_drivers/docs/`, the
+  deleted `unitree_lidar_ros2/COLCON_IGNORE` (the package builds) and the rebuilt Unitree
+  binaries. His 2D tuning of `nav2_params_sim.yaml` (MPPI horizon 50 steps, speeds doubled,
+  inflation) went in earlier by mistake inside `afcb10b` ("add terrain_eval ..."), so that
+  commit's message does not mention it. The 3D overlay builds on that file, so 3D runs since
+  then include his tuning too.
+- `ram/3d_nav` is pushed to `origin/ram/3d_nav` and merges straight into main when done (Ram,
+  2026-11-02). The owner branches are not pushed separately: their commits reach the remote
+  through `ram/3d_nav`'s merges.
 
 ## Decisions log
 
