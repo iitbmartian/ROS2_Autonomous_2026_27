@@ -6,6 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
+| Running unattended (started 2026-11-03 00:46) | `batch_overnight.sh`: Phase 2 map evaluation on all worlds, a 3D check of every goal, then the 2D baseline on all 7 worlds (5 runs per goal). About 13 h. |
 | In progress | Phase 2: the first 3D goal on a ramp succeeded on 2026-11-02 (`lane15_top`, slopes.sdf) after the fixes in "Phase 2: live sim findings". Next: the rest of the slopes goals, per-world RMSE (`phase2_all.sh`), the crater check, then the 2D baseline rerun on all 7 worlds. |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -173,9 +174,15 @@ One line each: the choice and the reason.
   false 5 cm dip all round the rover that tripped the step check.
 - 2026-11-02: Lidar `range_min` 0.3 m, not 1.0 m. The body box does the self filtering, and the
   1.0 m cut left a uniform unknown ring out to 1.0 m that the braking rule made lethal at start.
-- 2026-11-02: Sim runs pin Fast DDS to shared memory plus loopback UDP
-  (`tools/fastdds_loopback.xml`) and set `GZ_IP=127.0.0.1`. A Wi-Fi change mid-run had cut DDS
-  discovery and left a sim with no topics.
+- 2026-11-03: Sim runs keep Fast DDS defaults with `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`, set
+  `GZ_IP=127.0.0.1`, and clean zombie shared memory (`fastdds shm clean`) before every start.
+  Tried and dropped: a loopback-only Fast DDS profile (2026-11-02, after a Wi-Fi change cut
+  discovery once). UDP-only, it left late-joining nodes undiscovered: the collision monitor never
+  met the velocity smoother, `/cmd_vel` had no publisher, and the slopes `sidehill_uphill` run
+  never moved (that run is invalid). With shared memory it still hid `/odom` from tools.
+- 2026-11-03: Long runs go in one detached batch (`tools/batch_overnight.sh`, `setsid nohup`),
+  so network drops or a stopped session lose nothing. Progress in
+  `~/rover_3d_nav_results/batch.log`.
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
