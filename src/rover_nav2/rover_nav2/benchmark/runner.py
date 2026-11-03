@@ -10,6 +10,7 @@ path length, planner time, CPU load, real-time factor. See metrics.py and SPEC.m
 """
 
 import csv
+import gc
 import hashlib
 import math
 import os
@@ -263,7 +264,12 @@ class Runner:
         self.spin_thread.join(timeout=5.0)
         self.node.destroy_node()
         rclpy.try_shutdown(context=self.ctx)
-        self.node = None
+        # try_shutdown leaves the DDS participant alive, leaked ones crowd the domain and the
+        # stack's own nodes then miss each other in discovery.
+        self.ctx.destroy()
+        self.node = self.executor = self.spin_thread = self.ctx = None
+        # The node and its callbacks form reference cycles, only the cycle collector frees them.
+        gc.collect()
 
     def launch_cmd(self, goalset, db_path):
         launch = 'pipeline_3d.launch.py' if self.a.config == '3d' else 'pipeline.launch.py'
