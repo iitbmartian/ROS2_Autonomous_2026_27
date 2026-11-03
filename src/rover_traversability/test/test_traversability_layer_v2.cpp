@@ -51,6 +51,7 @@ protected:
       {"trav.cost_model", std::string("utilisation")},
       {"trav.odom_topic", std::string("/test_traversability_v2/odom_unused")},
       {"trav.map_timeout", 5.0},
+      {"trav.escape_radius", 0.3},
     };
     for (const auto & p : extraParams()) {params.push_back(p);}
     opts.parameter_overrides(params);
@@ -214,6 +215,34 @@ TEST_F(V2Point, BrakingBandStartsAtThePhysicalFootprint)
   EXPECT_EQ(cost(2.6, 2.0), 200);                 // 0.625 m, inside the physical footprint
   EXPECT_EQ(cost(2.8, 2.0), LETHAL_OBSTACLE);     // 0.825 m, in the band
   EXPECT_EQ(cost(3.0, 2.0), 200);                 // 1.025 m, beyond it
+}
+
+TEST_F(V2, LethalNextToTheRoverIsCappedSoItCanLeave)
+{
+  // Robot at (2, 2), escape radius 0.3 m. Mask 0 at (2.4, 2.0), centre 0.425 m out: lethal, and
+  // dilated by 4 cells to x 2.2..2.6. Dilated cells within 0.3 m (x 2.2, 2.25) drop to 252,
+  // the ones beyond (x 2.3, centre 0.325 m) stay lethal, and so does the source cell.
+  auto m = benign();
+  set(m, layers::kSafeYawMask, 2.4, 2.0, 0.0f);
+  feed(m);
+  EXPECT_EQ(cost(2.4, 2.0), LETHAL_OBSTACLE);
+  EXPECT_EQ(cost(2.3, 2.0), LETHAL_OBSTACLE);
+  EXPECT_EQ(cost(2.25, 2.0), 252);
+  EXPECT_EQ(cost(2.2, 2.0), 252);
+}
+
+TEST_F(V2Point, RoverOnALethalCellCanStillLeave)
+{
+  // The rover's own cell and its neighbour judged unsafe (u 1.5): 252 so planners can start,
+  // a cell 0.5 m away keeps lethal.
+  auto m = benign();
+  set(m, layers::kBestUtilisation, 2.0, 2.0, 1.5f);
+  set(m, layers::kBestUtilisation, 2.1, 2.0, 1.5f);
+  set(m, layers::kBestUtilisation, 2.5, 2.0, 1.5f);
+  feed(m);
+  EXPECT_EQ(cost(2.0, 2.0), 252);
+  EXPECT_EQ(cost(2.1, 2.0), 252);
+  EXPECT_EQ(cost(2.5, 2.0), LETHAL_OBSTACLE);
 }
 
 int main(int argc, char ** argv)

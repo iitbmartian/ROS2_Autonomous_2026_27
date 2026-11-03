@@ -219,6 +219,11 @@ One line each: the choice and the reason.
   and `gc.collect()` in `stop_node`, checked by 4 start/stop cycles on a spare domain (7 sockets
   up, 0 after each stop, 28 leaked before). The first Nav2 start after it came up first time.
   The leftover discovery server from the trial was stopped too, it was not the cause.
+- 2026-11-04: Escape from a lethal start cell: the layer caps lethal cells within
+  `escape_radius` of the rover at 252 after dilation (`capAroundRobot`), default off, 0.3 m in
+  both 3D costmaps. Gtests `V2.LethalNextToTheRoverIsCappedSoItCanLeave`,
+  `V2Point.RoverOnALethalCellCanStillLeave`, rover_traversability 72 of 72 pass. The overlay
+  change installs after the night batch so the running 3D check keeps one config.
 - 2026-11-04: **Root cause of every discovery miss so far: a 32-participant limit.** Loopback
   has no MULTICAST flag here, so with `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` Fast DDS finds
   peers only by unicast to participant ids 0..31 on 127.0.0.1. Two participants that both get an

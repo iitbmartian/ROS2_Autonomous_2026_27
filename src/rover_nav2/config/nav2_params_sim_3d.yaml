@@ -45,6 +45,9 @@ local_costmap:
         dilate_terrain_lethal: false  # verdicts are configuration space already
         # Unknown cells are judged against the real outline, not the point footprint above.
         braking_from_physical_footprint: true
+        # Lethal cells within 0.3 m of the rover drop to 252: it stands there already, and a
+        # lethal start cell stopped Smac and MPPI at the slopes lane edges (rover_traversability).
+        escape_radius: 0.3
         combination_method: 1   # max
         odom_topic: /odom
         braking_decel: 0.5      # m/s^2, conservative for loose ground
@@ -87,6 +90,7 @@ global_costmap:
         max_soft_cost: 252
         dilate_terrain_lethal: false
         braking_from_physical_footprint: true
+        escape_radius: 0.3
         combination_method: 1
         odom_topic: /odom
         braking_decel: 0.5

@@ -142,6 +142,10 @@ For a pose (x, y, yaw):
 - Unknown cells under the rover's footprint take the plane the rover stands on (from TF), in the
   feature computation only. The wheels prove that ground carries the rover, and without it every
   pose check near the rover reaches into the blind zone under the body.
+- Lethal cells within `escape_radius` (0.3 m) of the rover are capped at `max_soft_cost`. The
+  rover stands there already, so they cannot stop it leaving, and a lethal start cell makes Smac
+  refuse to plan and every MPPI sample start in collision. Capped at 252, not freed, so no plan
+  prefers to stay. (Added 2026-11-04 after the slopes lane-edge stops.)
 
 ### Controller cost (`TerrainCritic`)
 

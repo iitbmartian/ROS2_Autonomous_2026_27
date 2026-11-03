@@ -56,6 +56,7 @@ void TraversabilityLayer::onInitialize()
   declareParameter("unknown_lethal_in_braking", rclcpp::ParameterValue(true));
   declareParameter("dilate_terrain_lethal", rclcpp::ParameterValue(true));
   declareParameter("braking_from_physical_footprint", rclcpp::ParameterValue(false));
+  declareParameter("escape_radius", rclcpp::ParameterValue(0.0));
   declareParameter(
     "physical_params_file", rclcpp::ParameterValue(core::defaultPhysicalParamsPath()));
 
@@ -86,6 +87,7 @@ void TraversabilityLayer::onInitialize()
   node->get_parameter(name_ + ".braking_margin", braking_margin_);
   node->get_parameter(name_ + ".unknown_lethal_in_braking", unknown_lethal_in_braking_);
   node->get_parameter(name_ + ".dilate_terrain_lethal", dilate_terrain_lethal_);
+  node->get_parameter(name_ + ".escape_radius", escape_radius_);
   node->get_parameter(
     name_ + ".braking_from_physical_footprint", braking_from_physical_footprint_);
   if (braking_from_physical_footprint_) {
@@ -271,6 +273,8 @@ void TraversabilityLayer::updateBounds(
   if (!enabled_) {
     return;
   }
+  robot_x_ = robot_x;
+  robot_y_ = robot_y;
 
   if (layered_costmap_->isRolling()) {
     updateOrigin(robot_x - getSizeInMetersX() / 2.0, robot_y - getSizeInMetersY() / 2.0);
@@ -457,6 +461,7 @@ void TraversabilityLayer::updateCosts(
   } else {
     dilation_.apply(costmap_, sx, sy, min_i, min_j, max_i, max_j);
   }
+  capAroundRobot();
 
   if (combination_method_ == 0) {
     updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
@@ -464,6 +469,27 @@ void TraversabilityLayer::updateCosts(
     // updateWithMax skips cells equal to NO_INFORMATION, which is why unknown
     // terrain is written as a finite penalty rather than 255.
     updateWithMax(master_grid, min_i, min_j, max_i, max_j);
+  }
+}
+
+void TraversabilityLayer::capAroundRobot()
+{
+  if (escape_radius_ <= 0.0) {return;}
+  const double r = escape_radius_, r2 = r * r, res = resolution_;
+  int i0, j0, i1, j1;
+  worldToMapEnforceBounds(robot_x_ - r, robot_y_ - r, i0, j0);
+  worldToMapEnforceBounds(robot_x_ + r, robot_y_ + r, i1, j1);
+  for (int j = j0; j <= j1; ++j) {
+    for (int i = i0; i <= i1; ++i) {
+      const double dx = origin_x_ + (i + 0.5) * res - robot_x_;
+      const double dy = origin_y_ + (j + 0.5) * res - robot_y_;
+      const unsigned int k = getIndex(i, j);
+      if (dx * dx + dy * dy <= r2 && costmap_[k] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE &&
+        costmap_[k] != nav2_costmap_2d::NO_INFORMATION)
+      {
+        costmap_[k] = max_soft_cost_;
+      }
+    }
   }
 }
 

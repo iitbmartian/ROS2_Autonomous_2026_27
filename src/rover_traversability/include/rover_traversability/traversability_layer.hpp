@@ -71,6 +71,8 @@ private:
   // within braking distance of the footprint edge and unknown_cost beyond it.
   // braking is set when the cell is lethal because of the braking rule.
   unsigned char utilisationCost(float u, float mask, double dist_to_robot, bool & braking) const;
+  // Caps lethal cells within escape_radius_ of the last robot position, after dilation.
+  void capAroundRobot();
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
   // Widen lethal and high cost cells by the inscribed radius so that the
@@ -135,6 +137,11 @@ private:
   // terrain layer without fresh data must stop the controller, not pass stale costs.
   double map_timeout_{1.0};
   int combination_method_{1};            // 0 overwrite, 1 max
+  // m. Lethal cells this close to the rover are capped at max_soft_cost: it already stands
+  // there, so they cannot stop it leaving, and a lethal start cell fails Smac and MPPI alike.
+  double escape_radius_{0.0};   // off unless configured, the 3D overlays set it
+  double robot_x_{0.0};
+  double robot_y_{0.0};
 };
 
 }  // namespace rover_traversability
