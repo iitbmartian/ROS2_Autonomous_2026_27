@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended (started 2026-11-03 00:46) | `batch_overnight.sh`: Phase 2 map evaluation on all worlds, a 3D check of every goal, then the 2D baseline on all 7 worlds (5 runs per goal). About 13 h. |
+| Running unattended (started 2026-11-03 00:46) | `batch_overnight.sh`: Phase 2 map evaluation on all worlds, a 3D check of every goal, then the 2D baseline on all 7 worlds (5 runs per goal). Hung 6 h at slopes (fixed 07:06), now ends around 19:00, then a slopes rerun. |
 | In progress | Phase 2: the first 3D goal on a ramp succeeded on 2026-11-02 (`lane15_top`, slopes.sdf) after the fixes in "Phase 2: live sim findings". Next: the rest of the slopes goals, per-world RMSE (`phase2_all.sh`), the crater check, then the 2D baseline rerun on all 7 worlds. |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -188,6 +188,10 @@ One line each: the choice and the reason.
   `terrain_eval` treats rclpy's `ExternalShutdownException` like Ctrl-C and still writes its CSV
   and summary. The slopes evaluation was lost (its snapshot kept: RMS 3.62 cm). Batch resumed at
   marsyard 07:06, so it ends about 6 h later than planned.
+- 2026-11-03: The slopes run never drove because `ros2 action send_goal` never discovered
+  `bt_navigator` and sat out its 30 min timeout (no "Begin navigating" in the log). Phase 2 runs
+  now send goals with `tools/send_goal.py`, an rclpy client that waits 60 s for the server and
+  retries up to 4 times with a fresh context. The benchmark runner already sends in-process.
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
