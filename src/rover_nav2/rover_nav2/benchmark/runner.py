@@ -164,16 +164,45 @@ def marked_processes(marker):
         if p.pid == me:
             continue
         try:
-            if p.environ().get('ROVER_BENCH_RUN') == marker:
+            run = p.environ().get('ROVER_BENCH_RUN')
+            # marker None: any run's process, a leftover of an earlier stack.
+            if run is not None and (marker is None or run == marker):
                 out.append(p)
         except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
             pass
     return out
 
 
+def dump_threads(marker, path):
+    """Each of the run's processes with its threads and where they wait, for stalled starts."""
+    with open(path, 'w') as f:
+        for p in marked_processes(marker):
+            try:
+                f.write(f'{p.pid} {p.name()} {p.status()}\n')
+                for t in sorted(os.listdir(f'/proc/{p.pid}/task')):
+                    d = f'/proc/{p.pid}/task/{t}'
+                    with open(d + '/comm') as c, open(d + '/wchan') as w:
+                        f.write(f'    {c.read().strip():16s} {w.read().strip()}\n')
+                shm = set()
+                with open(f'/proc/{p.pid}/maps') as m:
+                    for line in m:
+                        if '/dev/shm' in line:
+                            shm.add(line.split()[-1])
+                f.write(''.join(f'    shm {x}\n' for x in sorted(shm)))
+            except (OSError, psutil.Error):
+                pass
+
+
 def kill_marked(marker):
-    """Stop every process still carrying this run's marker. Returns how many there were."""
+    """Stop every process still carrying this run's marker (None: any run's). Returns their
+    names."""
     procs = marked_processes(marker)
+    names = []
+    for p in procs:
+        try:
+            names.append(p.name())
+        except psutil.NoSuchProcess:
+            pass
     for p in procs:
         try:
             p.terminate()
@@ -185,7 +214,7 @@ def kill_marked(marker):
             p.kill()
         except psutil.NoSuchProcess:
             pass
-    return len(procs)
+    return names
 
 
 class CpuSampler(threading.Thread):
@@ -374,12 +403,18 @@ class Runner:
         for attempt in (1, 2):
             # Fresh participant per stack: stop ours before the shared-memory clean, start after.
             self.stop_node()
+            # A process left from an earlier stack can hold a Fast DDS shared-memory lock, and
+            # every new node then hangs creating its participant (2026-11-03, 19:30 to 22:00).
+            old = kill_marked(None)
+            if old:
+                self.log(f"[{run_id}] stopped leftovers of earlier stacks: {' '.join(old)}")
             stack = Stack(self.launch_cmd(goalset, db), run_env, log_path, marker)
             self.start_node()
             note = self.wait_ready(stack)
             if note is None or attempt == 2:
                 break
             self.log(f'[{run_id}] startup stalled ({note}), restarting the stack once')
+            dump_threads(marker, log_path + '.stall')
             stack.stop()
             retried = f'startup retried after: {note}'
         row['note'] = retried
@@ -416,7 +451,7 @@ class Runner:
             row.update(cpu_mean_pct=f'{cm:.1f}', cpu_peak_pct=f'{cp:.1f}')
             left = stack.stop()
             if left:
-                row['note'] = (row['note'] + f'; stopped {left} stray processes').lstrip('; ')
+                row['note'] = (row['note'] + f"; stopped stray {' '.join(left)}").lstrip('; ')
             row['wall_s'] = f'{time.time() - w_start:.1f}'
             # About 17 MB per run, and the metrics need only the poses. Kept with --keep-db.
             if not getattr(self.a, 'keep_db', False):
