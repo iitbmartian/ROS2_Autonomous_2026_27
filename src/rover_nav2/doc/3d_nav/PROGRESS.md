@@ -7,7 +7,7 @@
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | Running unattended (started 2026-11-03 00:46) | `batch_overnight.sh`: Phase 2 map evaluation on all worlds, a 3D check of every goal, then the 2D baseline on all 7 worlds (5 runs per goal). Hung 6 h at slopes (fixed 07:06), now ends around 19:00, then a slopes rerun. |
-| In progress | Phase 2: the first 3D goal on a ramp succeeded on 2026-11-02 (`lane15_top`, slopes.sdf) after the fixes in "Phase 2: live sim findings". Next: the rest of the slopes goals, per-world RMSE (`phase2_all.sh`), the crater check, then the 2D baseline rerun on all 7 worlds. |
+| In progress | Phase 2 gate: 4 of 7 worlds pass (RMSE 1.76 to 1.94 cm), slopes and rock_field to rerun, crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
@@ -541,3 +541,57 @@ Open from these findings:
 - The fixed ray pattern of the sim L2 is a sim limitation worth raising with `rover_gazebo`'s
   owner: a slow yaw spin of the sensor would sweep the pattern like the real one.
 
+
+## Phase 2 gate run (2026-11-03)
+
+Per-world elevation RMSE within 6 m of the rover, against ground truth, aligned to the world frame
+through Gazebo's pose. Gate: at most 5 cm. Commands: `tools/phase2_all.sh` (runs `terrain_eval`
+and `tools/snapshot.py` per world), evidence in `evidence/phase2/eval_<world>.txt` and
+`snapshot_<world>.txt`.
+
+| World | terrain_eval RMSE (maps) | Snapshot RMSE | Verdict |
+|---|---|---|---|
+| marsyard | 1.92 cm (256 maps, per-map worst 3.9) | 1.99 cm | pass |
+| ledge | 1.92 cm (458 maps, worst 5.0) | 1.95 cm | pass |
+| bars | 1.94 cm (1267 maps, worst 3.7) | 2.03 cm | pass |
+| urc_mix | 1.76 cm (665 maps, worst 2.7) | 1.71 cm | pass |
+| rock_field | lost, shutdown race (fixed in `77e0913`) | 3.15 cm | rerun |
+| slopes | lost, the goal never reached Nav2 (fixed with `tools/send_goal.py`) | 3.62 cm | rerun queued |
+| crater_field | 27.1 cm (3862 maps) | 32.2 cm | **fail, odometry** |
+
+Crater_field is not a mapping error. Locally the map is within about 2 cm. All three goals
+aborted with many recovery spins, and odometry yaw drifted 27 deg (`snapshot_crater_field.txt`:
+odom to world offset 0.34 m, yaw -27.2 deg). The local map lives in `odom`, so cells mapped
+before the drift stay at their old heading. The terrain mesh ends at x -3.8 m with the ground
+plane 1.25 m lower, and that edge shows up rotated about 20 deg in `snapshots/p2_crater_field_end.png`,
+which is where the error comes from. The EKF fuses the gyro (`ekf_rover_gazebo_imu.yaml`), so
+27 deg of yaw drift during recovery spins is worth raising with `rover_ekf`'s owner. The crater
+check is untested: the rover never came within 8 m of a crater.
+
+Next for the gate: rerun slopes and rock_field, and crater_field with goals the rover reaches.
+The per-world RMSE also needs the gate's 6 m window to exclude cells mapped before a large drift,
+or the gate should be stated for drift under some bound. Proposed SPEC wording follows once the
+reruns are in.
+
+## 3D check, one run per goal (2026-11-03)
+
+`ros2 run rover_nav2 benchmark --worlds all --runs 1 --config 3d --tag 3d --out
+~/.ros/rover_benchmark/2026-11-03_3d_check`, commit `9597be6`.
+
+- 21 runs: 5 startup failures (lane25_top, crater far_left, marsyard behind_left, both bars
+  goals), 16 scored.
+- 2 of 16 succeed by ground truth (marsyard ahead_8m 0.33 m, crater ahead_10m 0.39 m).
+- 4 more report Nav2 SUCCEEDED but end 0.59 to 3.07 m from the goal by ground truth (lane15_top,
+  past_lanes, urc mid_20m, urc far_east): map-frame drift.
+- The rest abort or time out, most with 17 to 19 recoveries. rock_field far_right aborted 15.5 m
+  short after 79 s.
+- **0 unsafe entries on every run.**
+
+Phase 3 work list from this run, most important first:
+1. Startup failures, 5 of 21. Find which node stalls and why the runner's retry does not recover.
+2. Flat ground costs u 0.4 to 0.8 out to 3 m because the sim lidar's ring striping reads as a
+   wheel-disc step (`snapshots/p2_slopes_end.png`, limiting check "step" everywhere). This makes
+   every route expensive and likely drives the recoveries.
+3. Localisation drift: success by Nav2 but metres off by ground truth, and 27 deg yaw on
+   crater_field. Raise with `rover_ekf` and RTAB-Map owners.
+4. The lane-corner trap and the sidehill abort from 2026-11-02.
