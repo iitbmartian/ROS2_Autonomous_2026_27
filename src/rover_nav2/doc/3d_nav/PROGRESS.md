@@ -204,6 +204,13 @@ One line each: the choice and the reason.
   the new step reads 1.6 cm (slopes), 1.8 cm (bars) and 1.0 cm (urc_mix) median, the real bars
   still 11 cm. A plain median would erase a 2x2 stub of any height, a plain 3x3 mean shaves a
   2-cell rib to 2/3, hence the hybrid. Tests: `Median3.*`, `Features.StepMedian*`.
+- 2026-11-03: Discovery misses are one problem with three faces: `ros2 action send_goal` never
+  found `bt_navigator` (slopes), the runner's node never found it (5 startup failures), and in
+  the 3D check's marsyard `left_diag` run the rover never moved 1 mm though MPPI and the backup
+  behaviour both commanded motion (all controllers active, no node died), so a link in the
+  velocity chain was likely never matched. Only Fast DDS is installed. Trial queued for when the
+  sim is free (`tools/dds_trial.sh`): 4 stack starts each with default discovery and with the
+  Fast DDS discovery server (`ROVER_DDS_DS=1` in `tools/simenv.sh`, opt-in, sim tooling only).
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
