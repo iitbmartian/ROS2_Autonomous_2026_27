@@ -6,8 +6,8 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended (started 2026-11-03 00:46) | `batch_overnight.sh`: Phase 2 map evaluation on all worlds, a 3D check of every goal, then the 2D baseline on all 7 worlds (5 runs per goal). Hung 6 h at slopes (fixed 07:06), now ends around 19:00, then a slopes rerun. |
-| In progress | Phase 2 gate: 4 of 7 worlds pass (RMSE 1.76 to 1.94 cm), slopes and rock_field to rerun, crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
+| Running unattended | Overnight batch done 16:05 (Phase 2 evaluation, 3D check, 2D baseline on all worlds). Now: the DDS discovery trial (`tools/dds_trial.sh`), then a rock_field Phase 2 rerun (`tools/after_batch3.sh`). |
+| In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 5 of 7 worlds pass (RMSE 1.76 to 2.00 cm), rock_field to rerun, crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
@@ -211,6 +211,10 @@ One line each: the choice and the reason.
   velocity chain was likely never matched. Only Fast DDS is installed. Trial queued for when the
   sim is free (`tools/dds_trial.sh`): 4 stack starts each with default discovery and with the
   Fast DDS discovery server (`ROVER_DDS_DS=1` in `tools/simenv.sh`, opt-in, sim tooling only).
+- 2026-11-03: `terrain_eval` skips a message rclpy fails to convert (`RuntimeError: Unable to
+  convert call argument`, killed the rock_field evaluation after 7 min) and gives up after 50.
+- 2026-11-03: The 2D baseline is recorded as shipped, with the outside-bounds finding, rather
+  than quietly changing the baseline's global costmap. Ram decides (see the question).
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
@@ -523,9 +527,42 @@ suspension constraints), and other owners' Python nodes running at joint-state r
   move the hot loops to C++, for the owners to review. Large and outside my scope.
 - Alternative: keep 0.7 and treat the gate as blocked until a faster machine.
 
-### Gate item 3: baseline rerun on all worlds: pending
+### Gate item 3: baseline rerun on all worlds: ran, a finding on the new worlds
 
-Starts after the Phase 2 evaluation runs, so the two never share the CPU.
+`ros2 run rover_nav2 benchmark --worlds all --runs 5 --config 2d --tag 2d --out
+~/.ros/rover_benchmark/2026-11-03_baseline_2d_all`, commit `9597be6`, 105 runs, 0 startup
+failures. Figures `figures/baseline_2d_all_*` and, with the 3D check, `figures/compare_2d_3d_*`.
+
+| World | Runs | Success (ground truth) | Median time | Unsafe entries | Note |
+|---|---|---|---|---|---|
+| marsyard | 15 | 0.73 | 25.0 s | 0 | as on 2026-11-01 (0.80) |
+| ledge | 10 | 0.50 | 16.4 s | 0 | on_ledge_12m: goal outside bounds |
+| bars | 10 | 0.00 | | 0 | 8 Nav2 successes while stuck, as before |
+| slopes | 25 | 0.00 | | 0 | goal outside bounds |
+| crater_field | 15 | 0.00 | | 0 | goal outside bounds |
+| rock_field | 15 | 0.00 | | 0 | goal outside bounds |
+| urc_mix | 15 | 0.00 | | 0 | goal outside bounds |
+
+Finding: on the four new worlds the 2D stack never moved. The planner log says `Goal
+Coordinates of(42.0, 0.0) was outside bounds` every 3 s until the timeout. The 2D global costmap
+takes its size from the static layer, RTAB-Map's `/map`, which at startup covers only what the
+sensors see from spawn. A goal beyond that is rejected, so the rover never drives and the map
+never grows. marsyard, ledge and bars have goals close enough or tall features that RTAB-Map maps
+early. The 3D overlay uses a fixed 100 x 100 m global costmap and does not have this. The
+baseline above is honest for the 2D stack as shipped, but it measures map bounds, not terrain
+handling. Question for Ram below ("Question: 2D baseline on the new worlds").
+
+### Question: 2D baseline on the new worlds
+
+The 2D stack as shipped cannot accept a goal outside RTAB-Map's current map, so it scores 0 on
+slopes, crater_field, rock_field and urc_mix without moving.
+
+- Recommended: add a benchmark-only config `2d_bounded`, a copy of `nav2_params_sim.yaml` whose
+  global costmap has a fixed 100 x 100 m size like the 3D overlay (static layer kept, unknown
+  allowed). `nav2_params_sim.yaml` and `navigation.launch.py` stay untouched. Report both: the
+  shipped 2D stack, and `2d_bounded` as the fair terrain comparison.
+- Alternative: keep only the shipped baseline and state the limit in the comparison.
+- Alternative: propose the fixed-size global costmap for the 2D stack itself to its owner.
 
 ## Phase 2: live sim findings (2026-11-01 and 2026-11-02)
 
@@ -574,8 +611,8 @@ and `tools/snapshot.py` per world), evidence in `evidence/phase2/eval_<world>.tx
 | ledge | 1.92 cm (458 maps, worst 5.0) | 1.95 cm | pass |
 | bars | 1.94 cm (1267 maps, worst 3.7) | 2.03 cm | pass |
 | urc_mix | 1.76 cm (665 maps, worst 2.7) | 1.71 cm | pass |
-| rock_field | lost, shutdown race (fixed in `77e0913`) | 3.15 cm | rerun |
-| slopes | lost, the goal never reached Nav2 (fixed with `tools/send_goal.py`) | 3.62 cm | rerun queued |
+| rock_field | lost twice: shutdown race (fixed in `77e0913`), then an rclpy take error after 7 min (skipped since) | 3.15 cm | rerun queued |
+| slopes | 2.00 cm (274 maps, per-map worst 2.8), rerun 2026-11-03 16:05 | 3.62 cm (at spawn) | pass |
 | crater_field | 27.1 cm (3862 maps) | 32.2 cm | **fail, odometry** |
 
 Crater_field is not a mapping error. Locally the map is within about 2 cm. All three goals

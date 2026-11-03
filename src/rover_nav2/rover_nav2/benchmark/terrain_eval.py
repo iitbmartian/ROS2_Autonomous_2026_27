@@ -283,9 +283,19 @@ def main(argv=None):
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     ev = Evaluator(a, GroundTruthGrid(npz), craters, phys)
     t0 = time.time()
+    take_errors = 0
     try:
         while rclpy.ok() and (a.duration <= 0 or time.time() - t0 < a.duration):
-            rclpy.spin_once(ev, timeout_sec=0.2)
+            try:
+                rclpy.spin_once(ev, timeout_sec=0.2)
+            except RuntimeError as e:
+                # rclpy now and then fails to convert one taken message (seen on rock_field after
+                # 7 h), losing one map is better than losing the whole evaluation.
+                take_errors += 1
+                if take_errors > 50:
+                    raise
+                print(f'skipped a message that failed to take ({take_errors}): {e}',
+                      file=sys.stderr)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
