@@ -31,6 +31,7 @@ import time
 
 import numpy as np
 import rclpy
+from rclpy.executors import ExternalShutdownException
 import yaml
 from grid_map_msgs.msg import GridMap
 from nav_msgs.msg import Odometry
@@ -277,7 +278,8 @@ def main(argv=None):
     try:
         while rclpy.ok() and (a.duration <= 0 or time.time() - t0 < a.duration):
             rclpy.spin_once(ev, timeout_sec=0.2)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
+        # rclpy's own SIGINT handler raises the latter, both mean "stop and write results".
         pass
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, 'w', newline='') as f:

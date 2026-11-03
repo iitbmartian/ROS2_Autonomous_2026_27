@@ -183,6 +183,11 @@ One line each: the choice and the reason.
 - 2026-11-03: Long runs go in one detached batch (`tools/batch_overnight.sh`, `setsid nohup`),
   so network drops or a stopped session lose nothing. Progress in
   `~/rover_3d_nav_results/batch.log`.
+- 2026-11-03: The overnight batch hung 6 h after the slopes run. `ros2 run` does not forward
+  SIGINT, so `phase2_eval.sh` now signals `terrain_eval` itself and forces it after 30 s, and
+  `terrain_eval` treats rclpy's `ExternalShutdownException` like Ctrl-C and still writes its CSV
+  and summary. The slopes evaluation was lost (its snapshot kept: RMS 3.62 cm). Batch resumed at
+  marsyard 07:06, so it ends about 6 h later than planned.
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
