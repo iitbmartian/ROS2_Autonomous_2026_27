@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/batch_night.sh` from 00:18: the 7 second-3D-check runs lost to startup hangs, then `2d_bounded` (unknown free) on all worlds, then figures `compare_2d_2db_3d_*`. Ends around 03:30. |
+| Running unattended | `tools/batch_night.sh`, restarted 01:15 with the discovery fix: the second 3D check's missing runs, then `2d_bounded` on all worlds, then figures `compare_2d_2db_3d_*`. Ends around 04:00. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -219,6 +219,21 @@ One line each: the choice and the reason.
   and `gc.collect()` in `stop_node`, checked by 4 start/stop cycles on a spare domain (7 sockets
   up, 0 after each stop, 28 leaked before). The first Nav2 start after it came up first time.
   The leftover discovery server from the trial was stopped too, it was not the cause.
+- 2026-11-04: **Root cause of every discovery miss so far: a 32-participant limit.** Loopback
+  has no MULTICAST flag here, so with `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` Fast DDS finds
+  peers only by unicast to participant ids 0..31 on 127.0.0.1. Two participants that both get an
+  id above 31 never meet. Proof: 40 idle nodes on a spare domain, a 41st sees exactly 32
+  (idle32..idle39 missing), twice; with `config/fastdds_sim_localhost.xml` (UDP
+  `maxInitialPeersRange` 120, SHM kept) it sees 40 of 40. In the stalled stack the lifecycle
+  manager had id 32 and the route_server it waited for id 34. A 3D stack is about 35 participants
+  plus tools, so Nav2 starting depended on start order. This also explains the goal sender and
+  runner misses, the runs where the rover never moved (collision_monitor had id 33), why the
+  runner's leaked participants made it worse, and probably the loopback profile failure of
+  2026-11-02. The benchmark sets the profile unless one is set (`2467a53`), `tools/simenv.sh`
+  too. Two earlier theories were wrong and are kept below for the record: stale shared-memory
+  locks, and the runner joining during startup (`afa4dd6`, harmless, kept). The real 2D and 3D
+  launch files do not set the profile, so anyone running a big stack with LOCALHOST discovery
+  on a machine like this hits the same limit. Worth telling the team (shared docker setup).
 - 2026-11-04: Startup hangs, second kind (7 of 21 runs in the second 3D check, all 5 slopes
   runs of the first `2d_bounded` pass, clustered 19:30 to 22:00): every stack node passed
   rclcpp init (its signal handler fired) and then printed nothing for 5 min, so it hung creating
