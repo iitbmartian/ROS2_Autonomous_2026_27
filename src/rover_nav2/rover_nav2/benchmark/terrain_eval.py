@@ -30,8 +30,11 @@ import threading
 import time
 
 import numpy as np
+import signal
+
 import rclpy
 from rclpy.executors import ExternalShutdownException
+from rclpy.signals import SignalHandlerOptions
 import yaml
 from grid_map_msgs.msg import GridMap
 from nav_msgs.msg import Odometry
@@ -272,14 +275,18 @@ def main(argv=None):
     from rover_traversability import physical_params
     phys, _ = physical_params.load()
 
-    rclpy.init()
+    # Own the SIGINT: rclpy's handler shuts the context down mid-spin, which can surface as
+    # ExternalShutdownException or RCLError and lose the results.
+    # A job started with & from a script inherits SIGINT as ignored, so set it explicitly.
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    signal.signal(signal.SIGTERM, signal.default_int_handler)
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     ev = Evaluator(a, GroundTruthGrid(npz), craters, phys)
     t0 = time.time()
     try:
         while rclpy.ok() and (a.duration <= 0 or time.time() - t0 < a.duration):
             rclpy.spin_once(ev, timeout_sec=0.2)
     except (KeyboardInterrupt, ExternalShutdownException):
-        # rclpy's own SIGINT handler raises the latter, both mean "stop and write results".
         pass
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, 'w', newline='') as f:
