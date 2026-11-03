@@ -81,3 +81,38 @@ def test_final_error_and_max_attitude():
     pts = [(0, 0, 0, 0, 0.1, -0.2, 0), (1, 3, 4, 0, -0.3, 0.1, 0)]
     assert m.final_error(pts, (0.0, 0.0)) == pytest.approx(5.0)
     assert m.max_abs_attitude(pts) == pytest.approx((0.3, 0.2))
+
+
+def test_estimate_error_spawn_at_origin():
+    # Estimate (3, 4) heading 0, truth at (0, 0) heading 0.1: 5 m and 0.1 rad off.
+    e = m.estimate_error((3.0, 4.0, 0.0), (0, 0.0, 0.0, 0, 0, 0, 0.1),
+                         {'x': 0.0, 'y': 0.0, 'yaw': 0.0})
+    assert e[0] == pytest.approx(5.0)
+    assert e[1] == pytest.approx(0.1)
+
+
+def test_estimate_error_rotated_spawn():
+    # Spawn at (1, 2) facing +y: frame (2, 0) is world (1, 4). Truth there, so no error.
+    e = m.estimate_error((2.0, 0.0, 0.0), (0, 1.0, 4.0, 0, 0, 0, math.pi / 2),
+                         {'x': 1.0, 'y': 2.0, 'yaw': math.pi / 2})
+    assert e[0] == pytest.approx(0.0, abs=1e-9)
+    assert e[1] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_estimate_error_wraps_yaw():
+    # 179 deg against -179 deg is 2 deg, not 358.
+    e = m.estimate_error((0.0, 0.0, math.radians(179)), (0, 0, 0, 0, 0, 0, math.radians(-179)),
+                         {'x': 0.0, 'y': 0.0, 'yaw': 0.0})
+    assert math.degrees(e[1]) == pytest.approx(2.0)
+
+
+def test_estimate_error_without_estimate():
+    assert m.estimate_error(None, (0, 0, 0, 0, 0, 0, 0), {'x': 0, 'y': 0, 'yaw': 0}) is None
+
+
+def test_refused_needs_no_success_and_staying_low():
+    low = [(0, 0, 0, 0.1, 0, 0, 0), (1, 1, 0, 0.2, 0, 0, 0)]
+    high = low + [(2, 2, 0, 0.4, 0, 0, 0)]
+    assert m.is_refused('aborted', low, 0.25)
+    assert not m.is_refused('succeeded', low, 0.25)
+    assert not m.is_refused('aborted', high, 0.25)

@@ -6,6 +6,8 @@ timeout_s: 300
 goals:
   - {id: lane15_top, x: 8.5, y: 0.0, yaw: 0.0}       # plateau x 6.99..9.99
   - {id: lane25_top, x: 7.2, y: -5.0, yaw: 0.0}      # plateau x 5.72..8.72
-  - {id: lane35_top, x: 6.6, y: -10.0, yaw: 0.0}     # plateau x 5.14..8.14, should be refused
+  # Should be refused: scored a success when Nav2 does not succeed and the rover stays below
+  # 0.25 m, a third of the way up the 35 deg ramp.
+  - {id: lane35_top, x: 6.6, y: -10.0, yaw: 0.0, expect: refuse, refuse_z_max: 0.25}
   - {id: sidehill_uphill, x: 11.0, y: 7.5, yaw: 1.5708}  # 20 deg sidehill, facing uphill
   - {id: past_lanes, x: 20.0, y: 0.0, yaw: 0.0}      # around or over the 15 deg lane

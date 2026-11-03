@@ -82,3 +82,22 @@ def final_error(poses, goal_xy):
 def is_success(status, final_err, radius):
     """Success needs both: Nav2 reported SUCCEEDED and ground truth is within radius of the goal."""
     return status == 'succeeded' and final_err <= radius
+
+
+def estimate_error(est, gt_pose, spawn):
+    """Position and yaw error of a frame's estimate (x, y, yaw), which starts at the spawn pose,
+    against the last ground-truth pose (t, x, y, z, roll, pitch, yaw). None without an estimate."""
+    if est is None:
+        return None
+    c, s = math.cos(spawn['yaw']), math.sin(spawn['yaw'])
+    wx = spawn['x'] + c * est[0] - s * est[1]
+    wy = spawn['y'] + s * est[0] + c * est[1]
+    dyaw = math.atan2(math.sin(est[2] + spawn['yaw'] - gt_pose[6]),
+                      math.cos(est[2] + spawn['yaw'] - gt_pose[6]))
+    return math.hypot(wx - gt_pose[1], wy - gt_pose[2]), abs(dyaw)
+
+
+def is_refused(status, poses, z_max):
+    """A goal that should be refused: Nav2 did not report success and the rover never rose above
+    z_max (it stayed off the hazard)."""
+    return status != 'succeeded' and all(p[3] <= z_max for p in poses)

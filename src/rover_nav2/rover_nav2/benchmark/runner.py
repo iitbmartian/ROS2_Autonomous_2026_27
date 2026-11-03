@@ -22,7 +22,7 @@ import time
 import psutil
 import rclpy
 from action_msgs.msg import GoalStatus
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import ComputePathToPose, NavigateToPose
 from nav_msgs.msg import Odometry
@@ -30,6 +30,8 @@ from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
+from std_msgs.msg import Float64MultiArray
+from tf2_ros import Buffer, TransformListener
 
 from rover_nav2.benchmark import metrics
 
@@ -44,7 +46,18 @@ CSV_FIELDS = [
     'time_to_goal_s', 'recoveries', 'unsafe_entries', 'max_roll_deg', 'max_pitch_deg',
     'path_length_m', 'planner_time_s', 'cpu_mean_pct', 'cpu_peak_pct', 'rtf', 'wall_s',
     'note', 'git_commit', 'params_sha256',
+    # Where each layer thinks the rover ended, against ground truth: odom is the EKF, map is
+    # RTAB-Map on top of it. Splits localisation error between the two.
+    'odom_err_m', 'map_err_m', 'odom_yaw_err_deg', 'map_yaw_err_deg',
+    # Velocity chain, moving/total messages per stage while navigating: shows which link
+    # dropped the command when the rover never moved.
+    'cmd_chain',
 ]
+
+# Stage name, topic, message type, along the velocity chain from the controller to the wheels.
+CMD_CHAIN = [('nav', 'cmd_vel_nav', TwistStamped), ('smooth', 'cmd_vel_smoothed', TwistStamped),
+             ('out', 'cmd_vel', TwistStamped),
+             ('wheel', 'wheel_controller/commands', Float64MultiArray)]
 
 
 def yaw_to_quat(yaw):
@@ -67,6 +80,40 @@ class Recorder(Node):
         self.plan = ActionClient(self, ComputePathToPose, 'compute_path_to_pose')
         self.bt_state = self.create_client(GetState, '/bt_navigator/get_state')
         self.recoveries = 0
+        self.tf = Buffer()
+        self._tfl = TransformListener(self.tf, self, spin_thread=False)
+        self.chain = {name: [0, 0] for name, _, _ in CMD_CHAIN}
+        for name, topic, typ in CMD_CHAIN:
+            self.create_subscription(typ, topic, lambda m, n=name: self._cmd(n, m), 10)
+
+    def _cmd(self, name, msg):
+        if not self.recording:
+            return
+        if isinstance(msg, Float64MultiArray):
+            moving = any(abs(v) > 0.05 for v in msg.data)
+        else:
+            t = msg.twist
+            moving = abs(t.linear.x) + abs(t.linear.y) + abs(t.angular.z) > 0.02
+        with self._lock:
+            c = self.chain[name]
+            c[0] += int(moving)
+            c[1] += 1
+
+    def take_chain(self):
+        with self._lock:
+            out = ' '.join(f'{n} {m}/{t}' for n, (m, t) in self.chain.items())
+            self.chain = {n: [0, 0] for n in self.chain}
+        return out
+
+    def pose_in(self, frame):
+        """Latest (x, y, yaw) of base_footprint in frame, or None."""
+        try:
+            t = self.tf.lookup_transform(frame, 'base_footprint', rclpy.time.Time())
+        except Exception:  # noqa: BLE001, any TF failure means no estimate
+            return None
+        q = t.transform.rotation
+        return (t.transform.translation.x, t.transform.translation.y,
+                metrics.quat_to_rpy(q.x, q.y, q.z, q.w)[2])
 
     def _odom(self, msg):
         if not self.recording:
@@ -436,16 +483,27 @@ class Runner:
                 if math.isnan(pt):
                     row['note'] = 'planner gave no path within plan_timeout'
                 self.node.take_poses()
+                self.node.take_chain()
                 self.node.recording = True
                 status, ttg, rec, rtf = self.navigate(goal, goalset['timeout_s'])
                 self.node.recording = False
                 poses = self.node.take_poses()
+                row['cmd_chain'] = self.node.take_chain()
                 self.save_poses(out_dir, run_id, poses)
+                if poses:
+                    sp = goalset['spawn']
+                    for frame in ('odom', 'map'):
+                        e = metrics.estimate_error(self.node.pose_in(frame), poses[-1], sp)
+                        if e is not None:
+                            row[f'{frame}_err_m'] = f'{e[0]:.3f}'
+                            row[f'{frame}_yaw_err_deg'] = f'{math.degrees(e[1]):.2f}'
                 err = metrics.final_error(poses, (goal['x'], goal['y']))
                 mr, mp = metrics.max_abs_attitude(poses)
                 row.update(
                     status=status,
-                    success=int(metrics.is_success(status, err, self.a.success_radius)),
+                    success=int(metrics.is_refused(status, poses, goal['refuse_z_max'])
+                                if goal.get('expect') == 'refuse'
+                                else metrics.is_success(status, err, self.a.success_radius)),
                     final_error_m=f'{err:.3f}', time_to_goal_s=f'{ttg:.2f}', recoveries=rec,
                     unsafe_entries=metrics.unsafe_entries(
                         poses, self.roll_limit, self.pitch_limit),
