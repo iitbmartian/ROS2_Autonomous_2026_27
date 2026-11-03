@@ -101,8 +101,15 @@ def main(argv=None):
     # The runner joins the stack's isolated domain, so these must be set before rclpy starts.
     env = dict(os.environ, ROS_DOMAIN_ID=str(a.domain), GZ_PARTITION=a.partition,
                ROS_AUTOMATIC_DISCOVERY_RANGE='LOCALHOST')
+    # Loopback has no multicast, so LOCALHOST discovery reaches participant ids 0..31 only and a
+    # 3D stack with its tools goes past that. This profile widens the unicast peer range.
+    if 'FASTRTPS_DEFAULT_PROFILES_FILE' not in env:
+        from ament_index_python.packages import get_package_share_directory
+        env['FASTRTPS_DEFAULT_PROFILES_FILE'] = os.path.join(
+            get_package_share_directory('rover_nav2'), 'config', 'fastdds_sim_localhost.xml')
     os.environ.update({k: env[k] for k in
-                       ('ROS_DOMAIN_ID', 'GZ_PARTITION', 'ROS_AUTOMATIC_DISCOVERY_RANGE')})
+                       ('ROS_DOMAIN_ID', 'GZ_PARTITION', 'ROS_AUTOMATIC_DISCOVERY_RANGE',
+                        'FASTRTPS_DEFAULT_PROFILES_FILE')})
 
     import rclpy
     from rover_nav2.benchmark import metrics
