@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/batch_night.sh`, restarted 01:15 with the discovery fix: the second 3D check's missing runs, then `2d_bounded` on all worlds, then figures `compare_2d_2db_3d_*`. Ends around 04:00. |
+| Running unattended | `tools/after_night.sh` since 04:01: 3D check 3 (tag `3d_v3`, `escape_radius` 0.3) on all worlds, then figures `check_3d_v3_*` and `compare_all_*`. Ends around 07:00. Night batch done, see "Night batch". |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -681,6 +681,37 @@ Next for the gate: rerun slopes and rock_field, and crater_field with goals the 
 The per-world RMSE also needs the gate's 6 m window to exclude cells mapped before a large drift,
 or the gate should be stated for drift under some bound. Proposed SPEC wording follows once the
 reruns are in.
+
+## Night batch: 2D, `2d_bounded` and 3D side by side (2026-11-04)
+
+`tools/batch_night.sh` (commit `2467a53`), outputs `2026-11-03_3d_check2` (reruns) and
+`2026-11-04_2d_bounded`, figures `compare_2d_2db_3d_*` in the results archive.
+**All 21 3D and 21 `2d_bounded` runs started, 0 startup failures** (the 32-participant fix holds,
+it was 7 of 21 the evening before).
+
+| world | 2D shipped | `2d_bounded` | 3D v2 |
+|---|---|---|---|
+| marsyard | 11/15 | 2/3 | 3/3 |
+| ledge | 5/10 | 2/2 | 0/2 |
+| bars | 0/10 | 0/2 | 1/2 |
+| slopes | 0/25 | 1/5, **6 unsafe entries** | 1/5, 0 unsafe |
+| crater_field | 0/15 | 2/3, 1 unsafe entry | 0/3 |
+| rock_field | 0/15 | 0/3 | 0/3 |
+| urc_mix | 0/15 | 3/3 | 0/3 |
+| total | 16/105 | 11/21, 7 unsafe | 6/21, 0 unsafe |
+
+Success is by ground truth. Reading it:
+- 3D is the only stack with 0 unsafe entries. `2d_bounded` wins on raw success because it drives
+  over terrain the 3D stack refuses or slows on, including 6 entries into unsafe slope cells.
+- The new end-pose columns explain the "Nav2 succeeded but metres off" runs. rock_field
+  `2d_bounded`: odom error 6.3 m and 3.3 m, map error 5.3 m and 3.5 m. bars: odom 3.0 and 4.1 m
+  after only 2.3 and 3.0 m of true travel. **The error is already in odometry**, RTAB-Map does not
+  correct it. The likely cause is wheel slip on the bars and rocks that odometry integrates as travel,
+  not yet confirmed. It sits in the EKF and wheel odometry (`rover_ekf`), not our cost model.
+- The velocity chain counts show no broken stage in any `2d_bounded` run. Runs where `wheel`
+  moving is far below its total (slopes 10890/30005) are recoveries and stops, not a lost link.
+- 3D failures: ledge 0/2 with 6 recoveries each, rock_field 17.7 recoveries per run, urc_mix 0/3.
+  These are the start-cell and recovery cases `escape_radius` targets, 3D check 3 tests it.
 
 ## Second 3D check, step hybrid and runner fixes (2026-11-03, partial)
 
