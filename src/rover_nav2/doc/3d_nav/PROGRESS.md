@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | Overnight batch done 16:05 (Phase 2 evaluation, 3D check, 2D baseline on all worlds). DDS trial done (no difference, defaults kept). rock_field rerun done (pass). Now: the 3D check again with the step hybrid and runner fix (`tools/after_batch4.sh`, about 4 h, ends around 21:45). |
+| Running unattended | `tools/batch_evening.sh` from 17:56: a `2d_bounded` smoke run, the 3D check again (step hybrid, runner leak fix), then `2d_bounded` on all worlds, 1 run per goal. Ends around 01:00. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -211,6 +211,19 @@ One line each: the choice and the reason.
   velocity chain was likely never matched. Only Fast DDS is installed. Trial queued for when the
   sim is free (`tools/dds_trial.sh`): 4 stack starts each with default discovery and with the
   Fast DDS discovery server (`ROVER_DDS_DS=1` in `tools/simenv.sh`, opt-in, sim tooling only).
+- 2026-11-03: The second 3D check failed its first 4 startups (lifecycle manager never found
+  controller_server, then smoother_server). Cause: the runner leaked one DDS participant per
+  stack and per renewal (`b56d5af`). `rclpy.try_shutdown` keeps the participant, and the node's
+  reference cycles keep the context until the cycle collector runs. The runner held 6
+  participants (12 sockets) at the time, crowding the domain. Fix in `b613c0c`: `ctx.destroy()`
+  and `gc.collect()` in `stop_node`, checked by 4 start/stop cycles on a spare domain (7 sockets
+  up, 0 after each stop, 28 leaked before). The first Nav2 start after it came up first time.
+  The leftover discovery server from the trial was stopped too, it was not the cause.
+- 2026-11-03: `2d_bounded` (approved by Ram): `nav2_params_sim_2d_bounded.yaml`, a copy of
+  `nav2_params_sim.yaml` whose global costmap is a fixed 100 x 100 m. The static layer had to go,
+  it resized the costmap back to RTAB-Map's map (`StaticLayer: Resizing costmap to 342 X 338`,
+  goal still outside bounds). Its obstacle layer takes lidar and depth camera instead, the
+  sources that grid is built from. The 2D stack itself is unchanged.
 - 2026-11-03: DDS trial (`tools/dds_trial.sh 4`, `evidence/dds/trial.csv`): default discovery
   and the discovery server both 4 of 4 (stack up, Nav2 discovered, goal accepted, rover moved
   5.7 to 6.4 m). The misses are rarer than 1 in 4, so the trial cannot separate the two. Kept
@@ -557,7 +570,7 @@ early. The 3D overlay uses a fixed 100 x 100 m global costmap and does not have 
 baseline above is honest for the 2D stack as shipped, but it measures map bounds, not terrain
 handling. Question for Ram below ("Question: 2D baseline on the new worlds").
 
-### Question: 2D baseline on the new worlds
+### Question: 2D baseline on the new worlds (answered 2026-11-03: yes, `2d_bounded`)
 
 The 2D stack as shipped cannot accept a goal outside RTAB-Map's current map, so it scores 0 on
 slopes, crater_field, rock_field and urc_mix without moving.
