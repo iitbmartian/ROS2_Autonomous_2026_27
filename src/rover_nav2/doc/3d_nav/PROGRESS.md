@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/batch_evening.sh` from 17:56: a `2d_bounded` smoke run, the 3D check again (step hybrid, runner leak fix), then `2d_bounded` on all worlds, 1 run per goal. Ends around 01:00. |
+| Running unattended | `tools/batch_night.sh` from 00:18: the 7 second-3D-check runs lost to startup hangs, then `2d_bounded` (unknown free) on all worlds, then figures `compare_2d_2db_3d_*`. Ends around 03:30. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -219,6 +219,21 @@ One line each: the choice and the reason.
   and `gc.collect()` in `stop_node`, checked by 4 start/stop cycles on a spare domain (7 sockets
   up, 0 after each stop, 28 leaked before). The first Nav2 start after it came up first time.
   The leftover discovery server from the trial was stopped too, it was not the cause.
+- 2026-11-04: Startup hangs, second kind (7 of 21 runs in the second 3D check, all 5 slopes
+  runs of the first `2d_bounded` pass, clustered 19:30 to 22:00): every stack node passed
+  rclcpp init (its signal handler fired) and then printed nothing for 5 min, so it hung creating
+  its DDS participant. The clustered period ended right after a run that "stopped 1 stray
+  process". Working theory: a process left from an earlier stack held a Fast DDS shared-memory
+  lock. Not yet proven, no held semaphore was found afterwards. The runner now stops leftovers of
+  any earlier stack before each start, names every stray it stops, and writes each process's
+  threads and wait channels to `<run log>.stall` on a stalled start (`cd1bd4d`).
+- 2026-11-04: `2d_bounded` planned nothing beyond 10 m: Smac Hybrid-A* timed out (error 208) on
+  20, 30 and 42 m goals, also with 10 s, a cached obstacle heuristic or a downsampled costmap
+  (`tools/plan_variants.sh`, `evidence/plan_variants_urc_mix.log`). Unknown cells at
+  NO_INFORMATION are the cause. With `track_unknown_space: false` every distance plans in
+  0.01 s (`tools/plan_2d_bounded.sh`). The 3D layer already costs unknown at 200 and planned
+  urc_mix's 20 m goal. The first `2d_bounded` pass is kept as
+  `2026-11-03_2d_bounded_v1_unknown_lethal`.
 - 2026-11-03: `2d_bounded` (approved by Ram): `nav2_params_sim_2d_bounded.yaml`, a copy of
   `nav2_params_sim.yaml` whose global costmap is a fixed 100 x 100 m. The static layer had to go,
   it resized the costmap back to RTAB-Map's map (`StaticLayer: Resizing costmap to 342 X 338`,
@@ -646,6 +661,14 @@ Next for the gate: rerun slopes and rock_field, and crater_field with goals the 
 The per-world RMSE also needs the gate's 6 m window to exclude cells mapped before a large drift,
 or the gate should be stated for drift under some bound. Proposed SPEC wording follows once the
 reruns are in.
+
+## Second 3D check, step hybrid and runner fixes (2026-11-03, partial)
+
+`tools/batch_evening.sh`, tag `3d_v2`, out `~/.ros/rover_benchmark/2026-11-03_3d_check2`.
+14 of 21 started (the 7 others hung at startup, rerun in `batch_night.sh`). 3 succeed by ground
+truth (slopes lane15_top 0.41 m, marsyard left_diag 0.08 m, behind_left 0.09 m), against 2 in
+the first check. 3 more Nav2 successes end 0.78 to 2.07 m off (map drift, still open). 8 runs
+with 0 recoveries, against 17 to 19 in most first-check runs. 0 unsafe entries.
 
 ## 3D check, one run per goal (2026-11-03)
 
