@@ -369,7 +369,9 @@ global_costmap:
       height: 100
       origin_x: -50.0
       origin_y: -50.0
-      track_unknown_space: true
+      # Unknown as free: Smac Hybrid-A* times out (error 208) on any goal beyond about 10 m when
+      # unknown is NO_INFORMATION (tools/plan_variants.sh). The 3D layer costs unknown at 200.
+      track_unknown_space: false
       transform_tolerance: 0.5
       footprint: "[[0.55, 0.45],
              [0.55,-0.45],
