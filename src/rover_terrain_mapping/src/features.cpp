@@ -3,6 +3,7 @@
 #include "rover_terrain_mapping/features.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <thread>
@@ -120,6 +121,34 @@ PlaneFit fitPlaneOffsets(
 
 }  // namespace
 
+Grid median3(const Grid & z)
+{
+  const int rows = static_cast<int>(z.rows());
+  const int cols = static_cast<int>(z.cols());
+  Grid out(rows, cols);
+  std::array<float, 9> v{};
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (!std::isfinite(z(i, j))) {out(i, j) = z(i, j); continue;}
+      int n = 0;
+      for (int di = -1; di <= 1; ++di) {
+        for (int dj = -1; dj <= 1; ++dj) {
+          const int ii = i + di, jj = j + dj;
+          if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
+          if (std::isfinite(z(ii, jj))) {v[n++] = z(ii, jj);}
+        }
+      }
+      // A median of few cells is not a filter, so thin neighbourhoods keep the raw value.
+      if (n < 5) {out(i, j) = z(i, j); continue;}
+      std::nth_element(v.begin(), v.begin() + n / 2, v.begin() + n);
+      float m = v[n / 2];
+      if (n % 2 == 0) {m = 0.5f * (m + *std::max_element(v.begin(), v.begin() + n / 2));}
+      out(i, j) = m;
+    }
+  }
+  return out;
+}
+
 PlaneFit fitPlane(
   const Grid & elevation, const Grid & variance, int i, int j, double radius_cells,
   const FeatureParams & p)
@@ -141,6 +170,28 @@ FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeaturePar
   const double plane_cells = p.plane_radius / p.resolution;
   const auto plane_disc = discOffsets(plane_cells);
   const auto step_disc = discOffsets(p.step_radius / p.resolution);
+  const Grid zm = p.step_median ? median3(z) : Grid();
+
+  // Second highest minus second lowest over the wheel disc, heights taken relative to the
+  // plane gradient (ga, gb). Plain max minus min with 2 or 3 cells, NaN with fewer.
+  auto stepOf = [&](const Grid & h, int i, int j, double ga, double gb) {
+      const double inf = std::numeric_limits<double>::infinity();
+      double lo1 = inf, lo2 = inf, hi1 = -inf, hi2 = -inf;
+      int n = 0;
+      for (const auto & [di, dj] : step_disc) {
+        const int ii = i + di, jj = j + dj;
+        if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
+        const float v = h(ii, jj);
+        if (!std::isfinite(v)) {continue;}
+        const double r = v - (ga * (-di * p.resolution) + gb * (-dj * p.resolution));
+        if (r < lo1) {lo2 = lo1; lo1 = r;} else if (r < lo2) {lo2 = r;}
+        if (r > hi1) {hi2 = hi1; hi1 = r;} else if (r > hi2) {hi2 = r;}
+        ++n;
+      }
+      if (n >= 4) {return hi2 - lo2;}
+      if (n >= 2) {return hi1 - lo1;}
+      return std::numeric_limits<double>::quiet_NaN();
+    };
 
   // Every cell is independent and writes only its own output, so rows split across threads.
   auto work = [&](int r0, int r1) {
@@ -155,23 +206,11 @@ FeatureLayers computeFeatures(const Grid & z, const Grid & var, const FeaturePar
       const double ga = f.valid ? f.a : 0.0, gb = f.valid ? f.b : 0.0;
       // Second highest minus second lowest: one stray cell is sensor noise, any real feature
       // under a wheel covers two or more cells. Plain max minus min with fewer than 4 cells.
-      const double inf = std::numeric_limits<double>::infinity();
-      double lo1 = inf, lo2 = inf, hi1 = -inf, hi2 = -inf;
-      int n = 0;
-      for (const auto & [di, dj] : step_disc) {
-        const int ii = i + di, jj = j + dj;
-        if (ii < 0 || jj < 0 || ii >= rows || jj >= cols) {continue;}
-        const float v = z(ii, jj);
-        if (!std::isfinite(v)) {continue;}
-        const double r = v - (ga * (-di * p.resolution) + gb * (-dj * p.resolution));
-        if (r < lo1) {lo2 = lo1; lo1 = r;} else if (r < lo2) {lo2 = r;}
-        if (r > hi1) {hi2 = hi1; hi1 = r;} else if (r > hi2) {hi2 = r;}
-        ++n;
-      }
-      if (n >= 4) {
-        out.step(i, j) = static_cast<float>(hi2 - lo2);
-      } else if (n >= 2) {
-        out.step(i, j) = static_cast<float>(hi1 - lo1);
+      const double raw = stepOf(z, i, j, ga, gb);
+      if (std::isfinite(raw)) {
+        const double st = p.step_median ?
+          std::max(stepOf(zm, i, j, ga, gb), raw - p.step_noise_floor) : raw;
+        out.step(i, j) = static_cast<float>(std::max(st, 0.0));
       }
 
       if (!f.valid) {continue;}

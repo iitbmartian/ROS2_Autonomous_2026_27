@@ -24,6 +24,12 @@ struct FeatureParams
   double resolution{0.05};       // m per cell
   double plane_radius{0.37};     // m, plane fit window: chassis scale, wheelbase / 2
   double step_radius{0.15};      // m, step window: wheel scale, a wheel radius
+  // Step noise suppression. Per-cell height errors of 1.5 to 2 cm give a second-highest minus
+  // second-lowest of about 5 cm over a wheel disc on flat ground. With step_median the step is
+  // the larger of the step on a 3x3 median of the map (keeps edges and features 3 cells wide,
+  // drops noise) and the raw step less step_noise_floor (keeps tall features narrower than that).
+  bool step_median{false};
+  double step_noise_floor{0.05}; // m
   // A plane fit needs this share of its disc observed, and its cells spread in both
   // directions (each principal standard deviation at least spread_fraction of the radius).
   // A single scan line fails the spread test instead of returning a wild normal.
@@ -46,6 +52,10 @@ struct FeatureLayers
 
 // Every feature for every cell. Cells whose window fails the fill or spread test get NaN in the
 // plane-derived layers. step needs two known cells in its window.
+// 3x3 median over finite cells. Unknown cells stay unknown, cells with fewer than 5 known
+// neighbours (themselves included) keep their own value.
+Grid median3(const Grid & z);
+
 FeatureLayers computeFeatures(const Grid & elevation, const Grid & variance, const FeatureParams & p);
 
 struct PlaneFit

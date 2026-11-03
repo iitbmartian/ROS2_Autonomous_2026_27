@@ -53,6 +53,8 @@ public:
       "physical_params_file", rover_traversability::core::defaultPhysicalParamsPath());
     fp_.min_fill = declare_parameter<double>("min_fill", fp_.min_fill);
     fp_.spread_fraction = declare_parameter<double>("spread_fraction", fp_.spread_fraction);
+    fp_.step_median = declare_parameter<bool>("step_median", true);
+    fp_.step_noise_floor = declare_parameter<double>("step_noise_floor", fp_.step_noise_floor);
     fp_.threads = static_cast<int>(declare_parameter<int>("feature_threads", fp_.threads));
     np_.max_range = declare_parameter<double>("negative.max_range", np_.max_range);
     np_.min_gap = declare_parameter<double>("negative.min_gap", np_.min_gap);

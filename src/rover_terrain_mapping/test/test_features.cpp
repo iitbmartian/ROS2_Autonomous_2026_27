@@ -367,3 +367,69 @@ TEST(Features, SingleCellSpikeIsTrimmedButTwoCellsCount)
   f = rover_terrain_mapping::computeFeatures(h, var(n), params());
   EXPECT_NEAR(f.step(20, 20), 0.10, 1e-3);
 }
+
+TEST(Median3, KeepsBlocksDropsLoneCellsAndUnknowns)
+{
+  Grid z = flat(9);
+  z(4, 4) = 0.10f;                           // lone cell: 1 of 9 high, median 0
+  z(0, 6) = 0.30f; z(0, 7) = 0.30f; z(0, 8) = 0.30f;
+  z(1, 6) = 0.30f; z(1, 7) = 0.30f; z(1, 8) = 0.30f;   // corner block
+  z(8, 0) = kNaN;
+  const Grid m = rover_terrain_mapping::median3(z);
+  EXPECT_FLOAT_EQ(m(4, 4), 0.0f);
+  // (0, 8) sees 4 cells, all 0.30, so it keeps its own value. (1, 7) sees 6 of 9 high.
+  EXPECT_FLOAT_EQ(m(0, 8), 0.30f);
+  EXPECT_FLOAT_EQ(m(1, 7), 0.30f);
+  EXPECT_TRUE(std::isnan(m(8, 0)));
+}
+
+namespace
+{
+FeatureParams medianParams()
+{
+  FeatureParams p = params();
+  p.step_median = true;
+  p.step_noise_floor = 0.05;
+  return p;
+}
+}  // namespace
+
+TEST(Features, StepMedianDropsScatteredNoise)
+{
+  // Two high and two low lone cells of 4 cm inside the wheel disc of (20, 20): raw step
+  // 0.04 - (-0.04) = 0.08. Each is alone in its 3x3, so the median map is flat and the step
+  // is the raw one less the 0.05 floor: 0.03.
+  Grid z = flat(41);
+  z(20, 20) = 0.04f; z(20, 23) = 0.04f;
+  z(23, 20) = -0.04f; z(17, 20) = -0.04f;
+  const auto raw = rover_terrain_mapping::computeFeatures(z, var(41), params());
+  EXPECT_NEAR(raw.step(20, 20), 0.08, 1e-3);   // less a trace of plane tilt
+  const auto f = rover_terrain_mapping::computeFeatures(z, var(41), medianParams());
+  EXPECT_NEAR(f.step(20, 20), 0.03, 1e-3);
+}
+
+TEST(Features, StepMedianKeepsTallNarrowStubAboveTheFloor)
+{
+  // A 2x2 stub of 0.20 m: 4 of 9 cells high in any 3x3, so the median removes it, but the raw
+  // step 0.20 less the 0.05 floor keeps 0.15, still above a 0.10 m step limit.
+  Grid z = flat(41);
+  z(20, 20) = 0.20f; z(20, 21) = 0.20f; z(21, 20) = 0.20f; z(21, 21) = 0.20f;
+  const auto f = rover_terrain_mapping::computeFeatures(z, var(41), medianParams());
+  EXPECT_NEAR(f.step(20, 20), 0.15, 1e-3);
+}
+
+TEST(Features, StepMedianKeepsAnEdge)
+{
+  // A 0.10 m edge along a column survives the median unchanged: the same step as without it
+  // (0.088, the edge less the plane-tilt detrend, as in CliffOnARampKeepsItsHeight).
+  Grid z = flat(41);
+  for (int i = 0; i < 41; ++i) {
+    for (int j = 21; j < 41; ++j) {z(i, j) = 0.10f;}
+  }
+  const auto raw = rover_terrain_mapping::computeFeatures(z, var(41), params());
+  const auto f = rover_terrain_mapping::computeFeatures(z, var(41), medianParams());
+  for (int j : {20, 21}) {
+    EXPECT_FLOAT_EQ(f.step(20, j), raw.step(20, j));
+    EXPECT_GT(f.step(20, j), 0.085);
+  }
+}

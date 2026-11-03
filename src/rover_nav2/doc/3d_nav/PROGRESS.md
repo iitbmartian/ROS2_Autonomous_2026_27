@@ -198,6 +198,12 @@ One line each: the choice and the reason.
   (0.3 to 4.5 s). The runner now gets a fresh DDS participant per stack (own rclpy context,
   stopped before the shared-memory clean, started after), and renews it again if Nav2 is
   active in its log but not discovered after 20 s. Validated live after the baseline batch.
+- 2026-11-03: Step is now max(step on a 3x3 median map, raw step - 0.05 m). On flat ground
+  the trimmed step read 5 cm median (u 0.65 to 0.73 at a standstill, step the limiting check in
+  88 to 100 percent of cells near the rover). Offline on the saved snapshots (`p2_*_end.npz`)
+  the new step reads 1.6 cm (slopes), 1.8 cm (bars) and 1.0 cm (urc_mix) median, the real bars
+  still 11 cm. A plain median would erase a 2x2 stub of any height, a plain 3x3 mean shaves a
+  2-cell rib to 2/3, hence the hybrid. Tests: `Median3.*`, `Features.StepMedian*`.
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
