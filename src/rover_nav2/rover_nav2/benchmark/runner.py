@@ -53,8 +53,10 @@ def yaw_to_quat(yaw):
 class Recorder(Node):
     """ROS side of one run: ground-truth poses, the two Nav2 actions, lifecycle state."""
 
-    def __init__(self):
-        super().__init__('nav_benchmark', parameter_overrides=[
+    def __init__(self, context=None):
+        # No rosout: the node is recreated under the same name, and nothing reads its log there.
+        super().__init__('nav_benchmark', context=context, enable_rosout=False,
+                         parameter_overrides=[
             Parameter('use_sim_time', Parameter.Type.BOOL, True)])
         self._lock = threading.Lock()
         self._poses = []
@@ -109,12 +111,22 @@ def clean_fastdds_shm():
         pass
 
 
+def nav2_active_in_log(path):
+    """True once the navigation lifecycle manager has logged that its nodes are active."""
+    try:
+        with open(path, errors='replace') as f:
+            return 'Managed nodes are active' in f.read()
+    except OSError:
+        return False
+
+
 class Stack:
     """The simulated stack as a process group, with a marker in its environment so stragglers
     that escape the group (gz sim has been seen to) can be found and stopped."""
 
     def __init__(self, cmd, env, log_path, marker):
         self.marker = marker
+        self.log_path = log_path
         self.log = open(log_path, 'w')
         clean_fastdds_shm()
         self.proc = subprocess.Popen(cmd, env=env, stdout=self.log, stderr=subprocess.STDOUT,
@@ -229,10 +241,29 @@ class Runner:
         self.params_sha = sha256(params_path)
         self.commit = git_commit(args.repo)
         self.log = log
-        self.node = Recorder()
-        self.executor = MultiThreadedExecutor()
+        self.node = None
+        self.start_node()
+
+    def start_node(self):
+        """The runner's ROS node in a context of its own, so it can be replaced by a fresh DDS
+        participant. A participant kept across many stack restarts sometimes never discovers
+        the new stack's services (bt_navigator/get_state), though Nav2 itself is active."""
+        self.ctx = rclpy.Context()
+        rclpy.init(context=self.ctx)
+        self.node = Recorder(context=self.ctx)
+        self.executor = MultiThreadedExecutor(context=self.ctx)
         self.executor.add_node(self.node)
-        threading.Thread(target=self.executor.spin, daemon=True).start()
+        self.spin_thread = threading.Thread(target=self.executor.spin, daemon=True)
+        self.spin_thread.start()
+
+    def stop_node(self):
+        if self.node is None:
+            return
+        self.executor.shutdown(timeout_sec=5.0)
+        self.spin_thread.join(timeout=5.0)
+        self.node.destroy_node()
+        rclpy.try_shutdown(context=self.ctx)
+        self.node = None
 
     def launch_cmd(self, goalset, db_path):
         launch = 'pipeline_3d.launch.py' if self.a.config == '3d' else 'pipeline.launch.py'
@@ -249,9 +280,21 @@ class Runner:
     def wait_ready(self, stack):
         """Nav2 active and a plan to the first goal possible. Returns a note on failure."""
         end = time.time() + self.a.startup_timeout
+        active_since, renewed = None, 0.0
         while time.time() < end:
             if stack.proc.poll() is not None:
                 return 'stack exited during startup'
+            if active_since is None and nav2_active_in_log(stack.log_path):
+                active_since = time.time()
+            # Nav2 says it is active but this node cannot see it 20 s later: a discovery miss,
+            # so retry with a fresh participant, at most every 30 s.
+            now = time.time()
+            if (active_since is not None and now - active_since > 20 and now - renewed > 30
+                    and not self.node.bt_state.service_is_ready()):
+                self.log('Nav2 active in its log but not discovered, renewing the node')
+                self.stop_node()
+                self.start_node()
+                renewed = now
             if self.node.bt_state.wait_for_service(timeout_sec=1.0):
                 res = wait_future(self.node.bt_state.call_async(GetState.Request()), 5)
                 if res is not None and res.current_state.label == 'active':
@@ -323,7 +366,10 @@ class Runner:
         # navigation stack, so a stalled start gets one fresh stack before the run is scored.
         retried = ''
         for attempt in (1, 2):
+            # Fresh participant per stack: stop ours before the shared-memory clean, start after.
+            self.stop_node()
             stack = Stack(self.launch_cmd(goalset, db), run_env, log_path, marker)
+            self.start_node()
             note = self.wait_ready(stack)
             if note is None or attempt == 2:
                 break
@@ -384,5 +430,4 @@ class Runner:
             w.writerows(poses)
 
     def shutdown(self):
-        self.executor.shutdown()
-        self.node.destroy_node()
+        self.stop_node()

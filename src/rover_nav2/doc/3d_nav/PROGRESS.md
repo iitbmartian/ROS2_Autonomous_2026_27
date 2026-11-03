@@ -192,6 +192,12 @@ One line each: the choice and the reason.
   `bt_navigator` and sat out its 30 min timeout (no "Begin navigating" in the log). Phase 2 runs
   now send goals with `tools/send_goal.py`, an rclpy client that waits 60 s for the server and
   retries up to 4 times with a fresh context. The benchmark runner already sends in-process.
+- 2026-11-03: The 3D check's 5 startup failures were the runner, not Nav2: the launch logs say
+  "Managed nodes are active", but the runner's one long-lived node never discovered
+  `bt_navigator/get_state`. A fresh process discovers it 10 of 10 times against a settled stack
+  (0.3 to 4.5 s). The runner now gets a fresh DDS participant per stack (own rclpy context,
+  stopped before the shared-memory clean, started after), and renews it again if Nav2 is
+  active in its log but not discovered after 20 s. Validated live after the baseline batch.
 - 2026-11-01: Terrain worlds are STL meshes, not heightmaps (see Phase 2 findings).
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
