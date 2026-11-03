@@ -6,8 +6,8 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | Overnight batch done 16:05 (Phase 2 evaluation, 3D check, 2D baseline on all worlds). DDS trial done (no difference, defaults kept). Now: rock_field Phase 2 rerun (`tools/after_batch3.sh`), then the 3D check again with the step hybrid and runner fix (`tools/after_batch4.sh`, about 4 h, ends around 21:45). |
-| In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 5 of 7 worlds pass (RMSE 1.76 to 2.00 cm), rock_field to rerun, crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
+| Running unattended | Overnight batch done 16:05 (Phase 2 evaluation, 3D check, 2D baseline on all worlds). DDS trial done (no difference, defaults kept). rock_field rerun done (pass). Now: the 3D check again with the step hybrid and runner fix (`tools/after_batch4.sh`, about 4 h, ends around 21:45). |
+| In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
 | Stopped for | nothing. Commit rule since 2026-10-31: commit freely, Ram as sole author, no Claude attribution, ask before pushing. |
@@ -616,7 +616,7 @@ and `tools/snapshot.py` per world), evidence in `evidence/phase2/eval_<world>.tx
 | ledge | 1.92 cm (458 maps, worst 5.0) | 1.95 cm | pass |
 | bars | 1.94 cm (1267 maps, worst 3.7) | 2.03 cm | pass |
 | urc_mix | 1.76 cm (665 maps, worst 2.7) | 1.71 cm | pass |
-| rock_field | lost twice: shutdown race (fixed in `77e0913`), then an rclpy take error after 7 min (skipped since) | 3.15 cm | rerun queued |
+| rock_field | 2.79 cm (1298 maps, per-map worst 3.2), rerun 2026-11-03 16:57 after two runs lost to tooling | 3.14 cm | pass |
 | slopes | 2.00 cm (274 maps, per-map worst 2.8), rerun 2026-11-03 16:05 | 3.62 cm (at spawn) | pass |
 | crater_field | 27.1 cm (3862 maps) | 32.2 cm | **fail, odometry** |
 
