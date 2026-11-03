@@ -321,6 +321,14 @@ class Runner:
                 return 'stack exited during startup'
             if active_since is None and nav2_active_in_log(stack.log_path):
                 active_since = time.time()
+            # Our participant joins only once Nav2 is up. Joining while the stack's 50 nodes come
+            # up stalled most starts on 2026-11-04 (1 of 4), stacks started without it never did.
+            if self.node is None:
+                if active_since is not None:
+                    self.start_node()
+                else:
+                    time.sleep(2.0)
+                    continue
             # Nav2 says it is active but this node cannot see it 20 s later: a discovery miss,
             # so retry with a fresh participant, at most every 30 s.
             now = time.time()
@@ -409,7 +417,6 @@ class Runner:
             if old:
                 self.log(f"[{run_id}] stopped leftovers of earlier stacks: {' '.join(old)}")
             stack = Stack(self.launch_cmd(goalset, db), run_env, log_path, marker)
-            self.start_node()
             note = self.wait_ready(stack)
             if note is None or attempt == 2:
                 break
@@ -418,6 +425,8 @@ class Runner:
             stack.stop()
             retried = f'startup retried after: {note}'
         row['note'] = retried
+        if self.node is None:
+            self.start_node()
         cpu = CpuSampler(stack)
         cpu.start()
         try:
