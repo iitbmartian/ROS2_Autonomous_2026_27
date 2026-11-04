@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/batch_gt.sh` since 11:20: 3D then `2d_bounded`, all worlds, ground-truth odometry (tags `3d_gt`, `2d_bounded_gt`). Ends around 15:30. |
+| Running unattended | `tools/batch_gt.sh` (2D half), then `tools/batch_gt_fix.sh` (startup-failure reruns, one runner per world), then `tools/video/record_all.sh` (3D video, six scenes). Ends around 19:30. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -273,6 +273,7 @@ One line each: the choice and the reason.
 - 2026-10-14: Phase 0 baseline counts roll and pitch unsafe entries only. Footprint-over-terrain
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
 - 2026-11-04 (Ram): navigation is tuned on ground-truth odometry (`odom_source:=ground_truth`) until it is robust, because EKF slip drift caused most remaining misses and belongs to `rover_ekf`. Once the EKF drift is fixed, the same benchmark reruns on `ekf`. Every result on ground truth is tagged `_gt`.
+- 2026-11-04: the 3D ground-truth batch lost its last 9 runs to startup_failed. Nav2 was active in its log but the long-lived runner process stopped discovering it after 12 good runs ("active in its log but not discovered"), a fresh runner for the 2D half worked at once. Workaround: `tools/batch_gt_fix.sh` drops those rows and reruns with one runner process per world. Root cause in the runner still open.
 
 ## Phase 0 bridge: FastDEM features
 
