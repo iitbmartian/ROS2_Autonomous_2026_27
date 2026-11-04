@@ -475,6 +475,14 @@ void TraversabilityLayer::updateCosts(
 void TraversabilityLayer::capAroundRobot()
 {
   if (escape_radius_ <= 0.0) {return;}
+  // Only a rover standing on a lethal cell needs the cap. Capping next to a rover on free ground
+  // invites the controller toward cells the safety monitor still holds as lethal (deadlock).
+  unsigned int ri, rj;
+  if (!worldToMap(robot_x_, robot_y_, ri, rj)) {return;}
+  const unsigned char own = costmap_[getIndex(ri, rj)];
+  if (own < nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE || own == nav2_costmap_2d::NO_INFORMATION) {
+    return;
+  }
   const double r = escape_radius_, r2 = r * r, res = resolution_;
   int i0, j0, i1, j1;
   worldToMapEnforceBounds(robot_x_ - r, robot_y_ - r, i0, j0);

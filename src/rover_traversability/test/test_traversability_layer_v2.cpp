@@ -217,18 +217,32 @@ TEST_F(V2Point, BrakingBandStartsAtThePhysicalFootprint)
   EXPECT_EQ(cost(3.0, 2.0), 200);                 // 1.025 m, beyond it
 }
 
-TEST_F(V2, LethalNextToTheRoverIsCappedSoItCanLeave)
+TEST_F(V2, LethalNextToARoverOnFreeGroundStaysLethal)
 {
-  // Robot at (2, 2), escape radius 0.3 m. Mask 0 at (2.4, 2.0), centre 0.425 m out: lethal, and
-  // dilated by 4 cells to x 2.2..2.6. Dilated cells within 0.3 m (x 2.2, 2.25) drop to 252,
-  // the ones beyond (x 2.3, centre 0.325 m) stay lethal, and so does the source cell.
+  // Robot at (2, 2) on free ground, escape radius 0.3 m. Mask 0 at (2.4, 2.0), dilated by 4
+  // cells to x 2.2..2.6. The rover's cell is free, so nothing is capped: the cells within 0.3 m
+  // stay lethal, as the safety monitor sees them.
   auto m = benign();
   set(m, layers::kSafeYawMask, 2.4, 2.0, 0.0f);
   feed(m);
+  EXPECT_EQ(cost(2.0, 2.0), 0);
   EXPECT_EQ(cost(2.4, 2.0), LETHAL_OBSTACLE);
-  EXPECT_EQ(cost(2.3, 2.0), LETHAL_OBSTACLE);
+  EXPECT_EQ(cost(2.25, 2.0), LETHAL_OBSTACLE);
+  EXPECT_EQ(cost(2.2, 2.0), LETHAL_OBSTACLE);
+}
+
+TEST_F(V2, RoverInsideADilatedLethalCanLeave)
+{
+  // Mask 0 at (2.15, 2.0), dilated by 4 cells to x 1.95..2.35, which covers the rover's cell.
+  // Cells within 0.3 m of the rover drop to 252 (x 2.0, the source at 2.15, 2.25 at centre
+  // 0.275 m), x 2.3 (centre 0.325 m) stays lethal.
+  auto m = benign();
+  set(m, layers::kSafeYawMask, 2.15, 2.0, 0.0f);
+  feed(m);
+  EXPECT_EQ(cost(2.0, 2.0), 252);
+  EXPECT_EQ(cost(2.15, 2.0), 252);
   EXPECT_EQ(cost(2.25, 2.0), 252);
-  EXPECT_EQ(cost(2.2, 2.0), 252);
+  EXPECT_EQ(cost(2.3, 2.0), LETHAL_OBSTACLE);
 }
 
 TEST_F(V2Point, RoverOnALethalCellCanStillLeave)

@@ -145,7 +145,10 @@ For a pose (x, y, yaw):
 - Lethal cells within `escape_radius` (0.3 m) of the rover are capped at `max_soft_cost`. The
   rover stands there already, so they cannot stop it leaving, and a lethal start cell makes Smac
   refuse to plan and every MPPI sample start in collision. Capped at 252, not freed, so no plan
-  prefers to stay. (Added 2026-11-04 after the slopes lane-edge stops.)
+  prefers to stay. (Added 2026-11-04 after the slopes lane-edge stops.) Only when the rover's own
+  cell is lethal: next to a rover on free ground the cells stay lethal, because the safety
+  monitor's hazard cloud still holds them and capping them deadlocked MPPI against the collision
+  monitor on rock_field (2026-11-05).
 
 ### Controller cost (`TerrainCritic`)
 
