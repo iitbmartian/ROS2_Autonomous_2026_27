@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/probe_lidar_odom.sh` since 07:00: 3D with `odom_source:=lidar` on urc_mix, rock_field, bars, crater_field, marsyard. Ends around 08:30. |
+| Running unattended | nothing. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -702,7 +702,14 @@ reruns are in.
 - Still open on our side: ledge 0/2 (12 recoveries on one, the other ends 0.73 m off by drift),
   urc_mix mid_20m aborted 10 m short after 18 recoveries.
 
-Next: `tools/probe_lidar_odom.sh` reruns the drift worlds with `odom_source:=lidar`, the
+Lidar odometry probe result (`tools/probe_lidar_odom.sh`, out `2026-11-04_3d_lidarodom`, after the
+ICP rate fix on `ram/rover_bringup-icp-l2-lidar`): **worse, 0 of 14**. rock_field and
+crater_field never reached Nav2 active (6 startup failures), the other 8 abort or time out, and
+marsyard behind_left drifted 36.9 m. ICP on this sparse L2 grid over smooth terrain does not hold,
+so wheel EKF odometry stays the source. Decision: keep `odom_source:=ekf`, treat the drift as a
+`rover_ekf` question for its owner, and keep it out of the 3D cost-model work.
+
+First plan was: `tools/probe_lidar_odom.sh` reruns the drift worlds with `odom_source:=lidar`, the
 pipeline's existing RTAB-Map ICP odometry option, to see whether a slip-free odometry source turns
 those misses into successes. The EKF itself belongs to `rover_ekf`, so any change there goes to
 its owner.
