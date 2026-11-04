@@ -46,6 +46,7 @@
 | `ram/rover_gazebo-l2-lidar` (addition) | `rover_gazebo` (Pradyun) | `lidar_xyz` argument and `ROVER_LIDAR_XYZ`, so the L2 can sit on a 0.5 m mast. | Committed locally, merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_gazebo-swerve-mode` | `rover_gazebo` (Pradyun) | `rover_kinematics_node.py`: `swerve` mode, vx, vy and wz together, `v_wheel = (vx, vy) + w x r`, through the existing fold and turn-rate limit. Default stays ackermann. Hand check FL at (0.2, 0.1, 0.3): 57.55 deg, 0.2509 m/s. | Committed locally (2ab6b54), merged into `ram/3d_nav`, not pushed. |
 | `ram/rover_bringup-nav-params-arg` | `rover_bringup` (unassigned owner) | `pipeline.launch.py` gains a `nav_params_file` argument. Its default is the same `nav2_params_sim.yaml` that `navigation.launch.py` picks with `sim:=true`, so the 2D pipeline behaves exactly as before. | Committed locally (d46e027), merged into `ram/3d_nav` (3269f82), not pushed. |
+| `ram/rover_bringup-icp-l2-lidar` | `rover_bringup` (unassigned owner) | `rtabmap.launch.py`: under `ROVER_LIDAR_MODEL=l2`, `icp_odometry` expects 11 Hz and 17280 points instead of 6 Hz and 5760, because at 6 Hz it dropped every 10 Hz L2 scan and `odom_source:=lidar` published no odometry. Default lidar unchanged. | Committed locally (b27b5c0), merged into `ram/3d_nav` (ab04fc3), not pushed. |
 
 ## Notes on history
 
