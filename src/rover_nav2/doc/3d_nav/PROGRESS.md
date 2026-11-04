@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/after_night.sh` since 04:01: 3D check 3 (tag `3d_v3`, `escape_radius` 0.3) on all worlds, then figures `check_3d_v3_*` and `compare_all_*`. Ends around 07:00. Night batch done, see "Night batch". |
+| Running unattended | `tools/probe_lidar_odom.sh` since 07:00: 3D with `odom_source:=lidar` on urc_mix, rock_field, bars, crater_field, marsyard. Ends around 08:30. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -681,6 +681,30 @@ Next for the gate: rerun slopes and rock_field, and crater_field with goals the 
 The per-world RMSE also needs the gate's 6 m window to exclude cells mapped before a large drift,
 or the gate should be stated for drift under some bound. Proposed SPEC wording follows once the
 reruns are in.
+
+## Third 3D check, escape radius (2026-11-04)
+
+`tools/after_night.sh`, tag `3d_v3`, commit `fa27369` with `escape_radius: 0.3`, out
+`~/.ros/rover_benchmark/2026-11-04_3d_check3`, figures `check_3d_v3_*` and `compare_all_*`.
+
+- 21 of 21 started, **0 unsafe entries**, 6 of 21 succeed by ground truth (same count as v2,
+  different runs: crater ahead_10m now passes, bars and one marsyard goal drop to 0.61 and
+  0.44 m, just outside the 0.5 m radius).
+- **Every run moved.** v2 had 3 runs with path length 0 (rover never left a lethal start cell),
+  v3 has none. rock_field recoveries fell from 17.7 to 6.0 per run.
+- 9 runs report Nav2 SUCCEEDED or end within 1 m by Nav2, but miss by ground truth. In each,
+  the odom error matches the ground-truth miss (urc_mix 1.27 and 3.68 m, crater 1.92 m, rock_field
+  2.82 m, slopes 1.12 m). The planner and controller reached the goal they were given in the
+  `odom` and `map` frames, **the misses are odometry drift**, and RTAB-Map does not correct it on
+  a single forward traverse (no loop closures).
+- slopes lane35_top is now scored as a refused goal and passes (rover stayed below 0.25 m).
+- Still open on our side: ledge 0/2 (12 recoveries on one, the other ends 0.73 m off by drift),
+  urc_mix mid_20m aborted 10 m short after 18 recoveries.
+
+Next: `tools/probe_lidar_odom.sh` reruns the drift worlds with `odom_source:=lidar`, the
+pipeline's existing RTAB-Map ICP odometry option, to see whether a slip-free odometry source turns
+those misses into successes. The EKF itself belongs to `rover_ekf`, so any change there goes to
+its owner.
 
 ## Night batch: 2D, `2d_bounded` and 3D side by side (2026-11-04)
 
