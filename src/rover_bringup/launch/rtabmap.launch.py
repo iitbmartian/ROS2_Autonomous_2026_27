@@ -163,17 +163,20 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     # constrains nothing in x, y or yaw. On flat.sdf this drifts freely; use
     # bars.sdf or ledge.sdf, or odom_source:=ground_truth.
     # ------------------------------------------------------------------
+    # rover_sensors.xacro reads the same variable to pick the lidar model.
+    L2_LIDAR = os.environ.get("ROVER_LIDAR_MODEL", "default") == "l2"
     icp_odom_parameters = {
         "odom_frame_id": "odom",
         "publish_tf": True,
         "wait_imu_to_init": True,
-        # The lidar is declared at 5 Hz in rover_sensors.xacro. Naming the rate
-        # lets icp_odometry warn about dropped scans instead of silently
-        # integrating over a gap.
-        "expected_update_rate": 6.0,
-        # 360 horizontal samples x 16 rings. icp_odometry infers this and warns
-        # when it is unset, so state it and keep the log clean.
-        "scan_cloud_max_points": 5760,
+        # The default lidar is declared at 5 Hz in rover_sensors.xacro. Naming the
+        # rate lets icp_odometry warn about dropped scans instead of silently
+        # integrating over a gap. A scan arriving faster than this is dropped, so
+        # the 10 Hz L2 model (ROVER_LIDAR_MODEL=l2) needs its own rate.
+        "expected_update_rate": 11.0 if L2_LIDAR else 6.0,
+        # 360 horizontal samples x 16 rings (x 48 rows for the L2 model).
+        # icp_odometry infers this and warns when it is unset, so state it.
+        "scan_cloud_max_points": 17280 if L2_LIDAR else 5760,
         "Odom/ScanKeyFrameThr": "0.4",
         "OdomF2M/ScanSubtractRadius": "0.1",   # match Icp/VoxelSize
         "OdomF2M/ScanMaxSize": "15000",
