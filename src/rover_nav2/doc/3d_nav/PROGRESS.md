@@ -692,7 +692,7 @@ reruns are in.
   0.44 m, just outside the 0.5 m radius).
 - **Every run moved.** v2 had 3 runs with path length 0 (rover never left a lethal start cell),
   v3 has none. rock_field recoveries fell from 17.7 to 6.0 per run.
-- 9 runs report Nav2 SUCCEEDED or end within 1 m by Nav2, but miss by ground truth. In each,
+- 8 runs report Nav2 SUCCEEDED but miss by ground truth (0.61 to 3.29 m). In each,
   the odom error matches the ground-truth miss (urc_mix 1.27 and 3.68 m, crater 1.92 m, rock_field
   2.82 m, slopes 1.12 m). The planner and controller reached the goal they were given in the
   `odom` and `map` frames, **the misses are odometry drift**, and RTAB-Map does not correct it on
