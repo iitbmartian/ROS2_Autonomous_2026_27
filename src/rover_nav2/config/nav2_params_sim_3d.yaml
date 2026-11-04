@@ -13,6 +13,12 @@
 # /terrain/global_features for the global one. Controller and planner stay the 2D sim's
 # Ackermann MPPI and Smac hybrid until the swerve mode lands (Phase 4).
 
+bt_navigator:
+  ros__parameters:
+    # Keeps the current path while it stays valid instead of replanning at 1 Hz, which flipped
+    # the path around rocks (behavior_trees/navigate_to_pose_ackermann_3d.xml).
+    default_nav_to_pose_bt_xml: "$(find-pkg-share rover_nav2)/behavior_trees/navigate_to_pose_ackermann_3d.xml"
+
 local_costmap:
   local_costmap:
     ros__parameters:
