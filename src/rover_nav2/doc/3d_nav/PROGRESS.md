@@ -274,6 +274,7 @@ One line each: the choice and the reason.
   needs the Phase 1 ground-truth heightmaps, and Phase 1 reruns the baseline.
 - 2026-11-04 (Ram): navigation is tuned on ground-truth odometry (`odom_source:=ground_truth`) until it is robust, because EKF slip drift caused most remaining misses and belongs to `rover_ekf`. Once the EKF drift is fixed, the same benchmark reruns on `ekf`. Every result on ground truth is tagged `_gt`.
 - 2026-11-04: the 3D ground-truth batch lost its last 9 runs to startup_failed. Nav2 was active in its log but the long-lived runner process stopped discovering it after 12 good runs ("active in its log but not discovered"), a fresh runner for the 2D half worked at once. Workaround: `tools/batch_gt_fix.sh` drops those rows and reruns with one runner process per world. Root cause in the runner still open.
+- 2026-11-04 (Ram): ledge stays as is until the measured CG height arrives. Its goals hold the left track on the 10 cm step, atan(0.1 / 0.436 track) = 13 deg roll for the whole drive (every 2D success shows 13.3 deg). The placeholder CG 0.45 m gives a 16.1 deg roll limit and the safety monitor cancels within 2.9 deg, at 13.2 deg, so 3D either avoids the straddle (ends 0.43 m off) or is cancelled at 13.26 deg. Correct for the limits it has, rerun with real CG.
 
 ## Phase 0 bridge: FastDEM features
 
