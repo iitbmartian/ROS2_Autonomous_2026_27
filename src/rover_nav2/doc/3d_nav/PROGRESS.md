@@ -289,7 +289,7 @@ One line each: the choice and the reason.
 1. 00:15 to 01:00: roughness margin. Done at 00:20, fix 8b4c10e, rock_field 0/3 to 2/3.
 2. From about 00:30: `batch_night4.sh` installs it, rock_field v6 (about 1 h). If v6 is worse anywhere or roughness was guarding something real, revert before the head-to-head runs those worlds.
 3. Head-to-head through about 14:00, checked every 2 h with a deadline on each watcher.
-4. During the batch, no sim work: write up v4, v5, v6 in RESULTS.md and figures, review the speed governor's roughness use (it shares `evaluatePose`).
+4. During the batch, no sim work: write up v4, v5, v6 in RESULTS.md and figures, review the speed governor's roughness use (it shares `evaluatePose`). Reviewed 03:10: `speed_safety` and `trajectory_cost` take the `PoseEvalParams` default `rough_radius 0`, so governor, critic and costmap read roughness alike.
 5. Afterwards: urc_mix far_east abort, slopes lane25 and sidehill timeouts, runner blindness root cause. Ledge waits for the CG height.
 
 02:47 check: the runner had hung since 01:18 between marsyard runs (no stack, every thread in a futex wait, SIGINT ignored, no log for the next run), so the guard's 4 h world cap would only have fired at 04:48. Killed it, the batch's second pass resumed from runs.csv. Two fixes, installed for the runs from 2D marsyard on:
