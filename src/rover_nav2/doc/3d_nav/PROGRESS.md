@@ -6,7 +6,7 @@
 |---|---|
 | Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
-| Running unattended | `tools/batch_night4.sh` (from 2026-11-06 00:10): install the roughness fix (8b4c10e), rock_field v6 check, then the 3-run head-to-head 3D vs `2d_bounded` on ground truth (`2026-11-06_h2h_*`). Every runner capped by `tools/guard.sh`. Ends around 13:00 to 15:00. |
+| Running unattended | `tools/batch_night4.sh` (from 2026-11-06 00:10): roughness fix, rock_field v6 (2/3), then the 3-run head-to-head 3D vs `2d_bounded` on ground truth (`2026-11-06_h2h_*`), every runner capped by `tools/guard.sh`. Then `tools/backfill_night4.sh` reruns rows whose stack never activated the wheels. `tools/hang_watch.sh` kills a runner idle with no stack for 4 min. Ends around 16:00 to 18:00. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
 | Waiting on Ram | Lab visit with the NUC: Phase 2's latency and CPU report on a NUC-class machine is measured there. Everything else continues on this machine. |
 | Speed | Resolved: Ram installed the NVIDIA module. Gazebo alone runs at RTF 0.97, the full 3D stack at 0.50. |
@@ -291,6 +291,11 @@ One line each: the choice and the reason.
 3. Head-to-head through about 14:00, checked every 2 h with a deadline on each watcher.
 4. During the batch, no sim work: write up v4, v5, v6 in RESULTS.md and figures, review the speed governor's roughness use (it shares `evaluatePose`).
 5. Afterwards: urc_mix far_east abort, slopes lane25 and sidehill timeouts, runner blindness root cause. Ledge waits for the CG height.
+
+02:47 check: the runner had hung since 01:18 between marsyard runs (no stack, every thread in a futex wait, SIGINT ignored, no log for the next run), so the guard's 4 h world cap would only have fired at 04:48. Killed it, the batch's second pass resumed from runs.csv. Two fixes, installed for the runs from 2D marsyard on:
+- c448bc1: the runner's node teardown (executor shutdown, destroy_node, context destroy) runs in a thread bounded at 30 s, a stuck one leaks its context. Most likely place of the hang, the only blocking step before the next stack's log opens. Tested with 3 start and stop cycles on domain 77.
+- de6abaa: marsyard ahead_8m r2 and r3 "timeouts" (0.9 m driven, 17 recoveries) had no `wheel_controller`: its spawner's `load_controller` call timed out at 10 s and the retry never activated it. Steering only, no drive. 0 of 30 starts on 2026-11-04, 2 of 5 tonight, so load-dependent. The stack now counts as ready only once `steer_controller` and `wheel_controller` are reported active, else it gets the fresh-stack retry and then `startup_failed`. The spawner timeout itself is in `rover_sim.launch.py` (rover_bringup, not mine), a candidate for a `ram/rover_bringup-spawner-timeout` branch if it keeps happening.
+- `tools/hang_watch.sh` (deadline 2026-11-07 02:00) kills a runner that sits with no stack for 4 min, so a second hang costs minutes. `tools/backfill_night4.sh` (deadline 2026-11-07 00:00) waits for "night4: done", drops rows without wheels and reruns them, then redraws the h2h figure.
 
 ## Phase 0 bridge: FastDEM features
 
