@@ -161,6 +161,20 @@ def clean_fastdds_shm():
         pass
 
 
+# Spawned active by rover_sim.launch.py, without them the rover steers but never drives.
+DRIVE_CONTROLLERS = ('steer_controller', 'wheel_controller')
+
+
+def inactive_controllers(path):
+    """The drive controllers the stack log has not yet reported active."""
+    try:
+        with open(path, errors='replace') as f:
+            text = f.read()
+    except OSError:
+        return list(DRIVE_CONTROLLERS)
+    return [c for c in DRIVE_CONTROLLERS if f'Configured and activated {c}' not in text]
+
+
 def nav2_active_in_log(path):
     """True once the navigation lifecycle manager has logged that its nodes are active."""
     try:
@@ -400,7 +414,13 @@ class Runner:
             if self.node.bt_state.wait_for_service(timeout_sec=1.0):
                 res = wait_future(self.node.bt_state.call_async(GetState.Request()), 5)
                 if res is not None and res.current_state.label == 'active':
-                    return None
+                    # A spawner whose load_controller call timed out under load leaves the wheels
+                    # unloaded and Nav2 active (2 of 5 starts on 2026-11-06).
+                    missing = inactive_controllers(stack.log_path)
+                    if not missing:
+                        return None
+                    if time.time() - active_since > 60:
+                        return f"controllers not active: {' '.join(missing)}"
             time.sleep(2.0)
         return 'Nav2 not active before startup_timeout'
 
