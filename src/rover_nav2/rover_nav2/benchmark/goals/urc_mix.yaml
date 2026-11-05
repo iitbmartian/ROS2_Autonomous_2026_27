@@ -6,4 +6,6 @@ timeout_s: 600
 goals:
   - {id: mid_20m, x: 20.0, y: 0.0, yaw: 0.0}
   - {id: far_south, x: 30.0, y: -20.0, yaw: -0.6}
-  - {id: far_east, x: 42.0, y: 0.0, yaw: 0.0}
+  # Moved from (42, 0) on 2026-11-06: that pose sat on the rim of the 2.5 m crater at
+  # (42.1, 1.4) with rock_092 under the footprint, so refusing it was right.
+  - {id: far_east, x: 42.0, y: -1.5, yaw: 0.0}

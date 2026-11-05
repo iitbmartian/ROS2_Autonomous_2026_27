@@ -5,4 +5,6 @@ timeout_s: 300
 goals:
   - {id: ahead_10m, x: 10.0, y: 0.0, yaw: 0.0}
   - {id: far_left, x: 18.0, y: 4.0, yaw: 0.0}
-  - {id: far_right, x: 18.0, y: -4.0, yaw: 0.0}
+  # Moved from (18, -4) on 2026-11-06: that pose sat on rock_big_002 (0.28 m, above the
+  # 0.25 m clearance). This one is clear 0.3 m around the footprint in the ground truth.
+  - {id: far_right, x: 16.5, y: -4.0, yaw: 0.0}
