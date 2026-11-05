@@ -307,6 +307,8 @@ Two "failures" were bad goals, found with `tools/goal_audit.py` (height range un
 - rock_field far_right (18, -4): on top of rock_big_002 (0.45 x 0.59 x 0.28 m, above the 0.25 m clearance). Moved to (16.5, -4), clear 0.3 m around the footprint.
 - Installed at 02:58 (554486e), before either world's head-to-head, so both configs get the new goals. Earlier far_east and far_right rows are not comparable. Ledge (0.10 m, the ledge itself) and sidehill (0.40 m, 20 degrees over 1.1 m) are meant.
 
+bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (step_max 0.10), swings left of the 8 cm one and stops at (2.33, 0.79) from t = 35 s with its right side over the 12 cm bar's corner (y up to 0.52), 11 recoveries. Clearing the left bar needs y about 1.0 by x 2.45, an S-curve of about 1.5 m at r 0.8, feasible, so the same corner cutting as lane25. bars added to `exp_mppi_track.sh`.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
