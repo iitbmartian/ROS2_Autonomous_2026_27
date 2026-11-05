@@ -338,13 +338,23 @@ class Runner:
     def stop_node(self):
         if self.node is None:
             return
-        self.executor.shutdown(timeout_sec=5.0)
-        self.spin_thread.join(timeout=5.0)
-        self.node.destroy_node()
-        rclpy.try_shutdown(context=self.ctx)
-        # try_shutdown leaves the DDS participant alive, leaked ones crowd the domain and the
-        # stack's own nodes then miss each other in discovery.
-        self.ctx.destroy()
+        node, executor, spin, ctx = self.node, self.executor, self.spin_thread, self.ctx
+
+        def teardown():
+            executor.shutdown(timeout_sec=5.0)
+            spin.join(timeout=5.0)
+            node.destroy_node()
+            rclpy.try_shutdown(context=ctx)
+            # try_shutdown leaves the DDS participant alive, leaked ones crowd the domain and
+            # the stack's own nodes then miss each other in discovery.
+            ctx.destroy()
+        # The teardown once deadlocked for 1.5 h between runs (2026-11-06), so it gets a bound
+        # and a stuck one leaks its context instead of stopping the benchmark.
+        t = threading.Thread(target=teardown, daemon=True)
+        t.start()
+        t.join(timeout=30.0)
+        if t.is_alive():
+            self.log('runner node teardown stuck after 30 s, its context is left behind')
         self.node = self.executor = self.spin_thread = self.ctx = None
         # The node and its callbacks form reference cycles, only the cycle collector frees them.
         gc.collect()
