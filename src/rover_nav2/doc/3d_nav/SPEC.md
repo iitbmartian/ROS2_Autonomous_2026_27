@@ -117,8 +117,10 @@ For a pose (x, y, yaw):
 5. **Articulation**: left and right rocker angles from the front and rear contact heights per side.
    `u_art = |rocker_left - rocker_right| / 2 / rocker_max`.
 6. **Wheel step**: step layer at each contact. `u_step = max_i(step_i) / step_max`.
-7. **Roughness**: `u_rough = roughness / roughness_max`, the largest roughness in the
-   circumscribed disc of the wheel rectangle.
+7. **Roughness**: `u_rough = roughness / roughness_max` at the centre cell. The roughness layer
+   is already the residual of a plane fitted over a wheelbase / 2 disc, the support area. The
+   first version took the largest value in a further 0.43 m disc, which counted that area twice
+   and marked cells unsafe up to 0.8 m from a tall rock (rock_field, 2026-11-06).
 8. `u = max(u_tip, u_clear, u_art, u_step, u_rough)`. Lethal if `u > 1` or any contact cell is a
    negative obstacle.
 

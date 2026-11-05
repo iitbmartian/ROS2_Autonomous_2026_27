@@ -179,14 +179,30 @@ TEST(PoseEvaluation, UnknownContactIsUnknown)
   EXPECT_EQ(evaluatePose(g, 1.9, 0, 0.0, rover(), exact()).status, PoseStatus::kUnknown);
 }
 
-TEST(PoseEvaluation, RoughnessUnderTheSupportPolygon)
+TEST(PoseEvaluation, RoughnessReadsTheCentreCellByDefault)
 {
-  // 0.03 m roughness 0.3 m from the centre, inside the support-polygon disc
-  // (hypot(0.37236, 0.218) = 0.431 m): u_rough = 0.03 / 0.05 = 0.6.
+  // The layer is already a support-scale residual, so 0.03 m roughness 0.3 m from the centre
+  // does not count, and the same value at the centre gives u_rough = 0.03 / 0.05 = 0.6.
   auto g = grid([](double, double) {return 0.0;});
   g.roughness = Eigen::MatrixXf::Zero(81, 81);
   setNear(g.roughness, g, 0.3, 0.0, 0.02, 0.03f);
+  EXPECT_NEAR(evaluatePose(g, 0, 0, 0.0, rover(), exact()).u_rough, 0.0, 1e-6);
+  setNear(g.roughness, g, 0.0, 0.0, 0.02, 0.03f);
   EXPECT_NEAR(evaluatePose(g, 0, 0, 0.0, rover(), exact()).u_rough, 0.6, 1e-6);
+}
+
+TEST(PoseEvaluation, RoughnessDiscWhenAsked)
+{
+  // rough_radius -1: the wheel rectangle's circumscribed disc (hypot(0.37236, 0.218) = 0.431 m)
+  // takes the 0.03 m cell 0.3 m away, u_rough = 0.6, and misses one 0.5 m away.
+  auto g = grid([](double, double) {return 0.0;});
+  g.roughness = Eigen::MatrixXf::Zero(81, 81);
+  auto e = exact();
+  e.rough_radius = -1.0;
+  setNear(g.roughness, g, 0.5, 0.0, 0.02, 0.03f);
+  EXPECT_NEAR(evaluatePose(g, 0, 0, 0.0, rover(), e).u_rough, 0.0, 1e-6);
+  setNear(g.roughness, g, 0.3, 0.0, 0.02, 0.03f);
+  EXPECT_NEAR(evaluatePose(g, 0, 0, 0.0, rover(), e).u_rough, 0.6, 1e-6);
 }
 
 TEST(PoseEvaluation, UncertaintyMakesItStricter)

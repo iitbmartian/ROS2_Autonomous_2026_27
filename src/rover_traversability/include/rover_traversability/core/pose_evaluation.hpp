@@ -62,8 +62,11 @@ struct EvalParams
   // rectangle (wheelbase - 2 wheel_radius) x (track - wheel_width). Larger than the belly, so
   // strict. Computed from PhysicalParams unless set.
   double belly_radius{-1.0};
-  // Roughness window: the circumscribed disc of the wheel rectangle. Computed unless set.
-  double rough_radius{-1.0};
+  // Roughness window. 0 reads the centre cell: the roughness layer is already the RMS residual
+  // of a plane fitted over a wheelbase / 2 disc, the support area, and widening it again counted
+  // that area twice (0.8 m unsafe margin around tall rocks). -1 is the wheel rectangle's
+  // circumscribed disc, for a roughness layer measured at a smaller scale.
+  double rough_radius{0.0};
   // The belly disc and the roughness disc do not depend on yaw. The MPPI critic leaves them to
   // the costmap, which already applies them at every cell, and evaluates only the yaw-dependent
   // checks along each rollout.

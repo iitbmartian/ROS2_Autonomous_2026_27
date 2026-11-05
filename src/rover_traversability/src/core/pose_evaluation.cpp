@@ -231,8 +231,8 @@ PoseResult evaluatePose(
   r.clearance_height = h_max;
   r.u_clear = h_max / p.ground_clearance;
 
-  // Roughness under the support polygon. rough_radius 0 means the layer is already the max
-  // over that disc (precomputed), so only the centre cell is read.
+  // Roughness under the support polygon. rough_radius 0 means the layer already describes that
+  // area (a support-scale plane fit), so only the centre cell is read.
   double rough = 0.0;
   if (e.check_roughness && g.roughness.size() != 0) {
     const double rr = e.rough_radius >= 0.0 ? e.rough_radius : std::hypot(hx, hy);

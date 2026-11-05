@@ -164,9 +164,10 @@ private:
       tg.variance = var;
       tg.step = f.step;
       tg.negative_obstacle = neg;
-      // Roughness under the support polygon, precomputed once per map (rough_radius 0 below).
-      tg.roughness = rover_traversability::core::discMax(
-        f.roughness, std::hypot(phys_.wheelbase / 2.0, phys_.track / 2.0) / g.resolution);
+      // The roughness layer is the residual of a wheelbase / 2 plane fit, already the support
+      // area, so the centre cell is read as is (rough_radius 0 below). A further disc max
+      // counted that area twice and closed 1 m gaps between tall rocks.
+      tg.roughness = f.roughness;
       auto e = eval_;
       e.rough_radius = 0.0;
       const auto y = rover_traversability::core::evaluateYaws(tg, phys_, e, yaw_);
