@@ -29,7 +29,6 @@ from nav_msgs.msg import Odometry
 from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from rclpy.parameter import Parameter
 from std_msgs.msg import Float64MultiArray
 from tf2_ros import Buffer, TransformListener
 
@@ -69,11 +68,12 @@ class Recorder(Node):
 
     def __init__(self, context=None):
         # No rosout: the node is recreated under the same name, and nothing reads its log there.
-        super().__init__('nav_benchmark', context=context, enable_rosout=False,
-                         parameter_overrides=[
-            Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+        # Wall clock node: sim time comes from /odom stamps (sim_now), because /clock arrives every
+        # 1 ms physics step and cost this Python node about 18 percent of a core.
+        super().__init__('nav_benchmark', context=context, enable_rosout=False)
         self._lock = threading.Lock()
         self._poses = []
+        self._sim_t = 0.0
         self.recording = False
         self.create_subscription(Odometry, '/odom', self._odom, 50)
         self.nav = ActionClient(self, NavigateToPose, 'navigate_to_pose')
@@ -116,12 +116,13 @@ class Recorder(Node):
                 metrics.quat_to_rpy(q.x, q.y, q.z, q.w)[2])
 
     def _odom(self, msg):
+        t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        self._sim_t = max(self._sim_t, t)
         if not self.recording:
             return
         p = msg.pose.pose
         r, pi, y = metrics.quat_to_rpy(p.orientation.x, p.orientation.y,
                                        p.orientation.z, p.orientation.w)
-        t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         with self._lock:
             self._poses.append((t, p.position.x, p.position.y, p.position.z, r, pi, y))
 
@@ -131,7 +132,8 @@ class Recorder(Node):
         return poses
 
     def sim_now(self):
-        return self.get_clock().now().nanoseconds * 1e-9
+        """Sim time of the newest /odom message. It stops if the sim stalls, like /clock would."""
+        return self._sim_t
 
     def goal_pose(self, goal):
         ps = PoseStamped()
@@ -424,6 +426,10 @@ class Runner:
         gh = wait_future(self.node.nav.send_goal_async(g, feedback_callback=feedback), 30)
         if gh is None or not gh.accepted:
             return 'rejected', float('nan'), 0, float('nan')
+        # sim_now comes from /odom, so wait for the first message before starting the clock.
+        w_odom = time.time()
+        while self.node.sim_now() == 0.0 and time.time() - w_odom < 30.0:
+            time.sleep(0.1)
         t0, w0 = self.node.sim_now(), time.time()
         res_f = gh.get_result_async()
         # Wall guard in case the sim stalls entirely: far beyond any real-time factor seen.
