@@ -302,6 +302,11 @@ Offline diagnosis of the slope timeouts (v5 poses and logs, no sim):
 - lane25_top: from t = 47 s stuck at (3.85, -3.5), heading -48 degrees, at the toe of the 25 degree ramp (starts at x 4). The 5 m lateral offset needs an S-curve aligned with +x before the ramp, the rover cut it and arrived 48 degrees off, a pose an Ackermann rover leaves only by reversing. 6 "Failed to make progress".
 - Common cause, likely MPPI tracking: `PathAlignCritic.use_path_orientations: false`, PathAlign and PathAngle off within 0.5 m, GoalCritic in charge from 1.4 m. The 3D overlay never touched MPPI, these are the 2D values. Candidate `~/.ros/rover_3d_nav/exp/nav2_3d_mppi_track.yaml` (3D overlay plus path orientations on, PathAlign weight 14, PathAlign and PathAngle to 0.25 m, GoalCritic and PathFollow handover at 0.6 m), merged diff checked to touch only those six keys. `tools/exp_mppi_track.sh` runs it on slopes, marsyard and rock_field after the backfill (deadline 2026-11-07 06:00). Kept for 3D if it fixes the slopes without losing marsyard or rock_field.
 
+Two "failures" were bad goals, found with `tools/goal_audit.py` (height range under each goal's footprint in the ground-truth grids):
+- urc_mix far_east (42, 0): 0.36 m of relief under the footprint, the rim of the 2.5 m crater at (42.1, 1.4) with rock_092 on it. v4 and v5 drove 40 m and then got "no valid path" 2.1 m short, a correct refusal. Moved to (42, -1.5), flat.
+- rock_field far_right (18, -4): on top of rock_big_002 (0.45 x 0.59 x 0.28 m, above the 0.25 m clearance). Moved to (16.5, -4), clear 0.3 m around the footprint.
+- Installed at 02:58 (554486e), before either world's head-to-head, so both configs get the new goals. Earlier far_east and far_right rows are not comparable. Ledge (0.10 m, the ledge itself) and sidehill (0.40 m, 20 degrees over 1.1 m) are meant.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
