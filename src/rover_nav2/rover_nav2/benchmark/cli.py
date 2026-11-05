@@ -85,7 +85,9 @@ def parse_args(argv):
                    help='config name in run ids and results (default the --config value)')
     p.add_argument('--wall-factor', type=float, default=40.0,
                    help='wall timeout = goal timeout_s times this, if the sim stalls')
-    p.add_argument('--repo', default=os.environ.get('ROVER_REPO', '/home/ram/ROS2_Autonomous_2026_27'))
+    # Home-relative, so the runner works under another user (lab NUCs).
+    p.add_argument('--repo', default=os.environ.get(
+        'ROVER_REPO', os.path.expanduser('~/ROS2_Autonomous_2026_27')))
     p.add_argument('--keep-db', action='store_true',
                    help='keep each run\'s RTAB-Map database (about 17 MB per run)')
     p.add_argument('--report-only', default=None, metavar='OUT_DIR')
