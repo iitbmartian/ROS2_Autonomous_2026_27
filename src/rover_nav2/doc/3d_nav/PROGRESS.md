@@ -349,6 +349,10 @@ Preliminary Phase 3 gate table, 21:30 (marsyard backfilled, urc_mix 3D rerun sti
 
 Final head-to-head, 21:45 (backfill done 21:34, 63 rows per config, no `startup_failed` left), table `~/rover_3d_nav_results/analysis/phase3_gate_h2h.csv`: 3D 40 of 63, `2d_bounded` 37 of 63. Changes from the preliminary table: urc_mix 3D 7/9, `2d_bounded` 9/9 (the rerun mid_20m 3/3 at 47 s and far_south r1). Gate items: unsafe entries pass on all 7 worlds. Recoveries fail on marsyard (7 vs 0), urc_mix (22 vs 0), ledge. Time to goal fails on every world with a baseline success (3D 1.3 to 3.2 times slower). Phase 3 gate not met, speed is the blocking item. CPU 94 C at this check (4600H limit 105 C), the experiment chain continues.
 
+Cloud farm prep (22:10). Ram has Intel cloud access. Chosen: an Arc Pro B-series machine (bm-crisdv-spr or -gnr) as the benchmark farm, and a Meteor Lake or Arrow Lake AI PC as the NUC-class machine for the Phase 2 latency item. Hosts offer only Ubuntu 25.10 or 26.04, so the plan is the repo's Docker image (Ubuntu 24.04.4, Jazzy, Gazebo, Mesa 25.2.8, which covers Battlemage) on a 26.04 host, with `--device /dev/dri --network host --ipc host`. Waiting for Ram's SSH logins. Ready now:
+- `ROVER_BENCH_INSTANCE=N` (8d43515): `simenv.sh` gives the instance domain 42 + N and its own Gazebo partition, run markers carry the instance, and a runner clears only its own leftovers. Unset is the old behaviour.
+- `tools/farm_run.sh N CAP OUT "worlds" <benchmark args>`: N lanes with worlds dealt round-robin, staggered starts, each capped, then `tools/merge_runs.py` joins the lanes (tested on the v4 and v5 runs, 42 rows).
+
 ### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
 1. Done 21:01: head-to-head on all 7 worlds (night4).
 2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
