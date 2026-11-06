@@ -383,6 +383,8 @@ Revised 03:20 (steps 3 to 5 done, ahead of plan, swerve restarted after the plug
 
 03:20, incident and reorder. `exp_confirm.sh` started at 03:09 on a stale "exp_swerve: done" line from the 03:02 stop, while the restarted swerve run was live. Its runner cleared every marked process at startup, which took the swerve stack down, then crashed on `--worlds all` (not a valid world list). `hang_watch` then killed the stackless swerve runner at 03:13, correctly. Lost about 25 min. Fixes: wait loops only read log lines written after the script started (`n0=$(wc -l < $L)`), explicit world list. Ram wants Phase 3 closed sooner, so the order is now **exp_confirm (Phase 3) first, from 03:17, then exp_swerve**. Ram also asked for an hourly check so no more than an hour is lost: `tools/health.sh` prints the chain, runner, newest rows and output age, and a session cron runs it every hour at :47.
 
+03:30, Ram: Phase 3 time-to-goal gate is now **within 1.5x of `2d_bounded` on goals where it succeeds with 0 unsafe entries**, goals where 2D was unsafe count for safety only (`PHASES.md` updated). `phase3_gate.py` gets that rule before the confirming run ends. Ram, same time: 1.5x is only the gate, the target is as fast as possible, since competitions are time-bounded. After the confirming run, the next work is closing the flat-ground gap (final approach stalls, goal-yaw S-curves, recoveries, acceleration limits), aiming at 2D parity on easy worlds.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when

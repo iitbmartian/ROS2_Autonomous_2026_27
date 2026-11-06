@@ -73,8 +73,10 @@ Tasks:
 
 Gate:
 - Fewer unsafe entries than baseline on every world, and zero on `slopes` and `crater_field`.
-- Recoveries no worse than baseline. Time to goal within 10 percent of baseline where baseline
-  succeeds.
+- Recoveries no worse than baseline. Time to goal within 1.5x of baseline on goals where baseline
+  succeeds with zero unsafe entries. Changed by Ram on 2026-11-07 from "within 10 percent where
+  baseline succeeds": the 3D stack drives around hazards the 2D stack drives over, so goals where
+  baseline was unsafe count only for safety.
 
 ## Phase 4: swerve
 
