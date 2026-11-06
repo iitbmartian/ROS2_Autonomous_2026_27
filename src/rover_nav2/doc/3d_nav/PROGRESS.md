@@ -321,8 +321,13 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 330 s (final approach again, goal yaw -0.6). r1 stalled 1.8 m short at (28.3, -19.6) with 14 "Failed to make progress", rock_079 (0.12 m, above step_max) 0.65 m ahead, so it had to swing around the rock and turn to the goal heading in a tight space, the same manoeuvring limit. The goal itself is clear (rock 1.1 m away). The urc_mix ground-truth grid holds the mesh only, no rocks, so `tools/goal_audit.py` now also reads rock models from the world file (flags any above 0.10 m under the footprint plus 0.15 m): none under any goal.
 
+13:32 check: every stack start since 11:51 failed, both configs (3D urc_mix far_east r3 twice, `2d_bounded` urc_mix mid_20m r1 and r2, each with its fresh-stack retry). Most Nav2 nodes never printed their first line, main thread in a futex wait. Two problems:
+- The runner then hung for an hour. After a failed start it built its ROS node beside the stalled stack and never returned. The runner now builds the node only after a good start (`note is None`), and `hang_watch.sh` also kills a runner whose one stack lives over 75 min, matching the Python runner only (it matched the guard shell before). Killed by PID at 13:34, the batch's second pass resumed.
+- Root cause of the stalls: 16 Fast DDS SHM port segments (`/dev/shm/fastrtps_port70xx` with `sem.fastrtps_port70xx_mutex`) left by processes killed since 2026-11-04, mapped by no live process. A process killed while holding a port's named-semaphore mutex leaves it locked for good. Our profile sends discovery to 120 peer ports, so every new participant eventually opens a dead port and blocks on its mutex. `fastdds shm clean` counted them as "in use" and removed none. `tools/shm_stale_ports.py --rm` removes port segments that no process maps, plus their mutexes (removed 16 at 13:52). The runner does the same before each stack (`remove_stale_shm_ports`), and `sim_down.sh` and the backfill call the tool after a kill.
+- `backfill_night4.sh` now also reruns `startup_failed` rows (cap 3 h), so 3D far_east r3 and the 2D urc_mix rows get scored.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
-1. To about 15:30: head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
+1. To about 17:00 (1.5 h lost to the stalls): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 15:30 to 16:30: backfill of the wheel-less marsyard rows, then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
 3. About 16:30 to 20:00: `exp_mppi_track.sh` (slopes, marsyard, rock_field, bars). Kept only if lane25, sidehill or bars improve and marsyard and rock_field do not get worse.
 4. About 20:00 to 22:00: `exp_vnom.sh` (v_nominal 0.5), for the time-to-goal gate item.

@@ -11,6 +11,7 @@ path length, planner time, CPU load, real-time factor. See metrics.py and SPEC.m
 
 import csv
 import gc
+import glob
 import hashlib
 import math
 import os
@@ -159,6 +160,31 @@ def clean_fastdds_shm():
                        stderr=subprocess.DEVNULL, timeout=30, check=False)
     except (OSError, subprocess.TimeoutExpired):
         pass
+    remove_stale_shm_ports()
+
+
+def remove_stale_shm_ports():
+    """Removes SHM port segments no live process maps, with their named-semaphore mutex. A
+    process killed while holding a port mutex leaves it locked for good, `fastdds shm clean`
+    still counts the port as in use, and every new participant that sends discovery to it hangs
+    before its node is built (every start from 2026-11-06 11:51 to 13:55). Returns the names."""
+    mapped = set()
+    for maps in glob.glob('/proc/[0-9]*/maps'):
+        try:
+            with open(maps) as f:
+                mapped.update(os.path.basename(line.split()[-1]) for line in f
+                              if '/dev/shm/fastrtps_port' in line)
+        except OSError:
+            pass
+    stale = [os.path.basename(p) for p in glob.glob('/dev/shm/fastrtps_port*')
+             if not p.endswith('_el') and os.path.basename(p) not in mapped]
+    for name in stale:
+        for f in (name, name + '_el', f'sem.{name}_mutex'):
+            try:
+                os.remove(os.path.join('/dev/shm', f))
+            except OSError:
+                pass
+    return stale
 
 
 # Spawned active by rover_sim.launch.py, without them the rover steers but never drives.
@@ -508,7 +534,9 @@ class Runner:
             stack.stop()
             retried = f'startup retried after: {note}'
         row['note'] = retried
-        if self.node is None:
+        # A failed start needs no node, and building one beside a stalled stack hung the runner
+        # for over an hour (2026-11-06 12:33, urc_mix 2D).
+        if self.node is None and note is None:
             self.start_node()
         cpu = CpuSampler(stack)
         cpu.start()
@@ -549,7 +577,8 @@ class Runner:
             else:
                 row.update(status='startup_failed', success=0, note=note)
         finally:
-            self.node.recording = False
+            if self.node is not None:
+                self.node.recording = False
             cm, cp = cpu.stop()
             row.update(cpu_mean_pct=f'{cm:.1f}', cpu_peak_pct=f'{cp:.1f}')
             left = stack.stop()
