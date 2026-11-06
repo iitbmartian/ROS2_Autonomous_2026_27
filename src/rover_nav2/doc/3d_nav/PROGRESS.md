@@ -339,6 +339,7 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 - Real-rover tuning comes later. Problems that are only tuning get a reasonable fix and a note, not days of work. The sim tuning itself has to be good (it is the reference for all digital work and the starting point on the real rover).
 - Real top speed unknown: 0.5 m/s stays, as a placeholder.
 Speed analysis (3D successes today): 82 percent of time cruising at a median 0.17 m/s, 13 percent slow or stopped, 5 percent within 1 m of the goal, so the governor cap is the main cause. Decision: governor `u_free` (6428aed, SPEC updated, gtest with hand values), default 0 keeps today's behaviour. `tools/exp_vnom.sh` now installs it first, then runs v_nominal 0.5 with u_free 0 and 0.3 on marsyard, crater_field, rock_field, slopes.
+Motion plan agreed in discussion (21:00): Ackermann-like cruising, crab and spot turns allowed near the goal and in tight spots, spot turns only on easy level cells, crab for sidehill crossings, a cost on wheel-angle change. One Omni MPPI does it all (the Phase 4 swerve overlay). Real steering range, rate and steering at standstill are unknown, so `rover_physical.yaml` gains `v_max`, `steer_max`, `steer_rate_max`, `steer_at_standstill` with the sim values as PLACEHOLDERs (no code reads them yet).
 
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.

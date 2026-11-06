@@ -29,3 +29,9 @@ rocker_max: 0.35             # rad, max rocker deflection either way  # PLACEHOL
 step_max: 0.10               # m, highest step a wheel climbs (sim climbs 10 to 12 cm bars)  # PLACEHOLDER
 stability_margin_min: 0.17   # rad, smallest allowed tip-over margin  # PLACEHOLDER
 roughness_max: 0.05          # m, RMS roughness the drive tolerates (prototype value)  # PLACEHOLDER
+
+# Drive. Sim values from rover_gazebo/config/rover_control.yaml, real ones not measured yet.
+v_max: 0.5                   # m/s, top speed the planner may command (sim MPPI vx_max)  # PLACEHOLDER
+steer_max: 1.5708            # rad, per-wheel steering range either way  # PLACEHOLDER
+steer_rate_max: 2.0          # rad/s, per-wheel steering rate  # PLACEHOLDER
+steer_at_standstill: true    # wheels can steer with the rover stopped and loaded  # PLACEHOLDER
