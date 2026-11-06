@@ -311,6 +311,8 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 04:22 check: marsyard and most of crater_field done. 3D marsyard 6 of 7 scored runs succeed (ahead_8m r2 and r3 are the wheel-less starts, backfill reruns them), crater_field ahead_10m 3 of 3. 2D marsyard 8 of 9. On the same 7.8 m paths 3D drives 0.10 to 0.15 m/s, 2D 0.30 to 0.38 m/s: the governor's `v_nominal` is a code default of 0.25 m/s (no source in SPEC or rover_physical.yaml), while MPPI and 2D run to 0.5. Kept at 0.25 for the whole head-to-head so its rows stay comparable. `pipeline_3d.launch.py` gains `governor_v_nominal` (default 0.25, 9e0d6b1), `tools/exp_vnom.sh` runs 0.5 on marsyard, crater_field and rock_field after the tracking experiment, to see what speed costs in safety.
 
+06:20 check: crater_field done. 3D 7 of 9, 0 unsafe entries, max roll 10.2 deg. `2d_bounded` 5 of 9 with 13 unsafe entries, two rollovers on far_right (roll 104 and 113 deg) and pitch up to 43 deg on far_left. far_left (18, 5) has 0.10 m under the footprint and 0.33 m within 0.3 m of it, a crater edge, reachable and left as is. 3D far_left r1 stopped 0.26 m short and timed out, the final-approach shuffle again. slopes running: lane15 3 of 3, lane25 0 of 2 so far.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
