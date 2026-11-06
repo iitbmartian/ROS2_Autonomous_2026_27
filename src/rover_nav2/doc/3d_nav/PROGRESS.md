@@ -341,13 +341,14 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 Speed analysis (3D successes today): 82 percent of time cruising at a median 0.17 m/s, 13 percent slow or stopped, 5 percent within 1 m of the goal, so the governor cap is the main cause. Decision: governor `u_free` (6428aed, SPEC updated, gtest with hand values), default 0 keeps today's behaviour. `tools/exp_vnom.sh` now installs it first, then runs v_nominal 0.5 with u_free 0 and 0.3 on marsyard, crater_field, rock_field, slopes.
 Motion plan agreed in discussion (21:00): Ackermann-like cruising, crab and spot turns allowed near the goal and in tight spots, spot turns only on easy level cells, crab for sidehill crossings, a cost on wheel-angle change. One Omni MPPI does it all (the Phase 4 swerve overlay). Real steering range, rate and steering at standstill are unknown, so `rover_physical.yaml` gains `v_max`, `steer_max`, `steer_rate_max`, `steer_at_standstill` with the sim values as PLACEHOLDERs (no code reads them yet).
 
-### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
-1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
-2. About 17:30 to 19:00: backfill (wheel-less marsyard rows, the start failures of urc_mix), then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
-3. About 16:30 to 20:00: `exp_mppi_track.sh` (slopes, marsyard, rock_field, bars). Kept only if lane25, sidehill or bars improve and marsyard and rock_field do not get worse.
-4. About 20:00 to 22:00: `exp_vnom.sh` (v_nominal 0.5), for the time-to-goal gate item.
-5. About 22:00 to 23:30: `p2_crater_gt.sh`, Phase 2 crater_field RMSE and crater check on ground truth.
-6. 2026-11-07: the final 3D config's confirming head-to-head (about 15 h here, about 5 h with the two NUCs), then the Phase 3 gate.
+### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
+1. Done 21:01: head-to-head on all 7 worlds (night4).
+2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
+3. About 23:00 to 01:30: `exp_mppi_track.sh` (path orientations on, handover at 0.6 m), slopes, marsyard, rock_field, bars, ledge.
+4. About 01:30 to 04:30: `exp_vnom.sh`, installs the u_free governor, then v_nominal 0.5 with u_free 0 and 0.3.
+5. About 04:30 to 06:00: `p2_crater_gt.sh`, Phase 2 crater_field RMSE and crater check on ground truth.
+6. About 06:00 to 09:00: `exp_swerve.sh`, first swerve run (Omni MPPI, same fast governor) on marsyard, slopes, rock_field, urc_mix.
+7. 2026-11-07 morning: Phase 3 gate table from the head-to-head, pick the speed and tracking settings, then the confirming run. `hang_watch.sh` runs to 2026-11-07 16:00.
 
 ## Phase 0 bridge: FastDEM features
 
