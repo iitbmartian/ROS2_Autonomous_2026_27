@@ -1,5 +1,6 @@
 <library path="rover_terrain_critic">
-  <class name="rover_traversability::TerrainCritic"
+  <!-- Lookup name under mppi::critics:: because the Jazzy CriticManager prefixes every critic name with it. -->
+  <class name="mppi::critics::TerrainCritic"
          type="rover_traversability::TerrainCritic"
          base_class_type="mppi::critics::CriticFunction">
     <description>
