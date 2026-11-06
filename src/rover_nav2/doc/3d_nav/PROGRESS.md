@@ -319,6 +319,8 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 12:11 check: urc_mix running, 3D mid_20m 3/3, far_south 1/3 (one abort at 464 s, one 600 s timeout), the moved far_east 2/2 so far (232 and 236 s), which confirms the old goal was the problem. CPU 84 to 92 C under the sustained load, fans near full (Ram asked about laptop health, battery charge cap at 80 percent suggested). Deleted the 4.1 GB rock_field bag, the roughness fix is confirmed. 23 GB free.
 
+urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 330 s (final approach again, goal yaw -0.6). r1 stalled 1.8 m short at (28.3, -19.6) with 14 "Failed to make progress", rock_079 (0.12 m, above step_max) 0.65 m ahead, so it had to swing around the rock and turn to the goal heading in a tight space, the same manoeuvring limit. The goal itself is clear (rock 1.1 m away). The urc_mix ground-truth grid holds the mesh only, no rocks, so `tools/goal_audit.py` now also reads rock models from the world file (flags any above 0.10 m under the footprint plus 0.15 m): none under any goal.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 15:30: head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 15:30 to 16:30: backfill of the wheel-less marsyard rows, then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
