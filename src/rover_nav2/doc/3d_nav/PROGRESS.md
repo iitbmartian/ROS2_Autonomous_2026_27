@@ -376,6 +376,11 @@ IRC mode (22:40): Jazzy's Smac Hybrid has no goal-heading-free mode (no `goal_he
 6. About 06:00 to 09:00: `exp_swerve.sh`, first swerve run (Omni MPPI, same fast governor) on marsyard, slopes, rock_field, urc_mix.
 7. 2026-11-07 morning: Phase 3 gate table from the head-to-head, pick the speed and tracking settings, then the confirming run. `hang_watch.sh` runs to 2026-11-07 16:00.
 
+Revised 03:20 (steps 3 to 5 done, ahead of plan, swerve restarted after the plugin fix):
+- 03:06 to about 04:30: `exp_swerve.sh`.
+- About 04:30 to 09:30: `tools/exp_confirm.sh`, 3D with v_nominal 0.5 and u_free 0, all 7 worlds, 3 runs per goal, guard 6 h, start deadline 07:00. Then `phase3_gate.py` against the 2026-11-06 `2d_bounded` rows into `analysis/phase3_gate_confirm.csv`, and backup `~/rover_3d_nav_results_backup_2026-11-07.tar.zst`.
+- While those run, no sim work: crater-approach goals for the Phase 2 crater item, written for after the confirming run.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
