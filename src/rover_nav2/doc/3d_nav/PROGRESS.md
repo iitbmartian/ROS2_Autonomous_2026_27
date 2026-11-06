@@ -357,6 +357,8 @@ IRC mode (22:40): Jazzy's Smac Hybrid has no goal-heading-free mode (no `goal_he
 
 22:50, Ram: nothing IRC-specific for now. `exp_irc.sh` cancelled before it ran. `--goal-yaw` (default `file`) and `nav_extra_overlay` (default empty) stay as unused generic options, `exp/nav2_3d_irc.yaml` is parked. Benchmark goals keep their headings and the 0.15 m and 0.25 rad tolerances.
 
+23:15, `exp_mppi_track` (12 of 14 rows, against the head-to-head 3D rows for the same goals): **rejected**. lane25_top still times out, lane35_top still aborts, sidehill_uphill canceled at 209 s (h2h: 3 timeouts), so the slopes do not improve. marsyard 3 of 3 as before (ahead_8m 42 s, left_diag 165 s against 51 to 181 s, behind_left 68 s). rock_field gets worse: ahead_10m succeeds (71 s), but far_left times out 0.50 m short and far_right aborts 14.1 m short, where the h2h had 3 of 3 on each. bars past_bars_4m times out as before. Tighter path alignment does not fix the corner cutting and costs the long rock_field routes, so the 3D overlay keeps the 2D MPPI critic values. The last bars and ledge rows finish within minutes, then `exp_vnom` starts, about 2 h ahead of the plan. CPU 93 C, 0 stale SHM ports, disk 83%.
+
 ### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
 1. Done 21:01: head-to-head on all 7 worlds (night4).
 2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
