@@ -333,6 +333,13 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 
 19:54 check: rock_field done, 3D 8 of 9 vs `2d_bounded` 3 of 9 (far_right 3/3 at 160 to 172 s, ahead_10m and far_left 0/6), 0 unsafe on both. ledge done: 3D 0 of 6, `2d_bounded` 6 of 6 (16 and 29 s). Corrected 20:50: the 3D misses are the ledge. The ledge is a 0.5 m wide, 0.10 m high strip (y -0.03 to 0.47, x 3 to 19) and the goals at y 0 sit on its edge, so reaching them puts one wheel side on the strip. `2d_bounded` ends at z 0.064, on it. 3D drives alongside at y -0.37, z 0, and stops 0.40 m out: the edge is exactly `step_max` (0.10, PLACEHOLDER), so poses over it are not traversable. An earlier note here called it the lateral approach error, which was wrong. Correct behaviour for the placeholder, the outcome depends on the measured step capability (hardware data). ledge stays in `exp_mppi_track.sh`, which is harmless but tests nothing there. bars 3D 0/2 so far (2.0 and 3.1 m short, as in v5). CPU 89 C.
 
+20:50, Ram's direction for the next stage:
+- Target is SPROS IRC 2027 (rulebook `~/rover_3d_nav_results/docs/irc2027/`). Autonomy only in the delivery stage: 15 min, up to 500 m, scored on how close the object is placed, no heading. At 0.17 m/s a 200 m leg needs 20 min, so speed comes first.
+- On hold until the core framework is done: red no-go zones and the marker-based final approach.
+- Real-rover tuning comes later. Problems that are only tuning get a reasonable fix and a note, not days of work. The sim tuning itself has to be good (it is the reference for all digital work and the starting point on the real rover).
+- Real top speed unknown: 0.5 m/s stays, as a placeholder.
+Speed analysis (3D successes today): 82 percent of time cruising at a median 0.17 m/s, 13 percent slow or stopped, 5 percent within 1 m of the goal, so the governor cap is the main cause. Decision: governor `u_free` (6428aed, SPEC updated, gtest with hand values), default 0 keeps today's behaviour. `tools/exp_vnom.sh` now installs it first, then runs v_nominal 0.5 with u_free 0 and 0.3 on marsyard, crater_field, rock_field, slopes.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 17:30 to 19:00: backfill (wheel-less marsyard rows, the start failures of urc_mix), then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.

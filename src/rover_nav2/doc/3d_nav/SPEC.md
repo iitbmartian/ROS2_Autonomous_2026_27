@@ -162,8 +162,11 @@ retuned or disabled so it does not force heading along the path.
 
 ### Speed and safety
 
-- Speed governor: `v_max = v_nominal * (1 - alpha * u_ahead)`, floored at `v_min`, where
-  `u_ahead` is the worst utilisation under the predicted footprint over `lookahead_time`.
+- Speed governor: `v_max = v_nominal * (1 - alpha * u')`, floored at `v_min`, where
+  `u' = max(0, u_ahead - u_free) / (1 - u_free)` and `u_ahead` is the worst utilisation under
+  the predicted footprint over `lookahead_time`. `u_free` (default 0, the original formula)
+  keeps full speed on easy ground. Added 2026-11-06: the 3D stack cruised at a third of 2D's
+  speed, mostly from the derate starting at u 0.
 - Safety monitor: lethal cells in the braking zone feed the collision monitor. Measured roll or
   pitch within `tip_margin` of the limit aborts the goal.
 - Slip layer (Phase 5, only if wheel speed feedback exists): cells where wheel speed and EKF
