@@ -328,8 +328,8 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 - `backfill_night4.sh` now also reruns `startup_failed` rows (cap 3 h), so 3D far_east r3 and the 2D urc_mix rows get scored.
 
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
-1. To about 17:00 (1.5 h lost to the stalls): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
-2. About 15:30 to 16:30: backfill of the wheel-less marsyard rows, then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
+1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
+2. About 17:30 to 19:00: backfill (wheel-less marsyard rows, the start failures of urc_mix), then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
 3. About 16:30 to 20:00: `exp_mppi_track.sh` (slopes, marsyard, rock_field, bars). Kept only if lane25, sidehill or bars improve and marsyard and rock_field do not get worse.
 4. About 20:00 to 22:00: `exp_vnom.sh` (v_nominal 0.5), for the time-to-goal gate item.
 5. About 22:00 to 23:30: `p2_crater_gt.sh`, Phase 2 crater_field RMSE and crater check on ground truth.
