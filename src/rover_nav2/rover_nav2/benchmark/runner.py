@@ -164,20 +164,22 @@ def clean_fastdds_shm():
 
 
 def remove_stale_shm_ports():
-    """Removes SHM port segments no live process maps, with their named-semaphore mutex. A
-    process killed while holding a port mutex leaves it locked for good, `fastdds shm clean`
-    still counts the port as in use, and every new participant that sends discovery to it hangs
-    before its node is built (every start from 2026-11-06 11:51 to 13:55). Returns the names."""
-    mapped = set()
-    for maps in glob.glob('/proc/[0-9]*/maps'):
+    """Removes SHM port segments whose listener is gone, with their named-semaphore mutex. The
+    owner of a live port runs a `dds.shm.<port>` thread. A process killed while creating its
+    port (2026-11-06 11:51:32, port 7020) left a segment every later participant opened and
+    hung on, so the hung ones kept it mapped and `fastdds shm clean` kept it as in use. Every
+    stack start failed from then until it was removed by hand at 14:19. Returns the names."""
+    live = set()
+    for comm in glob.glob('/proc/[0-9]*/task/[0-9]*/comm'):
         try:
-            with open(maps) as f:
-                mapped.update(os.path.basename(line.split()[-1]) for line in f
-                              if '/dev/shm/fastrtps_port' in line)
+            with open(comm) as f:
+                name = f.read().strip()
         except OSError:
-            pass
+            continue
+        if name.startswith('dds.shm.') and name[8:].isdigit():
+            live.add(name[8:])
     stale = [os.path.basename(p) for p in glob.glob('/dev/shm/fastrtps_port*')
-             if not p.endswith('_el') and os.path.basename(p) not in mapped]
+             if not p.endswith('_el') and os.path.basename(p)[len('fastrtps_port'):] not in live]
     for name in stale:
         for f in (name, name + '_el', f'sem.{name}_mutex'):
             try:
