@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sim runs: shared memory plus UDP on loopback, so Wi-Fi changes never break discovery.
+     UDP alone on loopback (2026-11-02) left nodes undiscovered: no multicast there, and Fast DDS
+     reached only the first few participants from its initial peers, so the velocity smoother
+     and collision monitor never met their peers and /cmd_vel had no publisher. Stale shared
+     memory from killed nodes is cleaned before every start instead (fastdds shm clean). -->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor><transport_id>shm</transport_id><type>SHM</type></transport_descriptor>
+    <transport_descriptor>
+      <transport_id>lo</transport_id><type>UDPv4</type>
+      <interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="loopback" is_default_profile="true">
+    <rtps>
+      <useBuiltinTransports>false</useBuiltinTransports>
+      <userTransports><transport_id>shm</transport_id><transport_id>lo</transport_id></userTransports>
+    </rtps>
+  </participant>
+</profiles>
