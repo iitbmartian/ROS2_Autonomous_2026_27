@@ -331,6 +331,8 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 
 18:03 check: 3D rock_field 8 of 9 (ahead_10m r1 timeout, far_left 3/3, the moved far_right 3/3 at 155 to 262 s), 0 unsafe. `2d_bounded` rock_field 0 of 6 so far: five 300 s timeouts 0.23 to 0.53 m from the goal after 34 to 40 m driven on 10 m goals (circling near the goal among rocks), one abort 1.75 m short with 15 recoveries, 0 unsafe. CPU 84 C. Behind plan: rock_field 2D far_right, then ledge and bars, batch end about 20:00, backfill to about 21:30.
 
+19:54 check: rock_field done, 3D 8 of 9 vs `2d_bounded` 3 of 9 (far_right 3/3 at 160 to 172 s, ahead_10m and far_left 0/6), 0 unsafe on both. ledge done: 3D 0 of 6, `2d_bounded` 6 of 6 (16 and 29 s). The 3D misses are not the ledge: on_ledge_6m r1 ends at (6.16, -0.37), z about 0, 0.40 m from the goal with 6 "Failed to make progress", and all six end 0.39 to 0.43 m out at 240 s. That is the lateral final-approach error of sidehill again, so ledge is added to `exp_mppi_track.sh` (cap 4 h). bars 3D 0/2 so far (2.0 and 3.1 m short, as in v5). CPU 89 C.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 17:30 to 19:00: backfill (wheel-less marsyard rows, the start failures of urc_mix), then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
