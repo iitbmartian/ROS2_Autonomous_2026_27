@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Current phase | Phase 2 (mapping validation), with Phase 1's baseline rerun still to run. **Phase 0 gate met. Phase 1 gate items 1 and 2 met.** |
+| Current phase | Phase 3 gate run (3D vs `2d_bounded` head-to-head, 2026-11-06), with two Phase 2 items left: crater_field RMSE and crater check (queued on ground truth, `tools/p2_crater_gt.sh`) and NUC latency (waits for the lab NUCs). **Phase 0 gate met. Phase 1 gate items 1 and 2 met. Phase 2: 6 of 7 worlds within 5 cm.** Phase 4 and 5 code done, their gates not run. |
 | Done | Phase 0: packages, layer goes current in sim, FastDEM map recorded, benchmark runner. Code: L2 lidar, worlds, ground truth, goal sets (P1). Feature node, mapping node extensions, depth_range_cut, terrain_eval (P2). Pose and heading evaluation, layer v2, 3D Nav2 overlay (P3). Swerve mode, TerrainCritic, swerve overlay (P4). Speed governor, safety monitor (P5). |
 | Running unattended | `tools/batch_night4.sh` (from 2026-11-06 00:10): roughness fix, rock_field v6 (2/3), then the 3-run head-to-head 3D vs `2d_bounded` on ground truth (`2026-11-06_h2h_*`), every runner capped by `tools/guard.sh`. Then `tools/backfill_night4.sh` reruns rows whose stack never activated the wheels. `tools/hang_watch.sh` kills a runner idle with no stack for 4 min. Ends around 16:00 to 18:00. |
 | In progress | Phase 1 gate item 3 (2D baseline on all worlds) ran, see that section: the 2D stack rejects every goal outside RTAB-Map's map on the four new worlds. Phase 2 gate: 6 of 7 worlds pass (RMSE 1.76 to 2.79 cm), crater_field fails on odometry yaw drift (see "Phase 2 gate run"). 3D check done: 2 of 16 succeed, 0 unsafe entries, Phase 3 work list in "3D check". |
@@ -316,6 +316,14 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 08:17 check: 3D slopes 9 of 15, 0 unsafe: lane15 3/3, past_lanes 3/3, lane35 refused 3/3 (scored success), lane25 0/3 (stuck at the ramp toe, 3.7 m out) and sidehill 0/3 (0.21 to 0.28 m out, shuffling), both the tracking problem under test next. `2d_bounded` lane15 0/3 so far (timeouts).
 
 10:14 check: slopes done, 3D 9 of 15 vs `2d_bounded` 6 of 15 (lane15 0/3, lane25 0/3, sidehill 0/3 aborted at about 44 s, lane35 3/3 never climbed, past_lanes 3/3), 0 unsafe on both. urc_mix started, 3D mid_20m 3/3. Batch now expected to end about 15:30, then backfill and the two experiments.
+
+### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
+1. To about 15:30: head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
+2. About 15:30 to 16:30: backfill of the wheel-less marsyard rows, then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
+3. About 16:30 to 20:00: `exp_mppi_track.sh` (slopes, marsyard, rock_field, bars). Kept only if lane25, sidehill or bars improve and marsyard and rock_field do not get worse.
+4. About 20:00 to 22:00: `exp_vnom.sh` (v_nominal 0.5), for the time-to-goal gate item.
+5. About 22:00 to 23:30: `p2_crater_gt.sh`, Phase 2 crater_field RMSE and crater check on ground truth.
+6. 2026-11-07: the final 3D config's confirming head-to-head (about 15 h here, about 5 h with the two NUCs), then the Phase 3 gate.
 
 ## Phase 0 bridge: FastDEM features
 
