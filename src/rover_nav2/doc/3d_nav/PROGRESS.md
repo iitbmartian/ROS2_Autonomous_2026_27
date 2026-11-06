@@ -381,6 +381,8 @@ Revised 03:20 (steps 3 to 5 done, ahead of plan, swerve restarted after the plug
 - About 04:30 to 09:30: `tools/exp_confirm.sh`, 3D with v_nominal 0.5 and u_free 0, all 7 worlds, 3 runs per goal, guard 6 h, start deadline 07:00. Then `phase3_gate.py` against the 2026-11-06 `2d_bounded` rows into `analysis/phase3_gate_confirm.csv`, and backup `~/rover_3d_nav_results_backup_2026-11-07.tar.zst`.
 - While those run, no sim work: crater-approach goals for the Phase 2 crater item, written for after the confirming run.
 
+03:20, incident and reorder. `exp_confirm.sh` started at 03:09 on a stale "exp_swerve: done" line from the 03:02 stop, while the restarted swerve run was live. Its runner cleared every marked process at startup, which took the swerve stack down, then crashed on `--worlds all` (not a valid world list). `hang_watch` then killed the stackless swerve runner at 03:13, correctly. Lost about 25 min. Fixes: wait loops only read log lines written after the script started (`n0=$(wc -l < $L)`), explicit world list. Ram wants Phase 3 closed sooner, so the order is now **exp_confirm (Phase 3) first, from 03:17, then exp_swerve**. Ram also asked for an hourly check so no more than an hour is lost: `tools/health.sh` prints the chain, runner, newest rows and output age, and a session cron runs it every hour at :47.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when

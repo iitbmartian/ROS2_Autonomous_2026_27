@@ -1,10 +1,11 @@
 #!/bin/bash
 # First Phase 4 look: swerve drive (MPPI Omni, TerrainCritic) on marsyard, slopes, rock_field,
 # urc_mix, 1 run per goal, with the faster governor of exp_vnom A (v_nominal 0.5, u_free 0).
-# Compared with exp_vnom A (same governor, Ackermann). Starts after p2_crater_gt ends or gives up at $1.
+# Compared with exp_vnom A (same governor, Ackermann). Starts after exp_confirm ends or gives up at $1.
 E=$HOME/.ros/rover_3d_nav; L=$HOME/rover_3d_nav_results/batch.log; B=$HOME/.ros/rover_benchmark
 log() { echo "$(date '+%F %H:%M') exp_swerve: $*" >> $L; }
-until grep -q "p2_crater_gt: done\|p2_crater_gt: exited\|p2_crater_gt: deadline" $L; do
+n0=$(wc -l < $L)  # only log lines written after this start count, older done lines are stale
+until tail -n +$((n0+1)) $L | grep -q "exp_confirm: done\|exp_confirm: exited"; do
   [ "$(date +%s)" -ge "$1" ] && { log "deadline before p2_crater_gt finished, nothing run"; exit 1; }
   sleep 60
 done
