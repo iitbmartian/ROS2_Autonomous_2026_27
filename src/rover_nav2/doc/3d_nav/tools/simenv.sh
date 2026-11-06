@@ -3,6 +3,12 @@ source /opt/ros/jazzy/setup.bash
 source /home/ram/ROS2_Autonomous_2026_27/install/setup.bash
 export ROS_DOMAIN_ID=42
 export GZ_PARTITION=rover3d
+# Parallel runners on one machine (cloud farm): ROVER_BENCH_INSTANCE=N gives each its own domain
+# (42 + N) and Gazebo partition, and the runner then clears only its own instance's leftovers.
+if [ -n "${ROVER_BENCH_INSTANCE:-}" ]; then
+  export ROS_DOMAIN_ID=$((42 + ROVER_BENCH_INSTANCE))
+  export GZ_PARTITION=rover3d_$ROVER_BENCH_INSTANCE
+fi
 export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
 # LOCALHOST discovery reaches participant ids 0..31 only (loopback has no multicast), a 3D stack
 # with tools passes that. The profile widens the peer range (rover_nav2 config).

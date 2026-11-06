@@ -256,8 +256,9 @@ def marked_processes(marker):
             continue
         try:
             run = p.environ().get('ROVER_BENCH_RUN')
-            # marker None: any run's process, a leftover of an earlier stack.
-            if run is not None and (marker is None or run == marker):
+            # marker None: any run's process of this instance, a leftover of an earlier stack.
+            if run is not None and (run == marker or
+                                    (marker is None and run.startswith(instance_prefix()))):
                 out.append(p)
         except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
             pass
@@ -282,6 +283,14 @@ def dump_threads(marker, path):
                 f.write(''.join(f'    shm {x}\n' for x in sorted(shm)))
             except (OSError, psutil.Error):
                 pass
+
+
+def instance_prefix():
+    """Marker prefix of this runner's instance. Parallel runners on one machine set
+    ROVER_BENCH_INSTANCE (with their own ROS_DOMAIN_ID and GZ_PARTITION), so each one clears only
+    its own leftovers. Unset gives the single-runner behaviour, matching every marker."""
+    inst = os.environ.get('ROVER_BENCH_INSTANCE', '')
+    return f'{inst}:' if inst else ''
 
 
 def kill_marked(marker):
@@ -505,7 +514,7 @@ class Runner:
 
     def run_one(self, goalset, goal, rep, out_dir, env):
         run_id = f"{self.a.tag or self.a.config}_{goalset['name']}_{goal['id']}_r{rep}"
-        marker = f'{run_id}_{os.getpid()}_{int(time.time())}'
+        marker = f'{instance_prefix()}{run_id}_{os.getpid()}_{int(time.time())}'
         run_env = dict(env, ROVER_BENCH_RUN=marker)
         db = os.path.join(out_dir, 'db', f'{run_id}.db')
         log_path = os.path.join(out_dir, 'logs', f'{run_id}.log')
