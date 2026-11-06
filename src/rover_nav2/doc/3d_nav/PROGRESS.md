@@ -315,6 +315,8 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 08:17 check: 3D slopes 9 of 15, 0 unsafe: lane15 3/3, past_lanes 3/3, lane35 refused 3/3 (scored success), lane25 0/3 (stuck at the ramp toe, 3.7 m out) and sidehill 0/3 (0.21 to 0.28 m out, shuffling), both the tracking problem under test next. `2d_bounded` lane15 0/3 so far (timeouts).
 
+10:14 check: slopes done, 3D 9 of 15 vs `2d_bounded` 6 of 15 (lane15 0/3, lane25 0/3, sidehill 0/3 aborted at about 44 s, lane35 3/3 never climbed, past_lanes 3/3), 0 unsafe on both. urc_mix started, 3D mid_20m 3/3. Batch now expected to end about 15:30, then backfill and the two experiments.
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
