@@ -347,6 +347,8 @@ Preliminary Phase 3 gate table, 21:30 (marsyard backfilled, urc_mix 3D rerun sti
 - Time to goal within 10 percent where the baseline succeeds: fails on every world, 3D takes 1.3 to 3.2 times as long, and ledge has no 3D success. Speed work is the Phase 3 gate.
 - Successes: 3D 39 of 62, `2d_bounded` 33 of 59.
 
+Final head-to-head, 21:45 (backfill done 21:34, 63 rows per config, no `startup_failed` left), table `~/rover_3d_nav_results/analysis/phase3_gate_h2h.csv`: 3D 40 of 63, `2d_bounded` 37 of 63. Changes from the preliminary table: urc_mix 3D 7/9, `2d_bounded` 9/9 (the rerun mid_20m 3/3 at 47 s and far_south r1). Gate items: unsafe entries pass on all 7 worlds. Recoveries fail on marsyard (7 vs 0), urc_mix (22 vs 0), ledge. Time to goal fails on every world with a baseline success (3D 1.3 to 3.2 times slower). Phase 3 gate not met, speed is the blocking item. CPU 94 C at this check (4600H limit 105 C), the experiment chain continues.
+
 ### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
 1. Done 21:01: head-to-head on all 7 worlds (night4).
 2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
