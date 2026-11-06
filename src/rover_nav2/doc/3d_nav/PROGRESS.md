@@ -341,6 +341,12 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 Speed analysis (3D successes today): 82 percent of time cruising at a median 0.17 m/s, 13 percent slow or stopped, 5 percent within 1 m of the goal, so the governor cap is the main cause. Decision: governor `u_free` (6428aed, SPEC updated, gtest with hand values), default 0 keeps today's behaviour. `tools/exp_vnom.sh` now installs it first, then runs v_nominal 0.5 with u_free 0 and 0.3 on marsyard, crater_field, rock_field, slopes.
 Motion plan agreed in discussion (21:00): Ackermann-like cruising, crab and spot turns allowed near the goal and in tight spots, spot turns only on easy level cells, crab for sidehill crossings, a cost on wheel-angle change. One Omni MPPI does it all (the Phase 4 swerve overlay). Real steering range, rate and steering at standstill are unknown, so `rover_physical.yaml` gains `v_max`, `steer_max`, `steer_rate_max`, `steer_at_standstill` with the sim values as PLACEHOLDERs (no code reads them yet).
 
+Preliminary Phase 3 gate table, 21:30 (marsyard backfilled, urc_mix 3D rerun still running): `python3 ~/.ros/rover_3d_nav/tools/phase3_gate.py ~/.ros/rover_benchmark/2026-11-06_h2h_3d/runs.csv ~/.ros/rover_benchmark/2026-11-06_h2h_2db/runs.csv`, saved to `~/rover_3d_nav_results/analysis/phase3_gate_h2h_prelim.csv`.
+- Unsafe entries: pass on all 7 worlds (3D 0 everywhere, `2d_bounded` 13 on crater_field).
+- Recoveries: pass on bars, crater_field, rock_field, slopes. Fail on marsyard (7 vs 0), urc_mix (22 vs 0), ledge (28 vs 0, the step_max refusal).
+- Time to goal within 10 percent where the baseline succeeds: fails on every world, 3D takes 1.3 to 3.2 times as long, and ledge has no 3D success. Speed work is the Phase 3 gate.
+- Successes: 3D 39 of 62, `2d_bounded` 33 of 59.
+
 ### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
 1. Done 21:01: head-to-head on all 7 worlds (night4).
 2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
