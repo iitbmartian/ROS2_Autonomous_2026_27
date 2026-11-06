@@ -317,6 +317,8 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 10:14 check: slopes done, 3D 9 of 15 vs `2d_bounded` 6 of 15 (lane15 0/3, lane25 0/3, sidehill 0/3 aborted at about 44 s, lane35 3/3 never climbed, past_lanes 3/3), 0 unsafe on both. urc_mix started, 3D mid_20m 3/3. Batch now expected to end about 15:30, then backfill and the two experiments.
 
+12:11 check: urc_mix running, 3D mid_20m 3/3, far_south 1/3 (one abort at 464 s, one 600 s timeout), the moved far_east 2/2 so far (232 and 236 s), which confirms the old goal was the problem. CPU 84 to 92 C under the sustained load, fans near full (Ram asked about laptop health, battery charge cap at 80 percent suggested). Deleted the 4.1 GB rock_field bag, the roughness fix is confirmed. 23 GB free.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 15:30: head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 15:30 to 16:30: backfill of the wheel-less marsyard rows, then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
