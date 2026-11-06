@@ -329,6 +329,8 @@ urc_mix far_south 3D (1/3): r3 reached 0.23 m at about 270 s and shuffled for 33
 
 16:12 check: every start since the 14:19 fix came up. urc_mix done at 14:53: `2d_bounded` far_south 2/2 and far_east 3/3 scored, mid_20m 0 of 3 and far_south r1 still `startup_failed` from the broken port, 3D far_east r3 dropped and never scored. rock_field running, 3D ahead_10m 2/3 (r1 timeout), far_left 3/3, far_right r1 succeeded (262 s), 0 unsafe. RTF has fallen to 0.28 (0.32 this morning), CPU 92 C, fans near full. The backfill now also reruns worlds with fewer rows than goals x 3 (dry run picks marsyard and urc_mix, rock_field is still running).
 
+18:03 check: 3D rock_field 8 of 9 (ahead_10m r1 timeout, far_left 3/3, the moved far_right 3/3 at 155 to 262 s), 0 unsafe. `2d_bounded` rock_field 0 of 6 so far: five 300 s timeouts 0.23 to 0.53 m from the goal after 34 to 40 m driven on 10 m goals (circling near the goal among rocks), one abort 1.75 m short with 15 recoveries, 0 unsafe. CPU 84 C. Behind plan: rock_field 2D far_right, then ledge and bars, batch end about 20:00, backfill to about 21:30.
+
 ### Plan, 2026-11-06 afternoon to 2026-11-07 (time boxes)
 1. To about 17:30 (2.5 h lost to the stalls, 11:51 to 14:19): head-to-head (urc_mix, rock_field, ledge, bars), checked every 2 h.
 2. About 17:30 to 19:00: backfill (wheel-less marsyard rows, the start failures of urc_mix), then analysis: Phase 3 gate table (unsafe entries, recoveries, time to goal per world), RESULTS.md, figures.
