@@ -313,6 +313,8 @@ bars past_bars_4m (v5): the 3D stack rightly treats the 12 cm bar as lethal (ste
 
 06:20 check: crater_field done. 3D 7 of 9, 0 unsafe entries, max roll 10.2 deg. `2d_bounded` 5 of 9 with 13 unsafe entries, two rollovers on far_right (roll 104 and 113 deg) and pitch up to 43 deg on far_left. far_left (18, 5) has 0.10 m under the footprint and 0.33 m within 0.3 m of it, a crater edge, reachable and left as is. 3D far_left r1 stopped 0.26 m short and timed out, the final-approach shuffle again. slopes running: lane15 3 of 3, lane25 0 of 2 so far.
 
+08:17 check: 3D slopes 9 of 15, 0 unsafe: lane15 3/3, past_lanes 3/3, lane35 refused 3/3 (scored success), lane25 0/3 (stuck at the ramp toe, 3.7 m out) and sidehill 0/3 (0.21 to 0.28 m out, shuffling), both the tracking problem under test next. `2d_bounded` lane15 0/3 so far (timeouts).
+
 ## Phase 0 bridge: FastDEM features
 
 FastDEM's `slope`, `step` and `roughness` feed the ported layer until Phase 2, when
