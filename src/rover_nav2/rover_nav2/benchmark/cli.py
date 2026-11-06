@@ -74,6 +74,8 @@ def parse_args(argv):
     p.add_argument('--domain', type=int, default=42, help='ROS_DOMAIN_ID for the benchmark')
     p.add_argument('--partition', default='rover_benchmark', help='GZ_PARTITION')
     p.add_argument('--success-radius', type=float, default=0.5, help='m, ground truth')
+    p.add_argument('--goal-yaw', choices=['file', 'bearing'], default='file',
+                   help="goal heading from the goal set, or the bearing from the spawn (IRC mode)")
     p.add_argument('--startup-timeout', type=float, default=300.0,
                    help='wall s to Nav2 active (normal starts take 25 to 60 s here)')
     p.add_argument('--plan-timeout', type=float, default=60.0,

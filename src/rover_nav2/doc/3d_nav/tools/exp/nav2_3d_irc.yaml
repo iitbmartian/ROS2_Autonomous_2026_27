@@ -1,0 +1,9 @@
+# IRC 2027 delivery scoring: position only, no heading (rulebook 3.3.2). Merged last over the 3D
+# overlay via nav_extra_overlay. Goals get the bearing heading from the runner (--goal-yaw bearing).
+controller_server:
+  ros__parameters:
+    general_goal_checker:
+      yaw_goal_tolerance: 3.14   # heading free, the arrival radius stays 0.15 m
+    FollowPath:
+      GoalAngleCritic:
+        enabled: false           # no reason to turn on the spot to a heading nobody scores

@@ -513,6 +513,11 @@ class Runner:
         return status, t1 - t0, self.node.recoveries, (t1 - t0) / max(w1 - w0, 1e-6)
 
     def run_one(self, goalset, goal, rep, out_dir, env):
+        if getattr(self.a, 'goal_yaw', 'file') == 'bearing':
+            # IRC scores position only. Jazzy's Smac Hybrid always plans into the goal heading,
+            # so the heading is set to the straight-line bearing from the spawn.
+            sp = goalset['spawn']
+            goal = dict(goal, yaw=math.atan2(goal['y'] - sp['y'], goal['x'] - sp['x']))
         run_id = f"{self.a.tag or self.a.config}_{goalset['name']}_{goal['id']}_r{rep}"
         marker = f'{instance_prefix()}{run_id}_{os.getpid()}_{int(time.time())}'
         run_env = dict(env, ROVER_BENCH_RUN=marker)

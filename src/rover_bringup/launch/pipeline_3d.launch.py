@@ -64,6 +64,10 @@ def _launch(context):
     drive = LaunchConfiguration('drive').perform(context)
     if drive == 'swerve':
         overlays.append(os.path.join(nav2_config, 'nav2_params_sim_3d_swerve.yaml'))
+    # Small experiment files (a goal checker, a few critics) merge last, over everything above.
+    extra = LaunchConfiguration('nav_extra_overlay').perform(context)
+    if extra:
+        overlays.append(extra)
     merge_files(os.path.join(nav2_config, 'nav2_params_sim.yaml'), overlays, merged)
 
     args = {k: LaunchConfiguration(k) for k in FORWARDED}
@@ -128,7 +132,9 @@ def generate_launch_description():
         get_package_share_directory('rover_nav2'), 'config', 'nav2_params_sim_3d.yaml')
     return LaunchDescription(
         [DeclareLaunchArgument(k, default_value=v) for k, v in FORWARDED.items()]
-        + [DeclareLaunchArgument('nav_overlay', default_value=overlay,
+        + [DeclareLaunchArgument('nav_extra_overlay', default_value='',
+                                 description='optional params file merged last, for experiments'),
+           DeclareLaunchArgument('nav_overlay', default_value=overlay,
                                  description='Overlay merged over nav2_params_sim.yaml'),
            DeclareLaunchArgument('lidar_model', default_value='l2', choices=['l2', 'default'],
                                  description='l2: L2-like dome lidar. default: 16-ring roof lidar'),

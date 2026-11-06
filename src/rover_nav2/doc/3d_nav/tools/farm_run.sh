@@ -14,7 +14,9 @@ for ((i = 0; i < N; i++)); do
   (
     export ROVER_BENCH_INSTANCE=$((i + 1))
     source $E/tools/simenv.sh
+    # The runner sets the domain and partition itself (--domain, --partition), so each lane passes its own.
     $E/tools/guard.sh $CAP ros2 run rover_nav2 benchmark --worlds "${lane[@]}" "$@" --out $B/${OUT}_lane$i \
+      --domain $((42 + i + 1)) --partition rover_benchmark_$((i + 1)) \
       > $B/${OUT}_lane$i.out 2>&1
     echo "lane $i (${lane[*]}) exited $?" >> $B/${OUT}_farm.log
   ) &

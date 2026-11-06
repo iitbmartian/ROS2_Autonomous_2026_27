@@ -353,6 +353,8 @@ Cloud farm prep (22:10). Ram has Intel cloud access. Chosen: an Arc Pro B-series
 - `ROVER_BENCH_INSTANCE=N` (8d43515): `simenv.sh` gives the instance domain 42 + N and its own Gazebo partition, run markers carry the instance, and a runner clears only its own leftovers. Unset is the old behaviour.
 - `tools/farm_run.sh N CAP OUT "worlds" <benchmark args>`: N lanes with worlds dealt round-robin, staggered starts, each capped, then `tools/merge_runs.py` joins the lanes (tested on the v4 and v5 runs, 42 rows).
 
+IRC mode (22:40): Jazzy's Smac Hybrid has no goal-heading-free mode (no `goal_heading_mode` in Jazzy), so the planner always plans into the goal yaw and an Ackermann rover needs S-curves to meet it. IRC scores position only, so the runner gains `--goal-yaw bearing` (heading = straight-line bearing from the spawn) and `pipeline_3d.launch.py` gains `nav_extra_overlay` (merged last). `exp/nav2_3d_irc.yaml` sets yaw tolerance 3.14 and turns GoalAngleCritic off, xy tolerance stays 0.15 m. `tools/exp_irc.sh` runs it after the swerve run (marsyard, crater_field, slopes, urc_mix, fast governor), compared with exp_vnom B. Also found: the runner sets the domain and partition itself (`--domain`, `--partition`), so `farm_run.sh` passes them per lane.
+
 ### Plan, 2026-11-06 night to 2026-11-07 (time boxes, all chained, each with a start deadline and a guard cap)
 1. Done 21:01: head-to-head on all 7 worlds (night4).
 2. 21:01 to about 23:00: `backfill_night4.sh`, reruns of wheel-less, failed-start and missing rows, then the h2h figure.
@@ -360,7 +362,8 @@ Cloud farm prep (22:10). Ram has Intel cloud access. Chosen: an Arc Pro B-series
 4. About 01:30 to 04:30: `exp_vnom.sh`, installs the u_free governor, then v_nominal 0.5 with u_free 0 and 0.3.
 5. About 04:30 to 06:00: `p2_crater_gt.sh`, Phase 2 crater_field RMSE and crater check on ground truth.
 6. About 06:00 to 09:00: `exp_swerve.sh`, first swerve run (Omni MPPI, same fast governor) on marsyard, slopes, rock_field, urc_mix.
-7. 2026-11-07 morning: Phase 3 gate table from the head-to-head, pick the speed and tracking settings, then the confirming run. `hang_watch.sh` runs to 2026-11-07 16:00.
+7. About 09:00 to 10:30: `exp_irc.sh`, heading-free goals.
+8. 2026-11-07 morning: Phase 3 gate table from the head-to-head, pick the speed and tracking settings, then the confirming run. `hang_watch.sh` runs to 2026-11-07 16:00.
 
 ## Phase 0 bridge: FastDEM features
 
