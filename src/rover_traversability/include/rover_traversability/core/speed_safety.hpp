@@ -32,10 +32,13 @@ struct GovernorParams
   double v_nominal{0.25};    // m/s
   double v_min{0.05};        // m/s
   double alpha{0.8};         // speed taken off per unit of utilisation ahead
+  double u_free{0.0};        // utilisation below which the rover keeps v_nominal, in [0, 1)
 };
 
-// v_max = v_nominal * (1 - alpha * u_ahead), floored at v_min. A lethal pose ahead (u > 1)
-// floors it too: stopping is the safety monitor's job, the governor only slows.
+// v_max = v_nominal * (1 - alpha * u'), floored at v_min, with u' = (u_ahead - u_free) /
+// (1 - u_free) clamped at 0, so easy ground runs at full speed and u' still reaches 1 where
+// u_ahead does. u_free 0 is the SPEC formula. A lethal pose ahead (u > 1) floors it too:
+// stopping is the safety monitor's job, the governor only slows.
 double speedLimit(double u_ahead, const GovernorParams & g);
 
 // Roll and pitch limits (rad): flat tip-over angles minus stability_margin_min.

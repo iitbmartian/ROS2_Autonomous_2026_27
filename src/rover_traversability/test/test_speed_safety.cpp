@@ -46,6 +46,18 @@ TEST(SpeedSafety, SpeedLimitFormula)
   EXPECT_NEAR(speedLimit(INFINITY, g), 0.05, 1e-12);
 }
 
+TEST(SpeedSafety, GovernorKeepsFullSpeedBelowUFree)
+{
+  GovernorParams g;
+  g.v_nominal = 0.5;
+  g.u_free = 0.3;
+  EXPECT_NEAR(speedLimit(0.0, g), 0.5, 1e-12);
+  EXPECT_NEAR(speedLimit(0.3, g), 0.5, 1e-12);             // still free
+  EXPECT_NEAR(speedLimit(0.65, g), 0.5 * (1 - 0.8 * 0.5), 1e-12);  // u' = 0.35 / 0.7 = 0.5, 0.3
+  EXPECT_NEAR(speedLimit(1.0, g), 0.1, 1e-12);             // u' = 1, 0.5 * 0.2
+  EXPECT_NEAR(speedLimit(INFINITY, g), 0.05, 1e-12);
+}
+
 TEST(SpeedSafety, TipLimitsMatchTheBenchmark)
 {
   double rl, pl;

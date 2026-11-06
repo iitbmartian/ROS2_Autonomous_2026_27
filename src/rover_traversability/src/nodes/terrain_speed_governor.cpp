@@ -35,6 +35,7 @@ public:
     gp_.v_nominal = declare_parameter<double>("v_nominal", gp_.v_nominal);
     gp_.v_min = declare_parameter<double>("v_min", gp_.v_min);
     gp_.alpha = declare_parameter<double>("alpha", gp_.alpha);
+    gp_.u_free = declare_parameter<double>("u_free", gp_.u_free);
     lookahead_ = declare_parameter<double>("lookahead_time", 2.0);
     dt_ = declare_parameter<double>("prediction_dt", 0.2);
     unknown_u_ = declare_parameter<double>("unknown_utilisation", 0.5);
@@ -68,8 +69,8 @@ public:
     timer_ = rclcpp::create_timer(
       this, get_clock(), rclcpp::Duration::from_seconds(1.0 / rate), [this]() {tick();});
     RCLCPP_INFO(
-      get_logger(), "speed governor: %.2f m/s nominal, floor %.2f, alpha %.2f, lookahead %.1f s",
-      gp_.v_nominal, gp_.v_min, gp_.alpha, lookahead_);
+      get_logger(), "speed governor: %.2f m/s nominal, floor %.2f, alpha %.2f, u_free %.2f, lookahead %.1f s",
+      gp_.v_nominal, gp_.v_min, gp_.alpha, gp_.u_free, lookahead_);
   }
 
 private:

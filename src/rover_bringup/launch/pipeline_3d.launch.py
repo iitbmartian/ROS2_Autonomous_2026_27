@@ -104,7 +104,8 @@ def _launch(context):
             package='rover_traversability', executable='terrain_speed_governor',
             output='screen', parameters=[{
                 'use_sim_time': True,
-                'v_nominal': float(LaunchConfiguration('governor_v_nominal').perform(context))}]))
+                'v_nominal': float(LaunchConfiguration('governor_v_nominal').perform(context)),
+                'u_free': float(LaunchConfiguration('governor_u_free').perform(context))}]))
     if LaunchConfiguration('safety').perform(context).lower() in ('true', '1'):
         safety_nodes.append(Node(
             package='rover_traversability', executable='terrain_safety_monitor',
@@ -145,6 +146,8 @@ def generate_launch_description():
                                              'MPPI Omni with TerrainCritic, Smac 2D'),
            DeclareLaunchArgument('governor_v_nominal', default_value='0.25',
                                  description='governor speed on benign terrain, m/s'),
+           DeclareLaunchArgument('governor_u_free', default_value='0.0',
+                                 description='utilisation below which the governor keeps full speed'),
            DeclareLaunchArgument('governor', default_value='true',
                                  description='terrain_speed_governor on /speed_limit'),
            DeclareLaunchArgument('safety', default_value='true',

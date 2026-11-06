@@ -48,7 +48,9 @@ double worstUtilisation(
 double speedLimit(double u_ahead, const GovernorParams & g)
 {
   const double u = std::isfinite(u_ahead) ? std::max(0.0, u_ahead) : 1.0e9;
-  return std::max(g.v_min, g.v_nominal * (1.0 - g.alpha * u));
+  const double free = std::clamp(g.u_free, 0.0, 0.99);
+  const double scaled = std::max(0.0, u - free) / (1.0 - free);
+  return std::max(g.v_min, g.v_nominal * (1.0 - g.alpha * scaled));
 }
 
 void tipLimits(const PhysicalParams & p, double & roll_limit, double & pitch_limit)
