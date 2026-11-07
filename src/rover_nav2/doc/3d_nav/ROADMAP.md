@@ -91,7 +91,7 @@ From a broad survey of terrain navigation systems (local, `~/rover_3d_nav_result
 |---|---|---|---|
 | Control-barrier safety filter on MPPI samples (TerrainCritic already costs u > 1 at 1e6, which is near-rejection for static limits) | GS-MPPI (Rabiee and Hoagg), epsilon-constraint MPC | after the dynamic margin | medium |
 | Small-hole inpainting of the elevation map (classical, OpenCV or diffusion, no learned model). Unknown cells slow the governor (u 0.5) and raise cost. | Stölzle et al., RA-L | speed work | small |
-| Dynamic rollover margin (zero-moment point with centripetal and braking acceleration) as one more utilisation, for speed on side slopes. Not the swerve fix: the swerve v2 abort happened almost at rest (see PROGRESS 2026-11-07 23:20). | Daş, Ames, Burdick 2024 | speed work | medium |
+| Dynamic rollover margin (zero-moment point with centripetal and braking acceleration) as one more utilisation, for speed on side slopes. Not the swerve fix: the swerve v2 abort happened almost at rest (see PROGRESS 2026-11-07 22:50). | Daş, Ames, Burdick 2024 | speed work | medium |
 | Backtrack-along-own-path recovery and a stuck "wiggle", in place of the tip abort ending the goal | STEP and CoSTAR at DARPA SubT | before hardware | medium |
 | Robot-centric variance growth with odometry drift, LIO pose source | Fankhauser 2018, FAST-LIO2 | with real odometry (deferred) | medium |
 | CVaR over utilisation in place of `z + kappa sigma` | STEP, PIETRA | paper | medium |
