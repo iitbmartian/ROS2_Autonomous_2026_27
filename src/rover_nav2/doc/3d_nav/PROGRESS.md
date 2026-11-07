@@ -893,3 +893,15 @@ Phase 3 work list from this run, most important first:
 - The confirm runner (PID 163244) logged "starting stack" for rock_field_far_right_r1 at 07:02 and then sat with no stack, all threads waiting on a futex. This is the same node-teardown deadlock seen on 2026-11-06.
 - hang_watch would have killed it at 4 min, but exp_confirm would then log "exited". That fires exp_swerve and leaves Phase 3 without ledge and bars. So I stopped the runner and both chain scripts, cleaned 69 stale SHM ports, restarted exp_confirm (it resumes from runs.csv at row 49, rock_field_far_right_r1), and then restarted exp_swerve so it waits on the new run.
 - Cost: about 2 min. Follow-up: exp_swerve should start only on "exp_confirm: done", and a killed runner should be resumed by its chain script, not end the chain.
+
+### 2026-11-07 08:52, Phase 3 confirming run: gate not met, three items left
+
+Command: `exp_confirm.sh` (benchmark, 7 worlds, 3 runs, `governor_v_nominal:=0.5 governor_u_free:=0.0`, ground truth), then `phase3_gate.py 2026-11-07_3d_gt_confirm/runs.csv 2026-11-06_h2h_2db/runs.csv`. Output: `evidence/phase3_gate_confirm.txt`, results in RESULTS.md.
+
+- Unsafe entries: pass everywhere. 3D has 0 in 63 runs. 2D bounded has 13, all on crater_field.
+- Recoveries: pass everywhere but urc_mix (29 vs 0, all from far_south). In total, 88 for 3D vs 287 for 2D.
+- Time to goal within 1.5x on safe 2D goals: passes crater_field (1.35), rock_field (0.45), slopes (1.15). Fails on these:
+  1. **urc_mix far_south**: 0/3. It timed out at 600 s with 14 recoveries, was cancelled once at 22 deg pitch, and aborted once at 12.7 m short. 2D reaches it in 109 s. Earlier 3D batches reached it only twice in 7 tries. This is the main blocker and the next task.
+  2. **marsyard behind_left**: 48 s vs 24 s, plus one timeout. Likely the turn-around Ackermann manoeuvre. This is the target for the speed work, and swerve should help.
+  3. **ledge**: 3D refuses the step because step_max is the 0.10 m placeholder. This is hardware-blocked (rule 5). It stays failing until measured step data arrives, or Ram accepts a sim value.
+- Overall 40/63 vs 34/63 runs succeeded. The confirm run took 5.6 h including one teardown hang.
