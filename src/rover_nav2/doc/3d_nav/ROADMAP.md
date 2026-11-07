@@ -14,7 +14,7 @@ Ram calls the stack as it stands on 2026-11-07 **v1**. The phases below map onto
 | **v1** | Terrain-aware Ackermann navigation: 2.5D map, utilisation cost, governor, 0 unsafe entries in 63 runs, wins on craters, rocks and slopes | 0 to 3 (gate open) | done 7 Nov |
 | **v1.1** | Phase 3 gate closed against the fresh 2D baseline: far_south final-approach fix, governor setting chosen, marsyard and rock_field time | 3 | 8 to 9 Nov |
 | **v2** | Fast, agile, heading-aware: swerve with roll and speed fixed, dynamic (turning and braking) tip margin, small-hole map filling, speed near 2D parity on easy ground, heading-aware terrain (Phase 4b: grade along travel direction, body yaw and travel direction chosen separately), backtrack and wiggle recovery, zero unsafe entries in both drive modes, crater check | 2 (crater check), 4, 4b, 5 | 18 to 20 Nov |
-| **v3** | Long range, real odometry, hardware: global terrain memory over 100 to 500 m, EKF or LIO odometry with map uncertainty growing with drift, CVaR risk knob, paper baselines and ablations, Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer if wheel speeds exist | 5.3, 6, 7, real odometry | late Nov onward |
+| **v3** | Long range, real odometry, hardware: global terrain memory over 100 to 500 m, EKF or LIO odometry with map uncertainty growing with drift, CVaR risk knob, paper baselines and ablations (no learned methods), Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer if wheel speeds exist | 5.3, 6, 7, real odometry | late Nov onward |
 
 The Intel cloud farm would pull v2 in by 3 to 4 days. Measured step capability, CG height and mass
 unblock ledge and bars and make the tip limits real. On hold items stay out unless Ram adds them.
@@ -90,14 +90,14 @@ From a broad survey of terrain navigation systems (local, `~/rover_3d_nav_result
 | Item | Source | Fits | Effort |
 |---|---|---|---|
 | Control-barrier safety filter on MPPI samples (TerrainCritic already costs u > 1 at 1e6, which is near-rejection for static limits) | GS-MPPI (Rabiee and Hoagg), epsilon-constraint MPC | after the dynamic margin | medium |
-| Small-hole inpainting of the elevation map (OpenCV first, learned later). Unknown cells slow the governor (u 0.5) and raise cost. | Stölzle et al., RA-L | speed work | small |
+| Small-hole inpainting of the elevation map (classical, OpenCV or diffusion, no learned model). Unknown cells slow the governor (u 0.5) and raise cost. | Stölzle et al., RA-L | speed work | small |
 | **First:** dynamic rollover margin (zero-moment point with centripetal and braking acceleration) as one more utilisation. The swerve tip aborts happened on flat ground while spinning, which a static margin cannot see. | Daş, Ames, Burdick 2024 | with swerve v2, speed work | medium |
 | Backtrack-along-own-path recovery and a stuck "wiggle", in place of the tip abort ending the goal | STEP and CoSTAR at DARPA SubT | before hardware | medium |
 | Robot-centric variance growth with odometry drift, LIO pose source | Fankhauser 2018, FAST-LIO2 | with real odometry (deferred) | medium |
 | CVaR over utilisation in place of `z + kappa sigma` | STEP, PIETRA | paper | medium |
 | Global cost-to-go and coarse, locally consistent global map | Field D* on MER, teach and repeat | Phase 6 | large |
 | External benchmark and terramechanics (Verti-Bench on Chrono, SCM or CRM soil) | Xu et al. RSS 2025 | paper, if the ROS bridge is cheap | large |
-| **(Ram)** Learned traversability or kinodynamics (Wild Visual Navigation, TAL, WayFAST). Out of SPEC scope today. | | ask after v2 | large |
+| Learned traversability or kinodynamics (Wild Visual Navigation, TAL, WayFAST). Out of scope, Ram 2026-11-07: not in the near future. | | not planned | |
 
 ## Realistic benchmark worlds (Ram, 2026-11-07)
 
