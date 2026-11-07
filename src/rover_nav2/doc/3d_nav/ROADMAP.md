@@ -83,6 +83,22 @@ Plan (starts once swerve v2 drives without tip aborts):
 
 Estimate: steps 1 to 4 about 2 days, 5 and 6 about 2 days, step 7 2 to 3 days if needed. This moves v2 to about 18 to 20 Nov.
 
+## Robustness and advanced features (general survey, 2026-11-07)
+
+From a broad survey of terrain navigation systems (local, `~/rover_3d_nav_results/paper/general_survey.md`). Order and where each fits:
+
+| Item | Source | Fits | Effort |
+|---|---|---|---|
+| Hard rejection of rollouts with u > 1 in TerrainCritic, then a control-barrier safety filter on MPPI samples | GS-MPPI (Rabiee and Hoagg), epsilon-constraint MPC | with swerve v2 (tip aborts) | small, then medium |
+| Small-hole inpainting of the elevation map (OpenCV first, learned later). Unknown cells slow the governor (u 0.5) and raise cost. | Stölzle et al., RA-L | speed work | small |
+| Dynamic rollover margin (zero-moment point with centripetal and braking acceleration) as one more utilisation | Daş, Ames, Burdick 2024 | speed work, swerve | medium |
+| Backtrack-along-own-path recovery and a stuck "wiggle", in place of the tip abort ending the goal | STEP and CoSTAR at DARPA SubT | before hardware | medium |
+| Robot-centric variance growth with odometry drift, LIO pose source | Fankhauser 2018, FAST-LIO2 | with real odometry (deferred) | medium |
+| CVaR over utilisation in place of `z + kappa sigma` | STEP, PIETRA | paper | medium |
+| Global cost-to-go and coarse, locally consistent global map | Field D* on MER, teach and repeat | Phase 6 | large |
+| External benchmark and terramechanics (Verti-Bench on Chrono, SCM or CRM soil) | Xu et al. RSS 2025 | paper, if the ROS bridge is cheap | large |
+| **(Ram)** Learned traversability or kinodynamics (Wild Visual Navigation, TAL, WayFAST). Out of SPEC scope today. | | ask after v2 | large |
+
 ## Paper (local, `~/rover_3d_nav_results/paper`)
 
 - Established 3D baseline: `elevation_mapping_cupy` (Miki et al. 2022, ROS 2 Jazzy) plus a traversability costmap. PUTN if feasible.
