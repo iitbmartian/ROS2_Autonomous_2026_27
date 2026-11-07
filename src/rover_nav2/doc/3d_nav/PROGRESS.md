@@ -939,3 +939,10 @@ Command: `exp_confirm.sh` (benchmark, 7 worlds, 3 runs, `governor_v_nominal:=0.5
 - far_south pose traces show the same stall pattern in both runs: 80 to 120 s parked near (28.9, -18.7) about 1.6 m out, then 0.37 m from the goal at yaw -35 deg against the goal's -50 deg for 330 s. The heading cost acting earlier does not free it.
 - Next: candidate B (`exp/nav2_3d_goal_approach_b.yaml`) adds PreferForwardCritic threshold 1.5 m, so MPPI may reverse freely near the goal for an Ackermann three-point fix. far_south x3 and behind_left x2, queued after `exp_2d_recheck` (`exp_approach_b.sh`). If that fails too, the next suspects are the heading-aware cost at the goal cell itself and the governor near u = 1, to log directly.
 - hang_watch extended to 20:00.
+
+### 2026-11-07 15:05, the 2D baseline for rock_field far_right was wrong
+
+`exp_2d_recheck.sh` (benchmark, 2D bounded, rock_field far_right, 3 runs, HEAD 2c83d66) succeeded 3/3 in 41 to 42 s on a 17 m path. The 2026-11-06 h2h baseline took 159 to 172 s on 26 m, and the video run took 42 s. So the h2h 2D runs on rock_field are not reproducible today, though no 2D-relevant file changed since 3a1699d. Consequences:
+- The Phase 3 rock_field time ratio 0.45 (3D 2.2x faster) is withdrawn. Against today's 2D, far_right is 3D 74 s vs 2D 41 s, so 1.8x, which fails.
+- The other h2h 2D numbers (the 0/3 on rock_field far_left and ahead_10m, and the 2D side of every ratio) are suspect until rerun.
+- Next, after `exp_approach_b`: rerun the whole 2D baseline at HEAD, 7 worlds, 3 runs (about 5 h, overnight), and recompute the gate against it. Unexplained so far. Worth checking the 2026-11-06 stack logs for what differed (DDS, RTF, start pose).
