@@ -905,3 +905,9 @@ Command: `exp_confirm.sh` (benchmark, 7 worlds, 3 runs, `governor_v_nominal:=0.5
   2. **marsyard behind_left**: 48 s vs 24 s, plus one timeout. Likely the turn-around Ackermann manoeuvre. This is the target for the speed work, and swerve should help.
   3. **ledge**: 3D refuses the step because step_max is the 0.10 m placeholder. This is hardware-blocked (rule 5). It stays failing until measured step data arrives, or Ram accepts a sim value.
 - Overall 40/63 vs 34/63 runs succeeded. The confirm run took 5.6 h including one teardown hang.
+
+### 2026-11-07 09:20, far_south diagnosis from pose traces (no new runs)
+
+- The goal is at about (29.9, -19.9) with a heading near -50 deg. Both stacks share the controller and goal checker from `nav2_params_sim.yaml` (MPPI, xy 0.15 m, yaw 0.25 rad). The 3D overlay changes only the costmaps, the TerrainCritic and the governor.
+- r1 reached the goal area at 360 s and then sat 0.2 to 0.3 m off at yaw -35 deg, about 15 deg outside tolerance, for 4 min until the timeout. It had also stood still about 100 s at (3.4, -1.8) early on. r3 got hung on a rock at (22.8, -9.5), z 0.3 m, and aborted. r2 was cancelled at 0.76 m with 22 deg pitch.
+- So there are two causes: Ackermann cannot correct its final heading in the space the 3D costs allow next to the goal, and the route clips a rock that 2D avoids by taking a path further north. Next: one far_south run that records the governor v_max and the critic costs near the goal, after exp_swerve. Swerve can turn in place, so its far_south row is the first test of the heading cause.
