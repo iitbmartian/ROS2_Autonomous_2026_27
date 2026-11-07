@@ -887,3 +887,9 @@ Phase 3 work list from this run, most important first:
 3. Localisation drift: success by Nav2 but metres off by ground truth, and 27 deg yaw on
    crater_field. Raise with `rover_ekf` and RTAB-Map owners.
 4. The lane-corner trap and the sidehill abort from 2026-11-02.
+
+### 2026-11-07 07:04, hourly check: confirm runner hung in teardown
+
+- The confirm runner (PID 163244) logged "starting stack" for rock_field_far_right_r1 at 07:02 and then sat with no stack, all threads waiting on a futex. This is the same node-teardown deadlock seen on 2026-11-06.
+- hang_watch would have killed it at 4 min, but exp_confirm would then log "exited". That fires exp_swerve and leaves Phase 3 without ledge and bars. So I stopped the runner and both chain scripts, cleaned 69 stale SHM ports, restarted exp_confirm (it resumes from runs.csv at row 49, rock_field_far_right_r1), and then restarted exp_swerve so it waits on the new run.
+- Cost: about 2 min. Follow-up: exp_swerve should start only on "exp_confirm: done", and a killed runner should be resumed by its chain script, not end the chain.
