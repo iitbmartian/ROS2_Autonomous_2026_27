@@ -15,6 +15,6 @@ TEST(TerrainCriticPlugin, LoadsThroughPluginlib)
   pluginlib::ClassLoader<mppi::critics::CriticFunction> loader(
     "nav2_mppi_controller", "mppi::critics::CriticFunction");
   std::shared_ptr<mppi::critics::CriticFunction> critic;
-  ASSERT_NO_THROW(critic = loader.createSharedInstance("rover_traversability::TerrainCritic"));
+  ASSERT_NO_THROW(critic = loader.createSharedInstance("mppi::critics::TerrainCritic"));
   EXPECT_NE(critic, nullptr);
 }

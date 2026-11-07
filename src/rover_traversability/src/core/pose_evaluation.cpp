@@ -23,8 +23,16 @@ bool TerrainGrid::cell(double px, double py, int & i, int & j) const
 
 double stabilityMargin(double a, double b, double hx, double hy, double cx, double cy, double h)
 {
+  return stabilityMarginAccel(a, b, hx, hy, cx, cy, h, 0.0, 0.0);
+}
+
+double stabilityMarginAccel(
+  double a, double b, double hx, double hy, double cx, double cy, double h,
+  double ax, double ay, double g)
+{
   using V = Eigen::Vector3d;
-  const V z_up(0.0, 0.0, 1.0);
+  // Gravito-inertial up: the reaction to gravity plus the d'Alembert force of the acceleration.
+  const V z_up = V(ax, ay, g).normalized();
   // Body axes on the support plane z = a x + b y: x along the heading, z the plane normal.
   const V n = V(-a, -b, 1.0).normalized();
   const V ex = V(1.0, 0.0, a).normalized();

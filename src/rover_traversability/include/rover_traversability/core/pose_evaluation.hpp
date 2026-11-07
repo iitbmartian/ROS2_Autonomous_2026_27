@@ -113,6 +113,15 @@ PoseResult evaluatePose(
 // (perpendicular to the edge) and the vertical, signed positive while the CG is inside.
 double stabilityMargin(double a, double b, double hx, double hy, double cx, double cy, double h);
 
+// The same margin under a horizontal acceleration of the body (ax along the heading, ay to the
+// left, m/s^2, gravity g). The tip-over reference becomes the gravito-inertial "up", (ax, ay, g)
+// normalised, as in a zero-moment-point check: accelerating forward shrinks the rear edge's
+// margin, a left turn (centripetal ay > 0) shrinks the right edge's. Quasi-static, no wheel
+// dynamics. ax = ay = 0 gives stabilityMargin exactly.
+double stabilityMarginAccel(
+  double a, double b, double hx, double hy, double cx, double cy, double h,
+  double ax, double ay, double g = 9.81);
+
 }  // namespace core
 }  // namespace rover_traversability
 

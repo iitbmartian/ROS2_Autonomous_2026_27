@@ -228,3 +228,54 @@ TEST(PoseEvaluation, CgOffsetLowersTheMarginOnThatSide)
   p.cg_offset_y = 0.05;
   EXPECT_NEAR(rover_traversability::core::flatStabilityMargin(p), std::atan(0.168 / 0.45), 1e-6);
 }
+
+// Acceleration-aware margin. Rover: half wheelbase 0.37236, half track 0.218, CG 0.45 m up,
+// centred. Hand values: the gravito-inertial up leans by atan(a / g).
+TEST(StabilityMarginAccel, ZeroAccelerationMatchesTheStaticMargin)
+{
+  using rover_traversability::core::stabilityMargin;
+  using rover_traversability::core::stabilityMarginAccel;
+  for (double a : {0.0, 0.1, -0.2}) {
+    EXPECT_NEAR(stabilityMarginAccel(a, 0.05, 0.37236, 0.218, 0.0, 0.0, 0.45, 0.0, 0.0),
+                stabilityMargin(a, 0.05, 0.37236, 0.218, 0.0, 0.0, 0.45), 1e-12);
+  }
+}
+
+TEST(StabilityMarginAccel, LeftTurnOnFlatGroundShrinksTheRightEdge)
+{
+  // Centripetal ay = g tan(10 deg): the side margin 0.451126 (25.85 deg) loses 10 deg on the
+  // right edge, 0.451126 - 0.174533 = 0.276593, the same as a 10 deg sidehill at rest.
+  const double ay = 9.81 * std::tan(10 * kDeg);
+  EXPECT_NEAR(rover_traversability::core::stabilityMarginAccel(
+      0.0, 0.0, 0.37236, 0.218, 0.0, 0.0, 0.45, 0.0, ay), 0.276593, 1e-5);
+  // Turning right instead shrinks the left edge by the same amount.
+  EXPECT_NEAR(rover_traversability::core::stabilityMarginAccel(
+      0.0, 0.0, 0.37236, 0.218, 0.0, 0.0, 0.45, 0.0, -ay), 0.276593, 1e-5);
+}
+
+TEST(StabilityMarginAccel, BrakingShrinksTheFrontEdge)
+{
+  // Deceleration ax = -g tan(30 deg): front margin atan(0.37236 / 0.45) = 0.691272 loses
+  // 0.523599 and becomes 0.167673, now smaller than the side margin 0.451126.
+  const double ax = -9.81 * std::tan(30 * kDeg);
+  EXPECT_NEAR(rover_traversability::core::stabilityMarginAccel(
+      0.0, 0.0, 0.37236, 0.218, 0.0, 0.0, 0.45, ax, 0.0), 0.167673, 1e-5);
+}
+
+TEST(StabilityMarginAccel, OnASidehillTurningUphillAddsUpAndTurningDownhillRelieves)
+{
+  // Ground rising to the left at 10 deg (dz/dy = tan 10), heading +x, lateral acceleration
+  // a = g tan(5 deg). Turning left, toward uphill, the outward pull points downhill (right),
+  // so the downhill edge sees both: about 0.451126 - 0.174533 - 0.087266 = 0.189327.
+  // Turning right, toward downhill, the outward pull points uphill and relieves that edge:
+  // about 0.276593 + 0.087266 = 0.363859. The lean is horizontal and the plane tilted, so
+  // the exact 3D values may differ slightly from the sums.
+  using rover_traversability::core::stabilityMarginAccel;
+  const double a = 9.81 * std::tan(5 * kDeg), b = std::tan(10 * kDeg);
+  const double up = stabilityMarginAccel(0.0, b, 0.37236, 0.218, 0.0, 0.0, 0.45, 0.0, a);
+  const double down = stabilityMarginAccel(0.0, b, 0.37236, 0.218, 0.0, 0.0, 0.45, 0.0, -a);
+  EXPECT_NEAR(up, 0.189327, 2e-3);
+  EXPECT_NEAR(down, 0.363859, 2e-3);
+  EXPECT_LT(up, 0.276593);
+  EXPECT_GT(down, 0.276593);
+}
