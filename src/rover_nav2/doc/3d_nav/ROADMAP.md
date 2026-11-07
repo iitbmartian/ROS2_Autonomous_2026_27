@@ -13,7 +13,7 @@ Ram calls the stack as it stands on 2026-11-07 **v1**. The phases below map onto
 |---|---|---|---|
 | **v1** | Terrain-aware Ackermann navigation: 2.5D map, utilisation cost, governor, 0 unsafe entries in 63 runs, wins on craters, rocks and slopes | 0 to 3 (gate open) | done 7 Nov |
 | **v1.1** | Phase 3 gate closed against the fresh 2D baseline: far_south final-approach fix, governor setting chosen, marsyard and rock_field time | 3 | 8 to 9 Nov |
-| **v2** | Fast, agile, heading-aware: swerve with roll and speed fixed, dynamic (turning and braking) tip margin, small-hole map filling, speed near 2D parity on easy ground, heading-aware terrain (Phase 4b: grade along travel direction, bump jolt term, body yaw and travel direction chosen separately), backtrack and wiggle recovery, zero unsafe entries in both drive modes, crater check | 2 (crater check), 4, 4b, 5 | 18 to 20 Nov |
+| **v2** | Fast, agile, heading-aware: swerve with roll and speed fixed, dynamic (turning and braking) tip margin, small-hole map filling, speed near 2D parity on easy ground, heading-aware terrain (Phase 4b: grade along travel direction, body yaw and travel direction chosen separately), backtrack and wiggle recovery, zero unsafe entries in both drive modes, crater check | 2 (crater check), 4, 4b, 5 | 18 to 20 Nov |
 | **v3** | Long range, real odometry, hardware: global terrain memory over 100 to 500 m, EKF or LIO odometry with map uncertainty growing with drift, CVaR risk knob, paper baselines and ablations, Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer if wheel speeds exist | 5.3, 6, 7, real odometry | late Nov onward |
 
 The Intel cloud farm would pull v2 in by 3 to 4 days. Measured step capability, CG height and mass
@@ -74,10 +74,10 @@ Today's gap: the costmap is isotropic (best heading per cell), so Smac and the A
 Plan (starts once swerve v2 drives without tip aborts):
 1. Read CAMIS (paper and `spaceuma/CAMIS_python`), Rowe and Ross, Inotsume RA-L 2020 in full. Settle the grade model before coding.
 2. `u_grade` along the travel direction, from the cell's plane gradient: `max(0, grade_up) / tan(climb_slope_max)`, plus a descent term with `descent_slope_max`. These are two new `# PLACEHOLDER` values in `rover_physical.yaml`. gtests with hand-computed cases. A rollout's travel direction comes from its world-frame displacement, body yaw from its pose. Pose utilisation becomes `max(u_static(body yaw), u_grade(travel direction))`.
-3. Bump term in TerrainCritic: CG height from the support plane at each rollout pose, vertical acceleration by second difference, cost `w * max(0, |a_z| - a_free)^2`. Speed-dependent by construction, so slowing down and crossing at an angle both pay off.
+3. (Dropped 2026-11-07, Ram: no focus on speed breakers.) The bump jolt term and the bumps world are out.
 4. TerrainCritic for Ackermann too, as an experiment overlay, since today it is swerve-only.
-5. Two worlds on a `ram/rover_gazebo-heading-worlds` branch: `bumps` (rounded 10 to 15 cm breakers at several angles) and `long_slope` (a uniform 20 to 25 deg hillside, about 30 m, steeper than `climb_slope_max` straight up).
-6. Experiment: Ackermann vs swerve with heading tied to travel vs swerve with heading free, on bumps, long_slope and the slopes sidehill. Metrics: success, time, peak vertical acceleration, peak roll and pitch, drive effort from joint torques, slip (commanded vs ground-truth velocity).
+5. A `long_slope` world (a uniform 20 to 25 deg hillside, about 30 m, steeper than `climb_slope_max` straight up), on a `ram/rover_gazebo-heading-worlds` branch, unless the realistic worlds under discussion already cover it.
+6. Experiment: Ackermann vs swerve with heading tied to travel vs swerve with heading free, on long_slope and the slopes sidehill. Metrics: success, time, peak vertical acceleration, peak roll and pitch, drive effort from joint torques, slip (commanded vs ground-truth velocity).
 7. Only if switchbacks are needed beyond the 2.5 s MPPI horizon: a heading-aware global planner. Either a Nav2 planner plugin running A* over (x, y, travel direction) on the 0.2 m global grid with the cost computed per direction from stored gradients, or a cost hook in Smac.
 8. Caveat for the paper: Gazebo has no deformable soil, so traction claims stay geometric (grade limits), and the slip numbers are only Gazebo friction.
 
