@@ -336,4 +336,94 @@ int fillFootprint(
   return filled;
 }
 
+int fillSmallHoles(Grid & elevation, Grid & variance, int max_extent_cells, float extra_variance)
+{
+  const int R = static_cast<int>(elevation.rows()), C = static_cast<int>(elevation.cols());
+  if (max_extent_cells < 1 || R < 3 || C < 3) {return 0;}
+  Eigen::MatrixXi label = Eigen::MatrixXi::Zero(R, C);
+  const int di[4] = {1, -1, 0, 0}, dj[4] = {0, 0, 1, -1};
+  int filled = 0, next = 0;
+  std::vector<std::pair<int, int>> patch, stack;
+  for (int i0 = 0; i0 < R; ++i0) {
+    for (int j0 = 0; j0 < C; ++j0) {
+      if (std::isfinite(elevation(i0, j0)) || label(i0, j0)) {continue;}
+      // Flood one 4-connected unknown patch.
+      ++next;
+      patch.clear();
+      stack.assign(1, {i0, j0});
+      label(i0, j0) = next;
+      bool edge = false;
+      int imin = i0, imax = i0, jmin = j0, jmax = j0;
+      while (!stack.empty()) {
+        const auto [i, j] = stack.back();
+        stack.pop_back();
+        patch.push_back({i, j});
+        edge = edge || i == 0 || j == 0 || i == R - 1 || j == C - 1;
+        imin = std::min(imin, i); imax = std::max(imax, i);
+        jmin = std::min(jmin, j); jmax = std::max(jmax, j);
+        for (int k = 0; k < 4; ++k) {
+          const int a = i + di[k], b = j + dj[k];
+          if (a < 0 || b < 0 || a >= R || b >= C) {continue;}
+          if (std::isfinite(elevation(a, b)) || label(a, b)) {continue;}
+          label(a, b) = next;
+          stack.push_back({a, b});
+        }
+      }
+      if (edge || imax - imin + 1 > max_extent_cells || jmax - jmin + 1 > max_extent_cells) {
+        continue;
+      }
+      // Border statistics seed the solve: start from the border mean, take the worst variance.
+      double sum = 0.0;
+      int n = 0;
+      float var_border = 0.0f;
+      for (const auto & [i, j] : patch) {
+        for (int k = 0; k < 4; ++k) {
+          const int a = i + di[k], b = j + dj[k];
+          if (std::isfinite(elevation(a, b))) {
+            sum += elevation(a, b);
+            ++n;
+            if (std::isfinite(variance(a, b))) {var_border = std::max(var_border, variance(a, b));}
+          }
+        }
+      }
+      if (n == 0) {continue;}
+      std::vector<double> v(patch.size(), sum / n);
+      auto index = [&](int a, int b) -> int {
+        for (size_t q = 0; q < patch.size(); ++q) {
+          if (patch[q].first == a && patch[q].second == b) {return static_cast<int>(q);}
+        }
+        return -1;
+      };
+      // Neighbour table: a patch index, or -1 with the known border height.
+      struct Nb {int q; double z;};
+      std::vector<std::array<Nb, 4>> nb(patch.size());
+      for (size_t q = 0; q < patch.size(); ++q) {
+        for (int k = 0; k < 4; ++k) {
+          const int a = patch[q].first + di[k], b = patch[q].second + dj[k];
+          nb[q][k] = std::isfinite(elevation(a, b)) ? Nb{-1, elevation(a, b)} : Nb{index(a, b), 0.0};
+        }
+      }
+      // Gauss-Seidel on the discrete Laplace equation. Patches are at most max_extent squared
+      // cells, so a few hundred sweeps converge far below a millimetre.
+      for (int it = 0; it < 400; ++it) {
+        double change = 0.0;
+        for (size_t q = 0; q < patch.size(); ++q) {
+          double acc = 0.0;
+          for (int k = 0; k < 4; ++k) {acc += nb[q][k].q < 0 ? nb[q][k].z : v[nb[q][k].q];}
+          const double nv = acc / 4.0;
+          change = std::max(change, std::abs(nv - v[q]));
+          v[q] = nv;
+        }
+        if (change < 1e-5) {break;}
+      }
+      for (size_t q = 0; q < patch.size(); ++q) {
+        elevation(patch[q].first, patch[q].second) = static_cast<float>(v[q]);
+        variance(patch[q].first, patch[q].second) = var_border + extra_variance;
+      }
+      filled += static_cast<int>(patch.size());
+    }
+  }
+  return filled;
+}
+
 }  // namespace rover_terrain_mapping

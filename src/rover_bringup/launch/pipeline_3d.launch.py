@@ -92,7 +92,8 @@ def _launch(context):
         launch_arguments=args.items())])
     terrain = GroupAction(scoped=True, actions=[IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, 'terrain_mapping.launch.py')),
-        launch_arguments={'sim': 'true', 'lowest_beam': str(lowest)}.items())])
+        launch_arguments={'sim': 'true', 'lowest_beam': str(lowest),
+                          'fill_holes': LaunchConfiguration('fill_holes')}.items())])
     # nav2_sim.rviz plus the terrain elevation and slope maps (grid_map_rviz_plugin).
     rviz = Node(
         package='rviz2', executable='rviz2', output='screen',
@@ -152,6 +153,8 @@ def generate_launch_description():
                                              'MPPI Omni with TerrainCritic, Smac 2D'),
            DeclareLaunchArgument('governor_v_nominal', default_value='0.25',
                                  description='governor speed on benign terrain, m/s'),
+           DeclareLaunchArgument('fill_holes', default_value='false',
+                                 description='terrain_features: fill small enclosed unknown patches'),
            DeclareLaunchArgument('governor_u_free', default_value='0.0',
                                  description='utilisation below which the governor keeps full speed'),
            DeclareLaunchArgument('governor', default_value='true',

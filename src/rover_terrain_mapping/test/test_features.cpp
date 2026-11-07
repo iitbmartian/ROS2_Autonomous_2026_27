@@ -433,3 +433,53 @@ TEST(Features, StepMedianKeepsAnEdge)
     EXPECT_GT(f.step(20, j), 0.085);
   }
 }
+
+// Small-hole fill. Hand cases: a flat or tilted plane is harmonic, so the discrete Laplace
+// solve must reproduce it exactly inside an enclosed hole.
+TEST(FillSmallHoles, SingleCellInFlatGroundTakesTheGroundHeight)
+{
+  rover_terrain_mapping::Grid z = rover_terrain_mapping::Grid::Constant(7, 7, 0.10f);
+  rover_terrain_mapping::Grid var = rover_terrain_mapping::Grid::Constant(7, 7, 1e-4f);
+  var(2, 3) = 4e-4f;   // the worst border cell sets the patch variance
+  z(3, 3) = kNaN;
+  EXPECT_EQ(rover_terrain_mapping::fillSmallHoles(z, var, 5, 9e-4f), 1);
+  EXPECT_NEAR(z(3, 3), 0.10f, 1e-6);
+  EXPECT_NEAR(var(3, 3), 4e-4f + 9e-4f, 1e-9);
+}
+
+TEST(FillSmallHoles, TiltedPlaneIsReproducedInsideA3x2Hole)
+{
+  // z = 0.02 i - 0.03 j: linear, so harmonic.
+  rover_terrain_mapping::Grid z(8, 8), var = rover_terrain_mapping::Grid::Constant(8, 8, 1e-4f);
+  for (int i = 0; i < 8; ++i) {for (int j = 0; j < 8; ++j) {z(i, j) = 0.02f * i - 0.03f * j;}}
+  for (int i = 3; i <= 5; ++i) {for (int j = 3; j <= 4; ++j) {z(i, j) = kNaN;}}
+  EXPECT_EQ(rover_terrain_mapping::fillSmallHoles(z, var, 5, 0.0f), 6);
+  for (int i = 3; i <= 5; ++i) {
+    for (int j = 3; j <= 4; ++j) {EXPECT_NEAR(z(i, j), 0.02 * i - 0.03 * j, 1e-4) << i << "," << j;}
+  }
+}
+
+TEST(FillSmallHoles, LeavesPatchesTouchingTheEdgeOrLargerThanTheExtent)
+{
+  rover_terrain_mapping::Grid z = rover_terrain_mapping::Grid::Constant(12, 12, 0.0f);
+  rover_terrain_mapping::Grid var = rover_terrain_mapping::Grid::Constant(12, 12, 1e-4f);
+  z(0, 5) = kNaN;                                         // touches the edge
+  for (int i = 3; i <= 8; ++i) {z(i, 3) = kNaN;}          // 6 cells long, extent 5 allows 5
+  z(10, 9) = kNaN;                                        // small and enclosed: filled
+  EXPECT_EQ(rover_terrain_mapping::fillSmallHoles(z, var, 5, 0.0f), 1);
+  EXPECT_TRUE(std::isnan(z(0, 5)));
+  for (int i = 3; i <= 8; ++i) {EXPECT_TRUE(std::isnan(z(i, 3)));}
+  EXPECT_NEAR(z(10, 9), 0.0f, 1e-6);
+}
+
+TEST(FillSmallHoles, DiagonalCellsAreSeparatePatches)
+{
+  // 4-connectivity: two diagonal unknown cells are two 1-cell patches, both within extent 1.
+  rover_terrain_mapping::Grid z = rover_terrain_mapping::Grid::Constant(6, 6, 0.2f);
+  rover_terrain_mapping::Grid var = rover_terrain_mapping::Grid::Constant(6, 6, 1e-4f);
+  z(2, 2) = kNaN;
+  z(3, 3) = kNaN;
+  EXPECT_EQ(rover_terrain_mapping::fillSmallHoles(z, var, 1, 0.0f), 2);
+  EXPECT_NEAR(z(2, 2), 0.2f, 1e-6);
+  EXPECT_NEAR(z(3, 3), 0.2f, 1e-6);
+}

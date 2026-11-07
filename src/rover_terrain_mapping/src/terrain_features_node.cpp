@@ -71,6 +71,17 @@ public:
     evaluate_yaws_ = declare_parameter<bool>("evaluate_yaws", true);
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     fill_footprint_ = declare_parameter<bool>("fill_footprint", true);
+    fill_holes_ = declare_parameter<bool>("fill_holes", false);
+    hole_max_extent_ = declare_parameter<double>("fill_hole_max_extent", 0.25);
+    hole_extra_std_ = declare_parameter<double>("fill_hole_extra_std", 0.03);
+    // A filled patch must stay smaller than the shortest gap the occlusion reasoning flags, so
+    // filling can never hide a negative obstacle.
+    if (hole_max_extent_ >= np_.min_gap) {
+      RCLCPP_WARN(
+        get_logger(), "fill_hole_max_extent %.2f m not below negative.min_gap %.2f m, clamped",
+        hole_max_extent_, np_.min_gap);
+      hole_max_extent_ = 0.9 * np_.min_gap;
+    }
     // Same padding as the mapping node's self filter, which empties exactly this box.
     footprint_padding_ = declare_parameter<double>("footprint_padding", 0.10);
     const auto phys = rover_traversability::core::loadPhysicalParams(phys_path);
@@ -110,6 +121,13 @@ private:
     // The published elevation and variance stay as observed. Only features see the fill.
     const Eigen::MatrixXf z_obs = z, var_obs = var;
     if (fill_footprint_) {fillUnderRover(in, g, z, var);}
+    // Occlusion reasoning reads the unknown cells as observed, before any hole filling.
+    const Eigen::MatrixXf z_unfilled = fill_holes_ ? z : Eigen::MatrixXf();
+    if (fill_holes_) {
+      const int extent = static_cast<int>(std::floor(hole_max_extent_ / g.resolution + 1e-6));
+      const auto extra = static_cast<float>(hole_extra_std_ * hole_extra_std_);
+      rover_terrain_mapping::fillSmallHoles(z, var, extent, extra);
+    }
     fp_.resolution = g.resolution;
     np_.resolution = g.resolution;
     // On a coarse grid (the global map) a wheel-radius window would hold a single cell and step
@@ -127,7 +145,7 @@ private:
         get_logger(), "sensor at (%.2f, %.2f, %.2f) in %s, cell (%.1f, %.1f) of %dx%d, "
         "map centre (%.2f, %.2f)", p.x, p.y, p.z, in.header.frame_id.c_str(), g.row(p.x),
         g.col(p.y), g.rows, g.cols, g.center_x, g.center_y);
-      neg = negativeObstacles(z, g.row(p.x), g.col(p.y), p.z, np_);
+      neg = negativeObstacles(fill_holes_ ? z_unfilled : z, g.row(p.x), g.col(p.y), p.z, np_);
     } catch (const tf2::TransformException & e) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 5000, "no sensor pose, negative obstacles skipped: %s",
@@ -225,6 +243,8 @@ private:
 
   std::string base_frame_;
   bool fill_footprint_{true};
+  bool fill_holes_{false};
+  double hole_max_extent_{0.25}, hole_extra_std_{0.03};
   double footprint_padding_{0.10};
   FeatureParams fp_;
   rover_traversability::core::PhysicalParams phys_;

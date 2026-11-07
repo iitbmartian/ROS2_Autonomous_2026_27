@@ -50,6 +50,10 @@ def generate_launch_description():
             description='Lidar lowest beam angle (rad, negative is down) for negative-obstacle '
                         'reasoning: -0.2618 for the 16-ring roof lidar, -1.5708 for an inverted L2'),
         DeclareLaunchArgument(
+            'fill_holes', default_value='false',
+            description='Fill small enclosed unknown patches (below negative.min_gap) before '
+                        'computing features, Laplace interpolation, extra variance'),
+        DeclareLaunchArgument(
             'fastdem_config', default_value=os.path.join(config, 'fastdem_sim.yaml'),
             description='FastDEM pipeline file, in FastDEM format'),
         Node(
@@ -72,7 +76,8 @@ def generate_launch_description():
             name='terrain_features', output='screen',
             parameters=[{'use_sim_time': LaunchConfiguration('sim'),
                          'sensor_frame': LaunchConfiguration('sensor_frame'),
-                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam')}],
+                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam'),
+                         'fill_holes': LaunchConfiguration('fill_holes')}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
         # Second instance on the coarse global map, for the global costmap.
@@ -83,7 +88,8 @@ def generate_launch_description():
                          'input_topic': '/terrain/global',
                          'output_topic': '/terrain/global_features',
                          'sensor_frame': LaunchConfiguration('sensor_frame'),
-                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam')}],
+                         'negative.min_beam_angle': LaunchConfiguration('lowest_beam'),
+                         'fill_holes': LaunchConfiguration('fill_holes')}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
     ])

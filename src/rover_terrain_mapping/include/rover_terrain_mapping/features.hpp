@@ -126,6 +126,15 @@ int fillFootprint(
   Grid & elevation, Grid & variance, const std::vector<double> & row_x,
   const std::vector<double> & col_y, const FootprintPlane & fp, float fill_variance);
 
+// Small enclosed unknown patches, for example the shadow behind a small rock, filled by
+// Laplace interpolation from their known border. A patch is filled only when it touches no
+// grid edge and its bounding box is at most max_extent_cells along both axes. Keep that
+// extent below the negative-obstacle min_gap, so filling never hides a gap the occlusion
+// reasoning would flag. Filled cells take the largest border variance plus extra_variance,
+// so the risk-adjusted pose checks stay stricter there than on observed ground. Returns the
+// number of cells filled.
+int fillSmallHoles(Grid & elevation, Grid & variance, int max_extent_cells, float extra_variance);
+
 }  // namespace rover_terrain_mapping
 
 #endif  // ROVER_TERRAIN_MAPPING__FEATURES_HPP_
