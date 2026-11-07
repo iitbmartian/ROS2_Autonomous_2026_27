@@ -12,9 +12,9 @@ Ram calls the stack as it stands on 2026-11-07 **v1**. The phases below map onto
 | Version | Scope | Phases | Target |
 |---|---|---|---|
 | **v1** | Terrain-aware Ackermann navigation: 2.5D map, utilisation cost, governor, 0 unsafe entries in 63 runs, wins on craters, rocks and slopes | 0 to 3 (gate open) | done 7 Nov |
-| **v1.1** | Phase 3 gate closed: far_south heading stall, marsyard behind_left time, rock_field 2D timing question | 3 | 8 to 9 Nov |
-| **v2** | Fast, agile, real odometry: swerve mode with its roll and speed problems fixed, speed tuning to 2D parity on easy ground, zero unsafe entries on every world in both drive modes, EKF odometry, crater check | 2 (crater check), 4, 5, real odometry | 15 to 17 Nov |
-| **v3** | Long range and hardware: global terrain memory over 100 to 500 m, Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer | 6, 7, 5.3 | late Nov onward |
+| **v1.1** | Phase 3 gate closed against the fresh 2D baseline: far_south final-approach fix, governor setting chosen, marsyard and rock_field time | 3 | 8 to 9 Nov |
+| **v2** | Fast, agile, heading-aware: swerve with roll and speed fixed, dynamic (turning and braking) tip margin, small-hole map filling, speed near 2D parity on easy ground, heading-aware terrain (Phase 4b: grade along travel direction, bump jolt term, body yaw and travel direction chosen separately), backtrack and wiggle recovery, zero unsafe entries in both drive modes, crater check | 2 (crater check), 4, 4b, 5 | 18 to 20 Nov |
+| **v3** | Long range, real odometry, hardware: global terrain memory over 100 to 500 m, EKF or LIO odometry with map uncertainty growing with drift, CVaR risk knob, paper baselines and ablations, Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer if wheel speeds exist | 5.3, 6, 7, real odometry | late Nov onward |
 
 The Intel cloud farm would pull v2 in by 3 to 4 days. Measured step capability, CG height and mass
 unblock ledge and bars and make the tip limits real. On hold items stay out unless Ram adds them.
