@@ -923,3 +923,19 @@ Command: `exp_confirm.sh` (benchmark, 7 worlds, 3 runs, `governor_v_nominal:=0.5
 - Recorder lessons: the Gazebo GUI client runs with only the 3D view on a headless server, so the shared launch files stay unchanged. Nav2 can stall at configure, so a stalled start gets one retry. ffmpeg inside `while read` loops needs `-nostdin`. The camera follow needs retries on heavy worlds. `pkill -f` patterns must not match the calling shell. A running bash script is only ever replaced with `mv`, never edited in place.
 - exp_approach was paused 11:42 to 13:35 for the recording (far_south r2 dropped and rerun). far_south r1 with the earlier heading critic succeeded in 349 s, the first Ackermann success there in this round.
 - Open question from the video: 2D reached rock_field far_right in 42 s on a 17 m path, while all three 2026-11-06 benchmark runs took 159 to 172 s on 26 m. No 2D-relevant file changed since then, and the goals went out at the same sim time. `exp_2d_recheck.sh` reruns it through the benchmark after exp_approach. Until then, don't quote the rock_field 2.2x speedup.
+
+### 2026-11-07 14:20, final-approach candidate A: mixed, candidate B queued
+
+`exp_approach.sh` (`exp/nav2_3d_goal_approach.yaml`, GoalAngleCritic weight 10 from 1.4 m), 2 runs per goal, against the confirm run (Ackermann, same governor):
+
+| Goal | A | Confirm | 2D |
+|---|---|---|---|
+| urc_mix far_south | 349 s, timeout (0.37 m) | 0/3 | 109 s |
+| marsyard behind_left | 49 s, 35 s | timeout, 47 s, 50 s | 24 s |
+| marsyard left_diag | 51 s, 41 s | 44, 33, 28 s | 22 s |
+| urc_mix mid_20m | 55 s, 55 s | 55 s x3 | 48 s |
+
+- behind_left gets 2/2 and a bit faster. left_diag gets slower. far_south 1/2.
+- far_south pose traces show the same stall pattern in both runs: 80 to 120 s parked near (28.9, -18.7) about 1.6 m out, then 0.37 m from the goal at yaw -35 deg against the goal's -50 deg for 330 s. The heading cost acting earlier does not free it.
+- Next: candidate B (`exp/nav2_3d_goal_approach_b.yaml`) adds PreferForwardCritic threshold 1.5 m, so MPPI may reverse freely near the goal for an Ackermann three-point fix. far_south x3 and behind_left x2, queued after `exp_2d_recheck` (`exp_approach_b.sh`). If that fails too, the next suspects are the heading-aware cost at the goal cell itself and the governor near u = 1, to log directly.
+- hang_watch extended to 20:00.
