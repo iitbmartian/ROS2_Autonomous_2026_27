@@ -2,7 +2,7 @@
 """Open-loop swerve probe on flat ground: puts the kinematics node in swerve mode, plays fixed
 twist phases on /cmd_vel and logs ground-truth attitude plus every joint to argv[1] (csv).
 Finds whether the body roll seen in swerve runs comes from the suspension model, not navigation."""
-import math, sys
+import math, sys, time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, qos_profile_sensor_data
@@ -44,9 +44,9 @@ class Probe(Node):
         names = sorted(self.js)
         if self.header is None:
             self.header = names
-            self.f.write('t,phase,x,y,z,roll,pitch,yaw,' + ','.join(names) + '\n')
+            self.f.write('wall,t,phase,x,y,z,roll,pitch,yaw,' + ','.join(names) + '\n')
         t = self.get_clock().now().nanoseconds * 1e-9 - self.t0
-        self.f.write(f'{t:.3f},{PHASES[min(self.k, len(PHASES) - 1)][0]},{p.x:.3f},{p.y:.3f},{p.z:.4f},'
+        self.f.write(f'{time.time():.3f},{t:.3f},{PHASES[min(self.k, len(PHASES) - 1)][0]},{p.x:.3f},{p.y:.3f},{p.z:.4f},'
                      f'{roll:.4f},{pitch:.4f},{yaw:.4f},' + ','.join(f'{self.js.get(n, float("nan")):.4f}' for n in self.header) + '\n')
 
     def tick(self):
