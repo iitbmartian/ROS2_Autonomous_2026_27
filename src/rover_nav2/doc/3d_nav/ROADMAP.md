@@ -99,6 +99,14 @@ From a broad survey of terrain navigation systems (local, `~/rover_3d_nav_result
 | External benchmark and terramechanics (Verti-Bench on Chrono, SCM or CRM soil) | Xu et al. RSS 2025 | paper, if the ROS bridge is cheap | large |
 | **(Ram)** Learned traversability or kinodynamics (Wild Visual Navigation, TAL, WayFAST). Out of SPEC scope today. | | ask after v2 | large |
 
+## Realistic benchmark worlds (Ram, 2026-11-07)
+
+Develop and tune on the current simple worlds. Benchmark the finished system on realistic, detailed worlds.
+- Plan (discussed, not yet confirmed): a real Mars base from HiRISE 1 m DTMs (Jezero or Gale), plus fractal detail below 1 m, rocks placed by the Golombek size-frequency model with scanned rock meshes, partly buried rocks, worn craters, and low-friction sand patches. 3 to 4 worlds, on a `ram/rover_gazebo-...` branch. Ground truth by ray casting the world.
+- Built offline in idle hours (no sim needed), so it does not cost benchmark nights. First a one-run smoke test with RTF measured, before the v2 freeze, so overfitting to simple geometry shows up early.
+- Full benchmark on them at the end of v2, and they become the paper's main tables. The simple worlds stay as per-hazard unit tests.
+- Open with Ram: Mars or Earth analogue, visual realism for videos, any team drone or lidar scans.
+
 ## Paper (local, `~/rover_3d_nav_results/paper`)
 
 - Established 3D baseline: `elevation_mapping_cupy` (Miki et al. 2022, ROS 2 Jazzy) plus a traversability costmap. PUTN if feasible.
