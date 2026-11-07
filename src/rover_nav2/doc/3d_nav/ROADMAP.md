@@ -5,6 +5,20 @@ Snapshot of everything still to do, written 2026-11-07 03:30. `PHASES.md` holds 
 would cut 3 to 4 days. Items marked **(Ram)** need hardware, measured data or a decision from Ram,
 **(other owner)** go on a `ram/<package>-<description>` branch.
 
+## Versions (Ram, 2026-11-07)
+
+Ram calls the stack as it stands on 2026-11-07 **v1**. The phases below map onto versions like this.
+
+| Version | Scope | Phases | Target |
+|---|---|---|---|
+| **v1** | Terrain-aware Ackermann navigation: 2.5D map, utilisation cost, governor, 0 unsafe entries in 63 runs, wins on craters, rocks and slopes | 0 to 3 (gate open) | done 7 Nov |
+| **v1.1** | Phase 3 gate closed: far_south heading stall, marsyard behind_left time, rock_field 2D timing question | 3 | 8 to 9 Nov |
+| **v2** | Fast, agile, real odometry: swerve mode with its roll and speed problems fixed, speed tuning to 2D parity on easy ground, zero unsafe entries on every world in both drive modes, EKF odometry, crater check | 2 (crater check), 4, 5, real odometry | 15 to 17 Nov |
+| **v3** | Long range and hardware: global terrain memory over 100 to 500 m, Orin or NUC bring-up, measured `rover_physical.yaml`, field tests, slip layer | 6, 7, 5.3 | late Nov onward |
+
+The Intel cloud farm would pull v2 in by 3 to 4 days. Measured step capability, CG height and mass
+unblock ledge and bars and make the tip limits real. On hold items stay out unless Ram adds them.
+
 ## Phase 2: terrain mapping (gate open, 2 items)
 
 Done: elevation RMSE within 5 cm on all 7 worlds (crater_field 4.15 cm on ground truth).
