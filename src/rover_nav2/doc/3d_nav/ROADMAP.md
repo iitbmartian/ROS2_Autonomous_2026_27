@@ -61,6 +61,34 @@ Done: swerve mode, TerrainCritic, swerve overlay. Plugin name fixed 2026-11-07 (
    worse, a sidehill crossing Phase 3 refuses done facing uphill.
 5. **(other owner: `rover_gazebo`)** Hand the swerve kinematics branch to its owner.
 
+## Phase 4b: heading-aware terrain, travel direction and body yaw chosen separately (planned 2026-11-07)
+
+Ram's idea: a car crosses a speed breaker at an angle and climbs a hill diagonally because it is smoother and easier. Survey in `~/rover_3d_nav_results/paper/related_work_survey.md` (local). Summary:
+- Direction-dependent (anisotropic) slope cost is established: Rowe and Ross 1990 prove switchbacks are optimal when straight up is impermissible, and CAMIS (Sánchez-Ibáñez 2021) and Inotsume (RA-L 2020) are current rover work. We adopt it, we don't claim it.
+- Perseverance's operators drove cross-slope and backwards on a 15 to 20 deg loose slope to cut slip (Maimone et al., AAS 2026), but by hand.
+- We found no planner that picks **body yaw** (tip margin) and **travel direction** (grade, traction) separately for a 4-wheel-steered rover. That is the likely novel core, and swerve already allows it.
+- Bumps: MPPI with a vertical-acceleration cost exists, but none chooses the crossing angle. A speed-dependent CG vertical-acceleration term covers Ram's speed-breaker case.
+
+Today's gap: the costmap is isotropic (best heading per cell), so Smac and the Ackermann controller cannot prefer a diagonal. Only swerve's TerrainCritic sees the actual heading, and it has no grade or traction term.
+
+Plan (starts once swerve v2 drives without tip aborts):
+1. Read CAMIS (paper and `spaceuma/CAMIS_python`), Rowe and Ross, Inotsume RA-L 2020 in full. Settle the grade model before coding.
+2. `u_grade` along the travel direction, from the cell's plane gradient: `max(0, grade_up) / tan(climb_slope_max)`, plus a descent term with `descent_slope_max`. These are two new `# PLACEHOLDER` values in `rover_physical.yaml`. gtests with hand-computed cases. A rollout's travel direction comes from its world-frame displacement, body yaw from its pose. Pose utilisation becomes `max(u_static(body yaw), u_grade(travel direction))`.
+3. Bump term in TerrainCritic: CG height from the support plane at each rollout pose, vertical acceleration by second difference, cost `w * max(0, |a_z| - a_free)^2`. Speed-dependent by construction, so slowing down and crossing at an angle both pay off.
+4. TerrainCritic for Ackermann too, as an experiment overlay, since today it is swerve-only.
+5. Two worlds on a `ram/rover_gazebo-heading-worlds` branch: `bumps` (rounded 10 to 15 cm breakers at several angles) and `long_slope` (a uniform 20 to 25 deg hillside, about 30 m, steeper than `climb_slope_max` straight up).
+6. Experiment: Ackermann vs swerve with heading tied to travel vs swerve with heading free, on bumps, long_slope and the slopes sidehill. Metrics: success, time, peak vertical acceleration, peak roll and pitch, drive effort from joint torques, slip (commanded vs ground-truth velocity).
+7. Only if switchbacks are needed beyond the 2.5 s MPPI horizon: a heading-aware global planner. Either a Nav2 planner plugin running A* over (x, y, travel direction) on the 0.2 m global grid with the cost computed per direction from stored gradients, or a cost hook in Smac.
+8. Caveat for the paper: Gazebo has no deformable soil, so traction claims stay geometric (grade limits), and the slip numbers are only Gazebo friction.
+
+Estimate: steps 1 to 4 about 2 days, 5 and 6 about 2 days, step 7 2 to 3 days if needed. This moves v2 to about 18 to 20 Nov.
+
+## Paper (local, `~/rover_3d_nav_results/paper`)
+
+- Established 3D baseline: `elevation_mapping_cupy` (Miki et al. 2022, ROS 2 Jazzy) plus a traversability costmap. PUTN if feasible.
+- Ablations: utilisation vs weighted sum, best-heading vs heading-free, kappa on and off, governor on and off.
+- More runs per goal (5) for the final tables.
+
 ## Phase 5: speed and safety
 
 Done: governor (with `u_free`), safety monitor, collision monitor wiring.
