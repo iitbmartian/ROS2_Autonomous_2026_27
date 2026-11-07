@@ -946,3 +946,17 @@ Command: `exp_confirm.sh` (benchmark, 7 worlds, 3 runs, `governor_v_nominal:=0.5
 - The Phase 3 rock_field time ratio 0.45 (3D 2.2x faster) is withdrawn. Against today's 2D, far_right is 3D 74 s vs 2D 41 s, so 1.8x, which fails.
 - The other h2h 2D numbers (the 0/3 on rock_field far_left and ahead_10m, and the 2D side of every ratio) are suspect until rerun.
 - Next, after `exp_approach_b`: rerun the whole 2D baseline at HEAD, 7 worlds, 3 runs (about 5 h, overnight), and recompute the gate against it. Unexplained so far. Worth checking the 2026-11-06 stack logs for what differed (DDS, RTF, start pose).
+
+### 2026-11-07 16:10, final-approach candidate B fails far_south, the rover parks and stops trying
+
+`exp_approach_b.sh` (`exp/nav2_3d_goal_approach_b.yaml`: candidate A plus PreferForwardCritic threshold 1.5 m, so reversing is free near the goal), HEAD c01350e. Results are in `~/.ros/rover_benchmark/2026-11-07_3d_gt_approach_b/runs.csv`:
+
+| Goal | B | A | Confirm | 2D (2026-11-07 rerun) |
+|---|---|---|---|---|
+| urc_mix far_south | aborted 1.78 m, aborted 0.56 m, timeout 0.53 m | 349 s, timeout 0.37 m | 0/3 | rerun pending |
+| marsyard behind_left | 29 s, 49 s | 49 s, 35 s | timeout, 47 s, 50 s | 24, 29, 25 s |
+
+- far_south is 0/3 with 0 unsafe entries. The pose traces for r2 and r3 show the rover reaching (29.55, -20.3) at yaw -35 deg, the same spot and heading as candidate A, and then holding there within 10 cm for 230 to 470 s. It never tries a reverse or a three-point turn. So the controller finds standing still cheaper than any move, and freeing reverse changes nothing.
+- behind_left stays 2/2 but varies widely (29 to 49 s). Against today's 2D numbers (24 to 29 s) that is still 1.2 to 1.7x.
+- Neither candidate gets promoted. The shared overlay stays unchanged.
+- Next: since this is a "stand still is optimal" stall, the critic weights are the wrong place to look. Log the 3D cost at the goal cell and around it, plus the per-critic MPPI costs, during a far_south stall. The suspects are the heading-aware cost making the goal pose itself expensive at -50 deg, and the governor driving speed near zero there as u approaches 1. This is a single diagnostic run. It goes after `exp_2d_base`, which is running overnight now.
