@@ -989,3 +989,13 @@ Ram (19:15): "no real odom for now, work on 2 and 3 after/with these minor thing
 - The fresh 2D matches the 6 Nov one on every world except rock_field (4/9, was 3/9) and crater_field (6/9, was 5/9). rock_field far_right is now 41 s every time, against 159 to 172 s on 6 Nov. That one goal is what changed. The cause is still unknown.
 - With the fresh baseline, rock_field turns from a pass (0.45) into a time fail (1.53). So the time item now fails on marsyard, rock_field and urc_mix, which is the speed work running tonight. The recoveries item fails only on urc_mix, which is the far_south stall.
 - The 3D safety and reach claims hold. The video's summary card row "rock_field 3/9 vs 9/9" should read 4/9, to fix in the next video build.
+
+### 2026-11-07 22:15, far_south bag: the rover saws straight back and forth, path critics are off
+
+`tools/bag_far_south.sh` (3D Ackermann, confirm config, HEAD 5ef8c3f), then `tools/analyse_far_south.py`. Output: `evidence/far_south_bag_analysis.txt`. The run timed out like the others.
+- Stall 786 s, starting 0.31 m from the goal, which sits 85 deg to the left of the heading. So it is a sideways offset, a parallel-parking case.
+- The controller is not idle. vx swings between -0.25 and +0.22 m/s (|vx| > 0.03 for 92% of the stall), but |wz| averages 0.016 rad/s, so it drives straight forward and back along yaw -36 deg and never steers.
+- The speed limit averages 0.37 m/s (min 0.05), so the governor is not the cause. The local costmap is 5 to 9 under the whole footprint, at the rover and at the goal, so it is not a terrain cost or the rock either. That drops both suspects from 16:10, and the rock_079 idea from 19:30.
+- Smac replans every 0.5 s and offers a 1.35 to 1.56 m Reeds-Shepp path with 2 cusps. MPPI ignores it, because inside 1.4 m PathFollowCritic and GoalCritic hand over, and PathAlign switches off at 0.5 m. What is left is GoalCritic plus GoalAngleCritic, and with a 2.5 s horizon neither pays off a sideways shuffle.
+- Fix to test: candidate C (`exp/nav2_3d_goal_approach_c.yaml`) keeps PathFollow, PathAlign and GoalCritic handover at 0.3 m and lets it reverse freely within 1.5 m, so MPPI follows the cusp path. `tools/exp_approach_c.sh` runs far_south x2, behind_left x2, left_diag and mid_20m after exp_night. exp_morning now waits for it.
+- Chain fixes: the bag recorder ignored one SIGINT (the second worked), and `guard.sh` piped into `tail` held the pipe open until its 2700 s cap. Both cost 25 min tonight. The recorder now gets SIGINT, 20 s, then SIGTERM. Don't pipe guard.sh.

@@ -11,8 +11,8 @@ clean() { for p in /proc/[0-9]*; do grep -qa ROVER_BENCH_RUN $p/environ 2>/dev/n
   python3 $E/tools/shm_stale_ports.py --rm > /dev/null 2>&1; }
 left() { echo $(( LAST - $(date +%s) )); }
 n0=$(wc -l < $L)
-until tail -n +$((n0+1)) $L | grep -q "exp_night: done\|exp_night: deadline"; do
-  [ "$(date +%s)" -ge "$DL" ] && { log "deadline before exp_night finished, nothing run"; exit 1; }
+until tail -n +$((n0+1)) $L | grep -q "exp_approach_c: done\|exp_approach_c: deadline"; do
+  [ "$(date +%s)" -ge "$DL" ] && { log "deadline before exp_approach_c finished, nothing run"; exit 1; }
   sleep 30
 done
 source $E/tools/simenv.sh; cd /home/ram/ROS2_Autonomous_2026_27

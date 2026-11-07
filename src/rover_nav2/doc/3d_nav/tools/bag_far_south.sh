@@ -16,6 +16,6 @@ ros2 bag record -o $OUT /plan /local_plan /local_costmap/costmap /speed_limit /o
 BP=$!
 sleep 3
 python3 $E/tools/video/send_goal.py 30.0 -20.0 -0.6 1500 > $E/bags/far_south_goal.out 2>&1
-kill -INT $BP; wait $BP
+kill -INT $BP; for i in $(seq 20); do kill -0 $BP 2>/dev/null || break; sleep 1; done; kill -TERM $BP 2>/dev/null; wait $BP  # the recorder ignored one SIGINT on 2026-11-07
 kill -INT -$LP; sleep 10; kill -9 -$LP 2>/dev/null
 echo "$OUT $(tr '\n' ' ' < $E/bags/far_south_goal.out)"
