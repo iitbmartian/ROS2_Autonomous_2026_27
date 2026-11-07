@@ -970,3 +970,22 @@ Ram (19:15): "no real odom for now, work on 2 and 3 after/with these minor thing
 - **Swerve, from the 2026-11-07 traces.** All 5 tip aborts happened on flat ground (z within 4 cm). Before each one the rover yawed at up to 1 rad/s, spinning through 360 deg twice on urc_mix mid_20m, and then roll rose from 0 to 13 deg in about 1 s. Likely cause: the wheels re-steering through large angles on every wz sign flip. Separately, the swerve overlay capped x at 0.25 m/s in the velocity smoother, half of Ackermann, which explains much of its 1.2 to 3x slowness. Candidate `exp/nav2_3d_swerve_v2.yaml`: wz_max 0.6, wz_std 0.3, TwirlingCritic weight 10, x up to 0.5, vy 0.3, accel 1.0.
 - **Queued** (`tools/exp_night_1107.sh`, after exp_2d_base, start deadline 02:00): far_south bag (`tools/bag_far_south.sh`), swerve v2 smoke on one goal then the full 14-goal swerve run, then Ackermann u_free 0.3 on marsyard, crater_field and urc_mix x2.
 - 19:50, Ram will look after 09:00 and wants no idle time. `tools/exp_morning_1108.sh` follows exp_night and decides from its rows. If swerve v2 reaches at least 9/14 with at most 1 tip cancel, it adds runs 2 and 3 on slopes, rock_field and urc_mix. Otherwise it tries `exp/nav2_3d_swerve_v3.yaml` (wz 0.4, twirling weight 20, x 0.4, accel 0.7) on all 4 worlds. Then Ackermann u_free 0.3 on slopes and rock_field x2. No stage starts with under 1 h left before 09:15. hang_watch now runs to 09:30.
+
+### 2026-11-07 22:10, fresh 2D baseline done, Phase 3 gate recomputed against it
+
+`exp_2d_base.sh` (benchmark, 2D bounded, 7 worlds, 3 runs per goal, HEAD df146da, `2026-11-07_2d_base`), then `phase3_gate.py` 3D confirm vs it. Output: `evidence/phase3_gate_vs_2d_base.txt`, `analysis/phase3_gate_confirm_vs_2d_base.csv`.
+
+| World | 3D ok | 2D ok | 3D unsafe | 2D unsafe | 3D recov | 2D recov | time ratio | items failing |
+|---|---|---|---|---|---|---|---|---|
+| bars | 0/6 | 0/6 | 0 | 0 | 58 | 66 | n/a | none |
+| crater_field | 9/9 | 6/9 | 0 | 11 | 0 | 36 | 1.35 | none |
+| ledge | 0/6 | 6/6 | 0 | 0 | 0 | 0 | n/a | time (3D misses both goals, placeholder step_max) |
+| marsyard | 8/9 | 9/9 | 0 | 0 | 0 | 0 | 1.56 | time |
+| rock_field | 9/9 | 4/9 | 0 | 0 | 0 | 35 | 1.53 | time |
+| slopes | 11/15 | 6/15 | 0 | 0 | 1 | 129 | 1.15 | none |
+| urc_mix | 6/9 | 9/9 | 0 | 0 | 29 | 1 | 1.17 | recoveries, time (far_south) |
+
+- Totals: 3D 43/63 vs 2D 40/63 (the 6 Nov 2D gave 37), unsafe 0 vs 11, recoveries 88 vs 267.
+- The fresh 2D matches the 6 Nov one on every world except rock_field (4/9, was 3/9) and crater_field (6/9, was 5/9). rock_field far_right is now 41 s every time, against 159 to 172 s on 6 Nov. That one goal is what changed. The cause is still unknown.
+- With the fresh baseline, rock_field turns from a pass (0.45) into a time fail (1.53). So the time item now fails on marsyard, rock_field and urc_mix, which is the speed work running tonight. The recoveries item fails only on urc_mix, which is the far_south stall.
+- The 3D safety and reach claims hold. The video's summary card row "rock_field 3/9 vs 9/9" should read 4/9, to fix in the next video build.
