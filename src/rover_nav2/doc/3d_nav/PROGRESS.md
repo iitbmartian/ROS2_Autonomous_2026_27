@@ -1025,3 +1025,23 @@ Ram asked whether the stack crosses bumps at an angle and climbs hills diagonall
 - Mimic joints on Bullet-Featherstone: the body rests at 14 deg roll, 8.5 deg pitch even standing still, so that option is broken and no alternative.
 - What the benchmark has and the probe lacked: CPU load (RTF 0.3 to 0.45 with the full stack) and real terrain. The coupling torque loop closes over a ROS topic, so latency under load is the next suspect. The Ackermann tip stop in candidate C's far_south r2 (13.3 deg at 55 s, 26 m out) points the same way, since it is not swerve-specific.
 - Queued `run_probe_load.sh` after exp_fillholes: same probe, coupled suspension, 10 busy-loop burners, RTF logged.
+
+### 2026-11-08 08:15, night results: u_free 0.3 wins, swerve tip stops are a simulator artifact under CPU load
+
+Runs since 21:38 (all ground truth, 0 unsafe entries in every one):
+
+| Run | Out dir | Result |
+|---|---|---|
+| Governor u_free 0.3 (v_nominal 0.5), marsyard, crater_field, urc_mix x2, then slopes, rock_field x2 | `2026-11-07_3d_gt_free03` | 28/30 (2 misses: far_south r2 and the lane35 refusal counted separately). 25 recoveries vs 88 in confirm. Times at 2D on straight goals: marsyard ahead 21 vs 21 s, crater ahead 25 vs 25 s, urc far_east 98 vs 98 s, mid_20m 47 vs 48 s, past_lanes 47 vs 49 s. sidehill_uphill 2/2 and lane25 2/2, both first ever. far_south 1/2 (208 s). Turn-around goals still slow: behind_left 50 s vs 25 s. |
+| Final-approach candidate C (path critics to 0.3 m) | `2026-11-08_3d_gt_approach_c` | far_south 0/2 (r1 aborted 1.78 m, r2 tip stop at 26 m), behind_left 50 and 57 s. Not adopted. |
+| Small-hole fill (`fill_holes:=true`, confirm governor), 4 worlds x2 | `2026-11-08_3d_gt_fillholes` | 21/24, far_south 2/2 (314 s median), behind_left 37 s vs 48 s, crater far_left 1/2. Mixed, so it gets a combined test with u_free 0.3 next. |
+| Swerve v2 and v3 | `2026-11-07_3d_gt_swerve_v2`, `2026-11-08_3d_gt_swerve_v3` | v1 8/14, v2 6/14, v3 5/14. Tip stops 5, 4, 5. v2 is faster where it succeeds (left_diag 57 vs 103 s, mid_20m 95 vs 264 s). |
+| Swerve probe, flat world, open-loop twists | `evidence/swerve_probe/summary.txt`, `summary_load.txt` | Light load: roll and pitch under 1 deg in every phase. With 10 busy-loop burners (RTF 0.58), the coupled rockers swing 17 to 36 deg and the body pitches up to 16.6 deg on flat ground, **even driving straight forward**. |
+
+Findings:
+1. **The rocker coupling is load-sensitive.** `rocker_coupling_node` closes the suspension's constraint torques over a ROS topic. When the machine is loaded, the loop lags the physics and the suspension flops. Benchmark runs sit at RTF 0.3 to 0.45, so tip stops in both drive modes (swerve, and candidate C's Ackermann far_south r2) are at least partly a simulator artifact. Unsafe-entry counts from ground-truth roll and pitch could carry artifacts too. The 2D crater_field entries were real crater crossings in the trajectories, but this needs checking per entry. Tuning swerve stops until the coupling is fixed.
+2. Proposal for `rover_gazebo`'s owner, on a `ram/rover_gazebo-...` branch: hold the rocker loops inside the simulation step (a Gazebo system plugin or a ros2_control controller in the controller manager loop), not through a ROS topic. Or measure the minimum RTF at which the current coupling holds. Interim mitigation on our side: lower benchmark load (one stack, no extra processes) and log RTF per run, already in runs.csv.
+3. **u_free 0.3 is chosen for the gate.** It removes most of the governor's cruise loss and recoveries without unsafe entries, and the two near-miss approaches seen on 2026-11-06 did not repeat in 30 runs.
+4. far_south: 1/2 with u_free 0.3, 2/2 with fill_holes, 0/2 with candidate C. The far_south failure looks stochastic around a marginal approach, not structural. Combined config next.
+
+Running now: `tools/exp_gate_free03.sh`, the Phase 3 gate run with u_free 0.3 on all 7 worlds x3, about 6 h (to about 14:30), then `phase3_gate.py` against `2026-11-07_2d_base` into `evidence/phase3_gate_free03.txt`. hang_watch extended to 18:00.
