@@ -5,6 +5,13 @@
 cap=$1; shift
 free=$(df -BG --output=avail "$HOME" | tail -1 | tr -dc 0-9)
 if [ "$free" -lt "${GUARD_MIN_GB:-10}" ]; then echo "guard: only ${free} GB free, not starting: $*" >&2; exit 90; fi
+# Never two benchmark runners at once: they share a ROS domain and kill each other's stacks
+# (2026-11-08, 12:45 to 13:01). Wait up to 30 min for a running one to finish, then refuse.
+case "$*" in *"benchmark --worlds"*)
+  for i in $(seq 180); do pgrep -f "lib/rover_nav2/benchmark --worlds" > /dev/null || break; sleep 10; done
+  if pgrep -f "lib/rover_nav2/benchmark --worlds" > /dev/null; then
+    echo "guard: another benchmark runner is active, not starting: $*" >&2; exit 91; fi ;;
+esac
 setsid "$@" & pid=$!
 ( sleep "$cap"; kill -INT -$pid 2>/dev/null; sleep 20; kill -TERM -$pid 2>/dev/null; sleep 20
   kill -KILL -$pid 2>/dev/null; echo "guard: cap ${cap}s hit: $*" >&2 ) & wd=$!
