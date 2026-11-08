@@ -1045,3 +1045,10 @@ Findings:
 4. far_south: 1/2 with u_free 0.3, 2/2 with fill_holes, 0/2 with candidate C. The far_south failure looks stochastic around a marginal approach, not structural. Combined config next.
 
 Running now: `tools/exp_gate_free03.sh`, the Phase 3 gate run with u_free 0.3 on all 7 worlds x3, about 6 h (to about 14:30), then `phase3_gate.py` against `2026-11-07_2d_base` into `evidence/phase3_gate_free03.txt`. hang_watch extended to 18:00.
+
+### 2026-11-08 11:10, suspension fix on `ram/suspension` (Ram approved)
+
+- Branch `ram/suspension`, cut from main (d6447f4). New `suspension:=plugin`: `RockerCouplingSystem`, a gz-sim system plugin (`rover_gazebo/src/rocker_coupling_system.cpp`) applies the same constraint law and ratios as `rocker_coupling_node` (K 8000, D 200, 400 N m cap, rest pose captured after 2.5 s), but in PreUpdate every physics step, so CPU load cannot delay it. ros2_control keeps state-only interfaces on the rockers in that mode, and `rover_sim.launch.py` skips the coupling controller and node. The default stays `torque`, so nothing changes for the owner until they choose. Files: rover_gazebo CMakeLists, package.xml, hook (GZ_SIM_SYSTEM_PLUGIN_PATH), two xacros, and `rover_bringup/launch/rover_sim.launch.py` (rover_bringup's sim launch, also another owner's).
+- Worktrees, so the running gate benchmark keeps its symlinked rover_gazebo: `../ws_suspension` (the branch), and `../ws_susp_test` (`ram/test-3dnav-suspension` = ram/3d_nav plus the branch, which has swerve kinematics for the probe).
+- Test queued after the gate run: `tools/swerve_probe/run_probe_plugin.sh`, flat world probe at light load and with 10 burners, against the torque node's 1 deg (light) and 16.6 deg (loaded).
+- Not merged into ram/3d_nav yet. That waits for the probe, and for the gate run to finish, since merging changes the symlinked simulator under it.
