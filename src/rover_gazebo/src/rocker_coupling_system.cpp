@@ -9,6 +9,10 @@
 // law in PreUpdate, every physics step, on the joint state of that same step, so delay and
 // machine load cannot open the loop. Selected with suspension:=plugin.
 //
+// It runs late in each step (priority 1000, default systems run at 0): this workspace's patched
+// gz_ros2_control removes the JointForceCmd of every joint it does not drive in effort mode
+// on each write, which would otherwise delete these torques before Physics applies them.
+//
 // For each constraint (joint a, joint b, ratio), with rest offset c captured once settled:
 //   e    = (theta_a - ratio * theta_b) - c        residual, zero when satisfied
 //   g    = K e + D edot                           constraint force
@@ -41,10 +45,13 @@ namespace rover_gazebo
 
 class RockerCouplingSystem
   : public gz::sim::System,
+  public gz::sim::ISystemConfigurePriority,
   public gz::sim::ISystemConfigure,
   public gz::sim::ISystemPreUpdate
 {
 public:
+  gz::sim::System::PriorityType ConfigurePriority() override {return 1000;}
+
   void Configure(
     const gz::sim::Entity & entity, const std::shared_ptr<const sdf::Element> & sdf,
     gz::sim::EntityComponentManager & ecm, gz::sim::EventManager &) override
@@ -54,6 +61,7 @@ public:
     d_ = sdf->Get<double>("damping", d_).first;
     max_torque_ = sdf->Get<double>("max_torque", max_torque_).first;
     rest_delay_ = sdf->Get<double>("rest_capture_delay", rest_delay_).first;
+    debug_ = sdf->Get<bool>("debug", debug_).first;
     for (auto e = sdf->FindElement("constraint"); e; e = e->GetNextElement("constraint")) {
       Constraint c;
       c.a = e->Get<std::string>("a");
@@ -114,6 +122,15 @@ public:
     for (auto & [name, j] : joints_) {
       j.SetForce(ecm, {std::clamp(tau[name], -max_torque_, max_torque_)});
     }
+    if (debug_ && t - last_print_ >= 1.0) {
+      last_print_ = t;
+      std::string line;
+      for (const auto & c : constraints_) {
+        line += c.a + "-" + c.b + " e " +
+          std::to_string((pos[c.a] - c.ratio * pos[c.b]) - c.rest) + "  ";
+      }
+      gzmsg << "RockerCouplingSystem t " << t << ": " << line << "\n";
+    }
   }
 
 private:
@@ -127,7 +144,8 @@ private:
   std::vector<Constraint> constraints_;
   std::map<std::string, gz::sim::Joint> joints_;
   double k_{8000.0}, d_{200.0}, max_torque_{400.0}, rest_delay_{2.5};
-  double first_t_{-1.0};
+  double first_t_{-1.0}, last_print_{-1.0};
+  bool debug_{false};
   bool rest_captured_{false};
 };
 
@@ -135,5 +153,6 @@ private:
 
 GZ_ADD_PLUGIN(
   rover_gazebo::RockerCouplingSystem, gz::sim::System,
+  rover_gazebo::RockerCouplingSystem::ISystemConfigurePriority,
   rover_gazebo::RockerCouplingSystem::ISystemConfigure,
   rover_gazebo::RockerCouplingSystem::ISystemPreUpdate)
