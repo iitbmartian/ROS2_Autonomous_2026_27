@@ -104,12 +104,20 @@
       <xacro:mimic_follower name="BRS_joint"/>
       <xacro:mimic_follower name="FRS_joint"/>
     </xacro:if>
-    <xacro:unless value="${suspension == 'mimic'}">
+    <xacro:if value="${suspension == 'torque'}">
       <xacro:coupled_rocker name="FLS_joint"/>
       <xacro:coupled_rocker name="BLS_joint"/>
       <xacro:coupled_rocker name="BRS_joint"/>
       <xacro:coupled_rocker name="FRS_joint"/>
-    </xacro:unless>
+    </xacro:if>
+    <!-- suspension:=plugin: RockerCouplingSystem (rover_gazebo.xacro) applies the constraint
+         torques inside the physics step, so the rockers only report state here. -->
+    <xacro:if value="${suspension == 'plugin'}">
+      <xacro:mimic_follower name="FLS_joint"/>
+      <xacro:mimic_follower name="BLS_joint"/>
+      <xacro:mimic_follower name="BRS_joint"/>
+      <xacro:mimic_follower name="FRS_joint"/>
+    </xacro:if>
 
   </ros2_control>
 
