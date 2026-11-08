@@ -1084,3 +1084,11 @@ Ram: split `ram/3d_nav` per package at the end, not now. Agreed structure, squas
 - Probe (`evidence/swerve_probe/summary_plugin.txt`): with 10 burners (RTF 0.62) the plugin holds max roll 0.2 and pitch 1.2 deg, the same as at light load (RTF 0.97). The torque node under the same load reached 16.6 deg pitch.
 - `pipeline_3d.launch.py` now forwards `suspension`, default `plugin`. 3D runs from now on use the fixed suspension. The 2D baseline ran on the torque node. Its crater_field unsafe entries are deep crater crossings in the trajectories, but a 2D rerun on the plugin suspension is needed before the paper.
 - Running: `tools/exp_swerve_susp.sh`, swerve v2 on the plugin suspension (smoke, then 14 goals), then Ackermann far_south x3 and rock_field far_right x3.
+
+### 2026-11-08 13:10, incident: two benchmarks ran at once, results marked invalid
+
+- 12:35: `exp_swerve_susp` failed at startup. `pipeline.launch.py` limits `suspension` to its own choices list, torque and mimic, which my probe never hit because it launched `rover_sim.launch.py` directly. Fixed on `ram/suspension` (cb07882, pushed) and merged. The laptop sat idle from 12:35 to 12:44 and I didn't notice it for that long.
+- 12:43: on restart the runner resumed the recorded failed smoke row and logged "smoke failed" at once. 12:45: `exp_tonight_1108.sh` read that line as its trigger. Its `n0` was taken just before the line was written, a race. So it started the approach-BT runs while `exp_swerve_susp` ran its new smoke. From 12:45 to 13:01 two runners shared ROS domain 42 and killed each other's marked processes.
+- Invalid and marked: `2026-11-08_3d_gt_swerve_susp_smoke_INVALID_concurrent` (28 m off the goal) and the far_south r1 row of `2026-11-08_3d_gt_approach_bt` (`INVALID_ROWS.txt`).
+- Now: only exp_tonight runs (approach smoke, then 3D gate and 2D baseline on the plugin suspension, then swerve x2 until 09:15).
+- Lessons: a chain trigger must match a line that names the run it waits for, written after the waiter started, not any done or failed line. And a restarted chain must move the stale out dir aside first. Before starting any runner, check `pgrep -f "benchmark --worlds"` is empty. I'll add that guard to the chain scripts.

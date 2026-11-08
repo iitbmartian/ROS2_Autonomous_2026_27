@@ -18,6 +18,8 @@ bt_navigator:
     # Keeps the current path while it stays valid instead of replanning at 1 Hz, which flipped
     # the path around rocks (behavior_trees/navigate_to_pose_ackermann_3d.xml).
     default_nav_to_pose_bt_xml: "$(find-pkg-share rover_nav2)/behavior_trees/navigate_to_pose_ackermann_3d.xml"
+    # ApproachGoals (rover_traversability), used by the 3D tree for the car-like final approach.
+    plugin_lib_names: ["rover_approach_goals_bt_node"]
 
 local_costmap:
   local_costmap:

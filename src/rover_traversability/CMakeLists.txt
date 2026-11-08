@@ -49,6 +49,19 @@ target_include_directories(rover_traversability_layer PUBLIC
 target_link_libraries(rover_traversability_layer traversability_core)
 ament_target_dependencies(rover_traversability_layer ${layer_dependencies})
 
+# Behaviour tree node for the 3D tree: approach from behind (ApproachGoals).
+find_package(behaviortree_cpp REQUIRED)
+add_library(rover_approach_goals_bt_node SHARED src/bt/approach_goals.cpp)
+target_include_directories(rover_approach_goals_bt_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_definitions(rover_approach_goals_bt_node PRIVATE BT_PLUGIN_EXPORT)
+ament_target_dependencies(rover_approach_goals_bt_node behaviortree_cpp geometry_msgs)
+install(TARGETS rover_approach_goals_bt_node
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
 pluginlib_export_plugin_description_file(nav2_costmap_2d costmap_plugins.xml)
 pluginlib_export_plugin_description_file(nav2_mppi_controller critics_plugins.xml)
 
@@ -64,6 +77,8 @@ ament_python_install_package(${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_approach_goals test/test_approach_goals.cpp)
+  target_link_libraries(test_approach_goals rover_approach_goals_bt_node)
   find_package(ament_cmake_pytest REQUIRED)
 
   ament_add_gtest(test_traversability_layer test/test_traversability_layer.cpp

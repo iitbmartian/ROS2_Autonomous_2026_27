@@ -20,6 +20,16 @@
   recovery actions specific to planning / control as well as general system issues.
   This will be continuous if a kinematically valid planner is selected.
 -->
+<!--
+  2026-11-08, car-like final approach. far_south showed the rover arriving 0.3 m to the side of
+  the goal at the right heading, then driving straight back and forth for minutes: a car needs a
+  parking manoeuvre for a sideways offset, and MPPI's short horizon does not find one.
+  1. Plan through a pre-goal 1.5 m behind the goal along its heading (ApproachGoals, from
+     rover_traversability), so the last stretch is straight and the rover arrives lined up.
+     Within 3 m of the goal, or if that plan fails, the plain goal is used as before.
+  2. A recovery that backs up 1.5 m when the rover is stuck within 1 m of the goal, so the
+     controller has room to come in again.
+-->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
@@ -38,7 +48,14 @@
                 </Inverter>
                 <IsPathValid path="{path}"/>
               </ReactiveSequence>
-              <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+              <Fallback name="PlanWithApproach">
+                <Sequence>
+                  <GetCurrentPose current_pose="{current_pose}" global_frame="map" robot_base_frame="base_footprint"/>
+                  <ApproachGoals goal="{goal}" current_pose="{current_pose}" approach_distance="1.5" min_distance="3.0" goals="{approach_goals}"/>
+                  <ComputePathThroughPoses goals="{approach_goals}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+                </Sequence>
+                <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+              </Fallback>
             </Fallback>
             <Sequence>
               <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
@@ -68,6 +85,11 @@
             </Sequence>
             <Wait wait_duration="5.0"/>
             <BackUp backup_dist="0.30" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+            <Sequence name="ReApproach">
+              <GetCurrentPose current_pose="{current_pose}" global_frame="map" robot_base_frame="base_footprint"/>
+              <ArePosesNear ref_pose="{goal}" target_pose="{current_pose}" global_frame="map" tolerance="1.0"/>
+              <BackUp backup_dist="1.5" backup_speed="0.2" error_code_id="{backup_code_id}"/>
+            </Sequence>
           </RoundRobin>
         </ReactiveFallback>
       </Sequence>
