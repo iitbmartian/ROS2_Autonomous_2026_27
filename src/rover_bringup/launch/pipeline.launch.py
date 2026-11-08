@@ -150,7 +150,7 @@ def generate_launch_description():
         # or 'mimic', which needs
         # physics_engine:=gz-physics-bullet-featherstone-plugin alongside it.
         DeclareLaunchArgument("suspension", default_value="torque",
-                              choices=["torque", "mimic"]),
+                              choices=["torque", "mimic", "plugin"]),
         DeclareLaunchArgument("physics_engine", default_value="",
                               description="gz sim --physics-engine; empty keeps DART"),
         # husarion_world.sdf needs x:=-13 to spawn clear of its logo plate.
