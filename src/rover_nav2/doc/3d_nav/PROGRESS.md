@@ -1052,3 +1052,11 @@ Running now: `tools/exp_gate_free03.sh`, the Phase 3 gate run with u_free 0.3 on
 - Worktrees, so the running gate benchmark keeps its symlinked rover_gazebo: `../ws_suspension` (the branch), and `../ws_susp_test` (`ram/test-3dnav-suspension` = ram/3d_nav plus the branch, which has swerve kinematics for the probe).
 - Test queued after the gate run: `tools/swerve_probe/run_probe_plugin.sh`, flat world probe at light load and with 10 burners, against the torque node's 1 deg (light) and 16.6 deg (loaded).
 - Not merged into ram/3d_nav yet. That waits for the probe, and for the gate run to finish, since merging changes the symlinked simulator under it.
+
+### 2026-11-08 11:40, per-package split agreed, done at the end (Ram)
+
+Ram: split `ram/3d_nav` per package at the end, not now. Agreed structure, squashed, a few commits each, cut from main, kept local until Ram says push:
+- Stacked chain: `ram/rover_traversability` (core geometry, then plugins and nodes) > `ram/rover_terrain_mapping` (vendored FastDEM, then nodes) > `ram/rover_nav2-3d` (Ram's 2D retune as its own commit, since it went into afcb10b by mistake, then 3D configs and BT, benchmark, docs) > `ram/rover_bringup-3d` (new 3D launches, then the pipeline and rtabmap edits).
+- From main: `ram/rover_drivers-l2` (L2 driver build plus SDK tools, then the guide), `ram/rover_gazebo-3d` (swerve mode, L2 sensor, terrain worlds), `ram/suspension` (separate).
+- The old `ram/rover_gazebo-*` and `ram/rover_bringup-*` branches are kept for now.
+- A trial run built all six with `git checkout ram/3d_nav -- <paths>` per commit group, then deleted them, since they would go stale. Trial check: the stack tip matched ram/3d_nav for its four packages except one file with 7 lines, and the drivers and gazebo branches need a re-check. Build each branch alone before handing over.
