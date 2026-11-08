@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.8)
 project(rover_gazebo)
 
 find_package(ament_cmake REQUIRED)
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED COMPONENTS register)
+
+# suspension:=plugin: the rocker coupling inside the physics step.
+add_library(rover_gazebo_rocker_coupling SHARED src/rocker_coupling_system.cpp)
+target_compile_features(rover_gazebo_rocker_coupling PRIVATE cxx_std_17)
+target_link_libraries(rover_gazebo_rocker_coupling gz-sim::gz-sim gz-plugin::register)
+install(TARGETS rover_gazebo_rocker_coupling LIBRARY DESTINATION lib)
 
 install(DIRECTORY urdf meshes models config worlds rviz doc tools
         DESTINATION share/${PROJECT_NAME})

@@ -74,6 +74,27 @@
   </gazebo>
 
   <!-- =================================================================
+       suspension:=plugin: the rocker loops held inside the physics step (see
+       src/rocker_coupling_system.cpp). Same law and ratios as rocker_coupling_node,
+       from config/rover_kinematics.yaml's four_bar and differential blocks. Damping
+       can be far higher than the node's 50, since there is no stale-state delay to
+       destabilise it.
+       ================================================================= -->
+  <xacro:if value="${suspension == 'plugin'}">
+    <gazebo>
+      <plugin filename="rover_gazebo_rocker_coupling" name="rover_gazebo::RockerCouplingSystem">
+        <stiffness>8000</stiffness>
+        <damping>200</damping>
+        <max_torque>400</max_torque>
+        <rest_capture_delay>2.5</rest_capture_delay>
+        <constraint a="BLS_joint" b="FLS_joint" ratio="-0.577165"/>
+        <constraint a="BRS_joint" b="FRS_joint" ratio="-0.572734"/>
+        <constraint a="BLS_joint" b="BRS_joint" ratio="-1.0"/>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+
+  <!-- =================================================================
        ros2_control hardware bridge. The controller manager runs inside the
        simulator, at the physics rate, and exposes the eight driven joints
        to ordinary ROS controllers.

@@ -65,7 +65,12 @@ def generate_launch_description():
                                           "holds only FLS. DART silently ignores "
                                           "<mimic> and leaves the suspension "
                                           "uncontrolled -- do not use 'mimic' "
-                                          "without also setting physics_engine."),
+                                          "without also setting physics_engine. "
+                                          "'plugin' (every engine): the same "
+                                          "constraint torques inside the physics "
+                                          "step (RockerCouplingSystem), so ROS "
+                                          "latency under CPU load cannot open the "
+                                          "loop."),
         DeclareLaunchArgument("mass_scale", default_value="1.0"),
         DeclareLaunchArgument("mesh_collision", default_value="false"),
         DeclareLaunchArgument("gui", default_value="true"),
@@ -219,9 +224,12 @@ def generate_launch_description():
         def arg(name):
             return LaunchConfiguration(name).perform(context).lower()
 
-        on_exit = [steer, wheel, coupling_ctl, steer_pid, wheel_pid, kinematics,
-                   hold_node if arg("suspension") == "mimic" else coupling_node,
-                   control_node]
+        susp = arg("suspension")
+        # suspension:=plugin holds the rockers inside the simulator, so neither the
+        # coupling controller nor a coupling node runs.
+        on_exit = [steer, wheel, steer_pid, wheel_pid, kinematics, control_node]
+        if susp != "plugin":
+            on_exit += [coupling_ctl, hold_node if susp == "mimic" else coupling_node]
         if arg("teleop") in ("true", "1"):
             on_exit.append(teleop)
         if arg("teleop_gui") in ("true", "1"):
