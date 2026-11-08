@@ -1060,3 +1060,27 @@ Ram: split `ram/3d_nav` per package at the end, not now. Agreed structure, squas
 - From main: `ram/rover_drivers-l2` (L2 driver build plus SDK tools, then the guide), `ram/rover_gazebo-3d` (swerve mode, L2 sensor, terrain worlds), `ram/suspension` (separate).
 - The old `ram/rover_gazebo-*` and `ram/rover_bringup-*` branches are kept for now.
 - A trial run built all six with `git checkout ram/3d_nav -- <paths>` per commit group, then deleted them, since they would go stale. Trial check: the stack tip matched ram/3d_nav for its four packages except one file with 7 lines, and the drivers and gazebo branches need a re-check. Build each branch alone before handing over.
+
+### 2026-11-08 12:50, Phase 3 gate with u_free 0.3, and the suspension fix works
+
+**Gate run** `tools/exp_gate_free03.sh` (3D Ackermann, v_nominal 0.5, u_free 0.3, ground truth, 7 worlds x3, torque-node suspension, HEAD 122f1e5), then `phase3_gate.py` against `2026-11-07_2d_base`. Output: `evidence/phase3_gate_free03.txt`, `analysis/phase3_gate_free03_vs_2d_base.csv`.
+
+| World | 3D ok | 2D ok | 3D unsafe | 2D unsafe | 3D recov | 2D recov | time ratio | gate |
+|---|---|---|---|---|---|---|---|---|
+| bars | 1/6 | 0/6 | 0 | 0 | 51 | 66 | n/a | pass (first 3D success on bars, past_bars_6m 145 s) |
+| crater_field | 9/9 | 6/9 | 0 | 11 | 0 | 36 | 1.08 | pass |
+| ledge | 0/6 | 6/6 | 0 | 0 | 0 | 0 | n/a | FAIL (placeholder step_max) |
+| marsyard | 9/9 | 9/9 | 0 | 0 | 0 | 0 | 1.46 | pass |
+| rock_field | 8/9 | 4/9 | 0 | 0 | 15 | 35 | 1.35 | pass |
+| slopes | 15/15 | 6/15 | 0 | 0 | 0 | 129 | 0.97 | pass |
+| urc_mix | 7/9 | 9/9 | 0 | 0 | 33 | 1 | 1.72 | FAIL (far_south) |
+
+- Totals: 3D 49/63 vs 2D 40/63, unsafe 0 vs 11, recoveries 99 vs 267. Against the confirm run (u_free 0): 49 vs 43, recoveries 99 vs 88 (the bars runs add 51), and the time item now passes on marsyard, rock_field, slopes and crater_field.
+- Still open: urc_mix far_south (recoveries and time), and ledge, which waits on the measured step capability.
+- 7 runs ended by the tip monitor at 13.3 to 13.6 deg roll: lane35 x2, far_south r2, on_ledge_6m x3 and on_ledge_12m r3, most within 15 s. These ran on the torque-node suspension that tilts under load (below). The two far_south and rock_field ones are rerun on the plugin suspension now. ledge goes next.
+
+**Suspension fix** (`ram/suspension`, pushed with Ram's approval, merged into ram/3d_nav):
+- First test: the plugin loaded but its torques never reached Physics. This workspace's patched gz_ros2_control (`src/third_party/gz_ros2_control`, from the explicit_pid fix) removes the JointForceCmd of every joint it does not drive in effort mode on each write. Found by flipping the torque sign and seeing identical motion. Fix: the plugin runs after it, with system priority 1000 (10140f6).
+- Probe (`evidence/swerve_probe/summary_plugin.txt`): with 10 burners (RTF 0.62) the plugin holds max roll 0.2 and pitch 1.2 deg, the same as at light load (RTF 0.97). The torque node under the same load reached 16.6 deg pitch.
+- `pipeline_3d.launch.py` now forwards `suspension`, default `plugin`. 3D runs from now on use the fixed suspension. The 2D baseline ran on the torque node. Its crater_field unsafe entries are deep crater crossings in the trajectories, but a 2D rerun on the plugin suspension is needed before the paper.
+- Running: `tools/exp_swerve_susp.sh`, swerve v2 on the plugin suspension (smoke, then 14 goals), then Ackermann far_south x3 and rock_field far_right x3.

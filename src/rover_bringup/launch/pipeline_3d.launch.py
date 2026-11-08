@@ -51,6 +51,9 @@ FORWARDED = {
     'viz': 'true',
     'rviz': 'false',
     'nav_rviz': 'false',
+    # The rocker loops held inside the physics step (ram/suspension). The torque node's ROS
+    # loop lags under the 3D stack's CPU load and the body tilts on flat ground (2026-11-08).
+    'suspension': 'plugin',
 }
 
 
