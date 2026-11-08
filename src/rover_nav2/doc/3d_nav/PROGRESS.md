@@ -1093,3 +1093,12 @@ Ram: split `ram/3d_nav` per package at the end, not now. Agreed structure, squas
 - Now: only exp_tonight runs (approach smoke, then 3D gate and 2D baseline on the plugin suspension, then swerve x2 until 09:15).
 - Lessons: a chain trigger must match a line that names the run it waits for, written after the waiter started, not any done or failed line. And a restarted chain must move the stale out dir aside first. Before starting any runner, check `pgrep -f "benchmark --worlds"` is empty. I'll add that guard to the chain scripts.
 - 13:05 (health check): the approach_bt far_south r2 runner was waiting on a stack that `exp_swerve_susp`'s cleanup killed at 13:01, the tail of the concurrent-run incident. Stopped it by PID, cleaned up, and the chain moved on to behind_left. far_south with the approach BT is covered x3 in tonight's gate run.
+
+### 2026-11-08 18:15, 3D gate on the plugin suspension with approach-from-behind: worse, approach removed
+
+`exp_tonight_1108.sh` stage 2 (plugin suspension, u_free 0.3, approach BT, 6 worlds x3, ledge excluded; HEAD 37bbcfb). Output: `evidence/phase3_gate_susp.txt`.
+- bars 0/6, crater 9/9 (1.30), marsyard 8/9 (1.58, behind_left timed out 0.41 m short), rock_field 5/9 (3.37), slopes 13/15 (0.97), urc_mix 7/9 (1.87). 0 unsafe. Against this morning's torque-node gate without the approach: rock_field 5/9 vs 8/9, bars 0 vs 1, slopes 13 vs 15.
+- Cause on rock_field: the pre-goal or its straight lead-in sat among rocks. Planning through it failed ("no valid path found"), and the rover was led into a cell the planner then refused as "Start occupied" (log `rock_field_ahead_10m_r2`), so the goal aborted 2 to 3 m out within 40 s. far_south 1/3, no better.
+- Decision: the approach-from-behind and the re-approach recovery are out of the 3D tree. ApproachGoals and its gtests stay in rover_traversability for a later version that only acts when the lead-in is clear. Tree note added.
+- Also: lane25_top was stopped twice by the tip monitor at 20 s, roll 13.4 deg and pitch 17 to 19 deg, on the plugin suspension. This morning on the torque node it went 3/3. Needs a look: real roll on the ramp entry, or something else.
+- The night after 2D: swerve x2 (exp_tonight), then `exp_gate_clean.sh` (plain tree on the plugin suspension, 6 worlds x3) for a clean suspension-only comparison, until about 10:00.
