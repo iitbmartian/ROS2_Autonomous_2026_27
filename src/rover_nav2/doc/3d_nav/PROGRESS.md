@@ -1150,3 +1150,21 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   4. Whether the Orin will run `depth_range_cut` (else lidar only: `inputs: ["lidar"]`).
   5. The measured `rover_physical.yaml` values (cg_height, mass). Until then the tip limits are estimates.
 - Not done yet: a CPU budget of the 3D nodes alone (the benchmark's cpu columns include Gazebo), and the real 2D `nav2_params.yaml` brought up to the sim tuning (Ram's call, it is the existing 2D stack).
+
+### 2026-11-09 10:50, swerve tip stops: the rocker coupling slipped, not the controller
+
+- Swerve v4 (smoother commands) did not help. The loaded v4 recording tip-stopped at -14.9 deg roll and the v4 benchmark had 2 tip stops in its first 4 runs. The loaded v2 recording happened to succeed.
+- `tools/rocker_residuals.py` (coupling residuals e1 = BLS + 0.577 FLS, e2 = BRS + 0.573 FRS, e3 = BLS + BRS, relative to the rest pose) on the bags:
+
+| Bag | e1 | e2 | e3 | front rocker at 0.45 rad limit |
+|---|---|---|---|---|
+| swerve v4, 8 burners (tip stop) | 38.9 | 20.9 | 39.8 | 33 s |
+| swerve v4, light | 9.2 | 25.6 | 22.3 | 0 |
+| swerve v2, 8 burners | 6.6 | 5.0 | 1.2 | 0 |
+| swerve v2, light (bag a) | 9.6 | 4.5 | 1.7 | 0 |
+| Ackermann lane25, light | 4.9 | 5.1 | 1.8 | 0 |
+
+- In the tip stop the rover was nearly still, spinning in place (wz 0.3), while the roll built from -7 to -15 deg over 4 s with the loops 40 deg out. The plugin's 400 N m clamp bites from 2.9 deg of error at K 8000, so the wheels' scrub torque in a spin can twist the loops open. That is the simulator again: the real loops are rigid links. The v4 smoothing changed how the rover spins near the goal, not the cause.
+- Fix on `ram/suspension` (local, not pushed, merged into ram/3d_nav): clamp 400 to 3000 N m (62d427e), and ROVER_COUPLING_K, _D, _MAX env overrides for tuning without a rebuild. Built into install (rover_gazebo, rover_traversability, rover_terrain_mapping, rover_nav2, rover_bringup) while nothing was running.
+- Recheck at clamp 3000, same loaded v4 run: it succeeded, max roll 8.3 deg, front rocker at its limit 0.1 s. But e1 and e2 still reach 14 deg, and are above 10 deg for 14 s of the 446 s run. The stiffness now limits, not the clamp. Testing K 30000, D 500 now.
+- Stopped and to be requeued on the final suspension: the swerve v4 benchmark (4 rows, invalid), critic v2, re-approach. The Ackermann runs had residuals of 5 deg at most, so last night's gate is probably barely affected. Still, both the 2D baseline and the 3D gate get rerun on the final coupling before any number goes into the paper.
