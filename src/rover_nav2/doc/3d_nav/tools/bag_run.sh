@@ -1,6 +1,6 @@
 #!/bin/bash
 # One recorded 3D run (plugin suspension, ground truth, u_free 0.3) with a bag of the IMU, joints,
-# command chain, plans and speed limit. Args: tag world x y yaw drive(ackermann/swerve).
+# command chain, plans and speed limit. Args: tag world x y yaw drive(ackermann/swerve), optional swerve overlay (default v2).
 # Hard wall cap 1200 s on the goal.
 E=$HOME/.ros/rover_3d_nav; OUT=$E/bags/run_$1_$(date +%m%d_%H%M)
 source $E/tools/simenv.sh
@@ -9,7 +9,7 @@ cd /home/ram/ROS2_Autonomous_2026_27
 mkdir -p $E/bags
 setsid ros2 launch rover_bringup pipeline_3d.launch.py world:=$2 gui:=false viz:=false \
   odom_source:=ground_truth drive:=$6 suspension:=plugin governor_v_nominal:=0.5 governor_u_free:=0.3 \
-  $( [ "$6" = swerve ] && echo nav_extra_overlay:=$E/exp/nav2_3d_swerve_v2.yaml ) > $OUT.launch.log 2>&1 &
+  $( [ "$6" = swerve ] && echo nav_extra_overlay:=${7:-$E/exp/nav2_3d_swerve_v2.yaml} ) > $OUT.launch.log 2>&1 &
 LP=$!
 for i in $(seq 120); do ros2 lifecycle get /bt_navigator 2>/dev/null | grep -q active && break; sleep 5; done
 sleep 10
