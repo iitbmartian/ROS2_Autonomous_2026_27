@@ -1,0 +1,40 @@
+# Nav2 parameters, real rover, 3D terrain stack: an OVERLAY applied last, over
+# nav2_params_sim.yaml and nav2_params_sim_3d.yaml, by navigation_3d.launch.py sim:=false.
+#
+# The tuned Ackermann stack (MPPI Ackermann, Smac hybrid, the 3D tree, the terrain layers) is the
+# one proven in simulation. nav2_params.yaml, the real 2D file, is still the older DiffDrive and
+# AMCL setup, so the 3D stack does not build on it. This file holds only what differs on the
+# rover. use_sim_time is set false per node by navigation.launch.py (sim:=false).
+#
+# TO VERIFY on the rover before the first run (written 2026-11-09 without hardware):
+#   - /odometry/filtered: the real EKF output. Nav2 reads only its twist (velocity feedback,
+#     braking distance), the pose comes from TF.
+#   - base_footprint must exist in the real TF tree at ground level (the terrain layers measure
+#     heights from it). If the real tree ends at base_link, add a static base_link ->
+#     base_footprint, do not change these frames.
+#   - min_turn_radius 0.8 m (rover_gazebo rover_control.yaml, from the CAD) on the real steering.
+#   - The governor's v_nominal starts at 0.25 m/s on hardware (rover_3d.launch.py), not 0.5.
+
+bt_navigator:
+  ros__parameters:
+    odom_topic: /odometry/filtered
+
+controller_server:
+  ros__parameters:
+    odom_topic: /odometry/filtered
+
+velocity_smoother:
+  ros__parameters:
+    odom_topic: /odometry/filtered
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      traversability_layer:
+        odom_topic: /odometry/filtered
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      traversability_layer:
+        odom_topic: /odometry/filtered

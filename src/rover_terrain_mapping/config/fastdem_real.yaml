@@ -1,0 +1,59 @@
+# FastDEM pipeline on the real rover. Starts as a copy of fastdem_sim.yaml: the Unitree L2
+# datasheet range accuracy (about 2 cm) matches the simulated lidar noise. Retune range_noise and the
+# outlier settings from a recorded static scan on the rover (TO VERIFY).
+# FastDEM pipeline for terrain_mapping_node in simulation, in FastDEM's own format
+# (third_party/fastdem/config/default.yaml documents every key).
+
+mapping:
+  mode: "local"
+  type: "kalman_filter"
+  # Mean of each cell's returns per scan (PATCH 3). Upstream's lowest return sat 1 to 5 cm under
+  # flat ground with 2 cm lidar noise, and the speckle it left tripped the step check.
+  cell_mean: true
+  kalman:
+    min_variance: 0.0001     # m^2
+    max_variance: 0.01       # m^2
+    process_noise: 0.0       # m^2, static terrain
+
+# Applied in base_footprint, so heights are above the ground under the rover.
+point_filter:
+  z_min: -1.0                # m, deep enough for a crater floor
+  z_max: 1.5                 # m, above anything the rover could drive under
+  range_min: 0.3             # m, default for inputs without their own range_min
+  range_max: 12.0            # m, beyond the 5 m half-width of the map
+
+sensor_model:
+  type: "lidar"
+  lidar:
+    range_noise: 0.02        # m
+    angular_noise: 0.001     # rad
+
+raycasting:
+  enabled: true
+  height_conflict_threshold: 0.05
+  log_odds_observed: 0.4
+  log_odds_ghost: 0.2
+  log_odds_max: 2.0
+  clear_threshold: -1.0
+
+# Off: filling holes invents ground, and across a crater rim that hides a negative obstacle.
+# Unfilled cells stay NaN and the layer prices them as unknown.
+inpainting:
+  enabled: false
+  max_iterations: 3
+  min_valid_neighbors: 2
+
+uncertainty_fusion:
+  enabled: false
+
+# Phase 0 bridge (see PROGRESS.md). 0.10 m radius is a 0.2 m disc, the prototype's step window.
+# min_valid_neighbors 8 of about 13 cells: with a sparse 16-ring lidar, a disc holding 4 cells is
+# often one ring arc, a near-straight line, and the plane fit then returns a horizontal normal
+# (slope 90 degrees, seen in sim). Requiring a mostly filled disc leaves such cells NaN, which the
+# layer prices as unknown instead of lethal. A coverage rule, not a cost threshold.
+feature_extraction:
+  enabled: true
+  analysis_radius: 0.10
+  min_valid_neighbors: 8
+  step_lower_percentile: 0.05
+  step_upper_percentile: 0.95

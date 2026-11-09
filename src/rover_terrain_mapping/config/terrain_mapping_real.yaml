@@ -1,0 +1,52 @@
+# terrain_mapping_node on the real rover (NUC). ROS parameters for the node. FastDEM's pipeline
+# lives in fastdem_real.yaml next to this file. Same map geometry as terrain_mapping_sim.yaml, so
+# the costmap and feature settings carry over unchanged.
+#
+# TO VERIFY on the rover before the first run (2026-11-09, written without hardware):
+#   - lidar.topic: the Unitree L2 driver default (unitree_lidar_ros2 launch.py, cloud_topic).
+#   - depth.topic: depth_range_cut runs on the Orin and publishes /terrain/depth_points, the
+#     NUC only subscribes. Leave the input out (inputs: ["lidar"]) until the Orin side runs.
+#   - imu_topic: the SBG's orientation in ROS form. The real EKF is planar, so gravity comes
+#     from the IMU, not TF.
+#   - base_frame: the real TF tree's ground-level body frame. terrain_mapping.launch.py can
+#     override it (base_frame:=...).
+terrain_mapping:
+  ros__parameters:
+    use_sim_time: false
+    fastdem_config: ""          # set by terrain_mapping.launch.py to fastdem_real.yaml
+    base_frame: base_footprint
+    map_frame: odom
+    map_length: 10.0            # m, square, matches the 10 m local costmap
+    resolution: 0.05            # m, matches the local costmap
+    publish_rate: 5.0           # Hz, matches the local costmap update rate
+    tf_timeout: 0.1             # s
+    publish_features: false
+
+    inputs: ["lidar", "depth"]
+    lidar:
+      topic: /unilidar/cloud    # TO VERIFY
+      sensor_model: lidar
+      range_min: 0.3            # m, the mount. The body box below removes the rover itself.
+      range_max: 12.0
+    depth:
+      topic: /terrain/depth_points   # depth_range_cut on the Orin
+      sensor_model: rgbd
+      range_min: 0.3
+      range_max: 4.0
+
+    gravity_source: imu         # the real EKF is planar, TF has no roll or pitch
+    imu_topic: /imu/data        # TO VERIFY (SBG)
+
+    # Body box from rover_physical.yaml footprint, padded, ground to this height. Recheck the
+    # height against the real mast and the L2 mount.
+    self_filter:
+      enabled: true
+      padding: 0.10
+      height: 1.0
+
+    global:
+      enabled: true
+      frame: map
+      length: 100.0
+      resolution: 0.2
+      publish_rate: 1.0
