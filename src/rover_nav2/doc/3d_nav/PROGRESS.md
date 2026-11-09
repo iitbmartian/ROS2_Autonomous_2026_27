@@ -1188,3 +1188,9 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - So the softer coupling probably let the rover ride or slide off the rocks it brushed (old far_right runs rolled 7 deg), and the rigid loops now hold it. Critic v2 keeps clear of them, its rollouts are scored at their own heading. Not explained yet: why the recoveries cannot back it out. Queued `tools/exp_bag_rock.sh` after exp_critic_mt (two bags of this goal, BURN 8) to see whether the commands reach the wheels.
 - Note: pose evaluation places the wheels at track / 2, the URDF wheel cylinders are centred 0.07 m outboard of that. Check when the measured geometry arrives.
 - Disk 91%, 12.1 GB free. guard.sh refuses to start a run below 10 GB, which would stall the chains. Ram pruned ~/.ros/log (90 MB).
+
+### 2026-11-10 00:10, plain 3D gate done on the final suspension: critic v2 42/57, plain 33/57
+
+- `python3 tools/compare_final.py 3d_gt_ack_critic_v2 3d_gt_gate_final` (saved to ~/rover_3d_nav_results/analysis/2026-11-10_critic_v2_vs_plain_final.md): critic v2 42/57, 0 unsafe, 23 recoveries; plain 33/57, 0 unsafe, 161 recoveries. Critic v2 leads on rock_field (6/9 against 1/9), urc_mix far_south (2/3 against 0/3, the first far_south successes), bars (4/6 against 1/6), marsyard left_diag. Plain leads only on crater_field far_left (2/3 against 0/3). Both fail lane25 and sidehill_uphill 0/3. Times of shared successes are within 10 percent.
+- So on the final coupling the heading-aware critic is the better Ackermann controller, despite missing its control rate (the threaded fix runs after this chain). Decision for v1.1 waits for the 2D baseline and the threaded critic rerun, but critic v2 is the likely default.
+- Queued `tools/exp_reapproach_late.sh` after exp_bag_rock (deadline 10 Nov 22:00): runs the re-approach worlds the main chain skips if its 09:00 deadline hits first, the 2D stage runs about 10 min per run.
