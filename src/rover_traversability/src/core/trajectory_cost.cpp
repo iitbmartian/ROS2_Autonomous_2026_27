@@ -2,6 +2,7 @@
 
 #include "rover_traversability/core/trajectory_cost.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace rover_traversability
@@ -45,11 +46,13 @@ Eigen::VectorXf trajectoryCosts(
         cost += c.unknown_cost;
         continue;
       }
-      if (r.status == PoseStatus::kLethal) {
+      if (r.status == PoseStatus::kLethal || r.u_tip > c.u_tip_lethal) {
         cost += c.collision_cost;
         continue;
       }
-      cost += c.w_terrain * r.u * r.u;
+      const double excess = c.u_free > 0.0 ?
+        std::max(0.0, r.u - c.u_free) / (1.0 - c.u_free) : r.u;
+      cost += c.w_terrain * excess * excess;
       if (speed >= c.min_speed) {
         // Slope of the support plane along the direction of travel, body frame.
         const double s = std::tan(r.pitch) * std::cos(body_dir) +

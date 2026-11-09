@@ -118,3 +118,40 @@ TEST(TrajectoryCost, UnknownPointsCostUnknownCost)
   c.point_step = 1;
   EXPECT_NEAR(trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 4.0, 1e-6);
 }
+
+TEST(TrajectoryCost, BelowUFreeCostsNothingAboveItScalesTheExcess)
+{
+  // 20 deg slope, facing up it (u 0.387441, see above). u_free 0.5: no cost. u_free 0.2: each of
+  // 10 points costs 20 * ((0.387441 - 0.2) / 0.8)^2.
+  const auto g = slopeY(20.0);
+  Rollouts x(1, 10), y(1, 10), yaw(1, 10), vx(1, 10), vy(1, 10);
+  line(x, y, yaw, vx, vy, 0, M_PI / 2, 0.0, -0.2);
+  TrajectoryCostParams c;
+  c.point_step = 1;
+  c.w_uphill = 0.0;
+  c.u_free = 0.5;
+  EXPECT_NEAR(trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 0.0, 1e-6);
+  c.u_free = 0.2;
+  const double e = (0.387441 - 0.2) / 0.8;
+  EXPECT_NEAR(
+    trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 10 * 20.0 * e * e, 1e-2);
+}
+
+TEST(TrajectoryCost, TipUtilisationAboveTheLethalLevelIsACollision)
+{
+  // Driving along x across a 13 deg slope rolls 13 deg. Side tip-over on flat ground is
+  // atan2(track / 2, cg_height) = atan2(0.218, 0.45), so u_tip = 13 deg / (that - 0.17 rad),
+  // 0.807. Lethal at 0.80 (about where the safety monitor aborts), ordinary cost at 0.82.
+  const double u_tip = (13.0 * M_PI / 180.0) / (std::atan2(0.218, 0.45) - 0.17);
+  ASSERT_NEAR(u_tip, 0.807, 0.002);
+  const auto g = slopeY(13.0);
+  Rollouts x(1, 10), y(1, 10), yaw(1, 10), vx(1, 10), vy(1, 10);
+  line(x, y, yaw, vx, vy, 0, 0.0, 0.2, 0.0);
+  TrajectoryCostParams c;
+  c.point_step = 1;
+  c.u_tip_lethal = 0.80;
+  EXPECT_GE(trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 1.0e6);
+  c.u_tip_lethal = 0.82;
+  EXPECT_NEAR(
+    trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 10 * 20.0 * u_tip * u_tip, 0.5);
+}

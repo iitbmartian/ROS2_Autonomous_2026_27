@@ -28,6 +28,13 @@ struct TrajectoryCostParams
   double w_terrain{20.0};
   double collision_cost{1.0e6};
   double unknown_cost{1.0};
+  // Utilisation below u_free costs nothing, above it w_terrain * ((u - u_free) / (1 - u_free))^2.
+  // 0 keeps the plain w_terrain * u^2. A slope that is safe at the rollout's heading then costs
+  // no more than flat ground, so the critic only acts where the heading matters.
+  double u_free{0.0};
+  // A pose whose tip utilisation exceeds this is a collision. Below 1 it matches the safety
+  // monitor, which aborts within tip_margin of the tip limits, at about u_tip 0.82.
+  double u_tip_lethal{1.0};
   double w_redirect{2.0};
   double w_uphill{5.0};
   int point_step{3};               // evaluate every n-th point of a rollout

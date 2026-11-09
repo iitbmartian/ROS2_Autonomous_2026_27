@@ -161,6 +161,14 @@ direction|` between consecutive points, since wheels need time to re-aim (`max_w
 Add a direction-aware time term from the predicted pitch (uphill is slower). `PathAngleCritic` is
 retuned or disabled so it does not force heading along the path.
 
+Two optional parameters (2026-11-09). With `u_free > 0` the per-point cost is
+`w_terrain * (max(0, u - u_free) / (1 - u_free))^2`, the governor's form, so terrain that is safe
+at the rollout's heading costs no more than flat ground. The plain `u^2` made every slope cost more
+than standing still, and the Ackermann controller stopped climbing (lane25 0/3). With
+`u_tip_lethal < 1` a pose whose `u_tip` exceeds it is a collision. 0.80 matches the safety
+monitor, which aborts within `tip_margin` of the tip limits, at about `u_tip` 0.82. Defaults 0 and
+1 keep the original cost.
+
 ### Speed and safety
 
 - Speed governor: `v_max = v_nominal * (1 - alpha * u')`, floored at `v_min`, where
