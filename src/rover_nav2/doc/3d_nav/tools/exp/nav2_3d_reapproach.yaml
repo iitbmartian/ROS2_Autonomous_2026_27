@@ -1,0 +1,7 @@
+# Re-approach experiment, merged last (nav_extra_overlay): the 3D tree with NearGoalTooLong and a
+# 1.5 m back-up when the rover saws beside the goal (behavior_trees/navigate_to_pose_ackermann_3d_reapproach.xml,
+# read from the source tree). Needs rover_near_goal_too_long_bt_node from install_dev.
+bt_navigator:
+  ros__parameters:
+    default_nav_to_pose_bt_xml: "/home/ram/ROS2_Autonomous_2026_27/src/rover_nav2/behavior_trees/navigate_to_pose_ackermann_3d_reapproach.xml"
+    plugin_lib_names: ["rover_approach_goals_bt_node", "rover_near_goal_too_long_bt_node"]

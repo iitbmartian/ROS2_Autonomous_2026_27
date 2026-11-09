@@ -1,0 +1,106 @@
+<!--
+  3D stack only (nav2_params_sim_3d.yaml). navigate_to_pose_ackermann.xml with the 1 Hz replanning
+  replaced by Nav2's consistent replanning: keep the current path while it stays valid, the goal is
+  unchanged and it is under 10 s old. On rock_field the 1 Hz replans flipped the path from one side
+  of a rock to the other (66 of 601 consecutive plans moved over 0.3 m in their first 3 m, up to
+  1.7 m), and MPPI swung its heading after each flip without making progress.
+-->
+<!--
+  Copied from nav2_bt_navigator 1.3.x (Jazzy), navigate_to_pose_w_replanning_and_recovery.xml,
+  with the Spin recovery removed and nothing else changed.
+
+  The rover drives in rover_kinematics' ackermann mode, which caps yaw rate at
+  |vx| / min_turn_radius, so a turn in place commands no motion at all. Spin
+  would just sit for its time allowance and fail. The Spin plugin stays loaded
+  in behavior_server, so anything that calls it explicitly still resolves.
+-->
+
+<!--
+  This Behavior Tree replans the global path periodically at 1 Hz and it also has
+  recovery actions specific to planning / control as well as general system issues.
+  This will be continuous if a kinematically valid planner is selected.
+-->
+<!--
+  2026-11-08: an approach-from-behind variant (plan through a pre-goal 1.5 m behind the goal,
+  ApproachGoals in rover_traversability) and a re-approach recovery were tried and removed. On
+  rock_field the pre-goal or its straight lead-in sat among rocks: through-poses planning failed and
+  the rover was led into a cell the planner then refused as "Start occupied", so rock_field fell from
+  8/9 to 5/9 (2026-11-08_3d_gt_gate_susp), while far_south did not improve. See PROGRESS 2026-11-08 18:15.
+-->
+<!--
+  2026-11-09, re-approach variant (experiment). A car-like rover that arrives beside the goal
+  saws back and forth and never closes the offset (marsyard behind_left bag: 0.27 m sideways for
+  18 min, far_south the same). Every saw moves more than the progress checker's 0.10 m, so
+  FollowPath never fails and no recovery ran. NearGoalTooLong (rover_traversability) fails the
+  follow branch after 25 s within 1 m of the goal, and the follow recovery then backs up 1.5 m so
+  the controller can come in again along an S-curve. Unlike the 2026-11-08 variant there is no
+  pre-goal, so planning is unchanged everywhere else.
+-->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+   <Sequence>
+    <Script code="stuck_near_goal := false"/>
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithReplanning">
+        <ControllerSelector selected_controller="{selected_controller}" default_controller="FollowPath" topic_name="controller_selector"/>
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="GridBased" topic_name="planner_selector"/>
+        <RateController hz="2.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <Fallback>
+              <ReactiveSequence>
+                <Inverter>
+                  <PathExpiringTimer seconds="10" path="{path}"/>
+                </Inverter>
+                <Inverter>
+                  <GlobalUpdatedGoal/>
+                </Inverter>
+                <IsPathValid path="{path}"/>
+              </ReactiveSequence>
+              <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+            </Fallback>
+            <Sequence>
+              <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="3" name="FollowPath">
+          <ReactiveSequence name="FollowUnlessStuck">
+            <GetCurrentPose current_pose="{current_pose}" global_frame="map" robot_base_frame="base_footprint"/>
+            <NearGoalTooLong goal="{goal}" current_pose="{current_pose}" radius="1.0" timeout="25.0" stuck="{stuck_near_goal}"/>
+            <FollowPath path="{path}" controller_id="{selected_controller}" error_code_id="{follow_path_error_code}"/>
+          </ReactiveSequence>
+          <Fallback>
+            <Sequence name="ReApproach">
+              <ScriptCondition code="stuck_near_goal == true"/>
+              <Script code="stuck_near_goal := false"/>
+              <BackUp backup_dist="1.5" backup_speed="0.2" error_code_id="{backup_code_id}"/>
+            </Sequence>
+            <Sequence>
+              <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+              <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+            </Sequence>
+          </Fallback>
+        </RecoveryNode>
+      </PipelineSequence>
+      <Sequence>
+        <Fallback>
+          <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+          <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+        </Fallback>
+        <ReactiveFallback name="RecoveryFallback">
+          <GoalUpdated/>
+          <RoundRobin name="RecoveryActions">
+            <Sequence name="ClearingActions">
+              <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+            <Wait wait_duration="5.0"/>
+            <BackUp backup_dist="0.30" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+          </RoundRobin>
+        </ReactiveFallback>
+      </Sequence>
+    </RecoveryNode>
+   </Sequence>
+  </BehaviorTree>
+</root>
