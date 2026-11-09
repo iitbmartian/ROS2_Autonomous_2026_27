@@ -84,13 +84,15 @@
        residuals to 40 deg with a front rocker on its 0.45 rad limit for 33 s and the body
        rolled to 15 deg (2026-11-09 bag run_swerve_v4_burn8). The real loops are rigid links,
        so the clamp only guards the solver: 3000, under the joints' 5000 effort limit.
+       ROVER_COUPLING_K, ROVER_COUPLING_D and ROVER_COUPLING_MAX override the three gains
+       for tuning runs without a rebuild.
        ================================================================= -->
   <xacro:if value="${suspension == 'plugin'}">
     <gazebo>
       <plugin filename="rover_gazebo_rocker_coupling" name="rover_gazebo::RockerCouplingSystem">
-        <stiffness>8000</stiffness>
-        <damping>200</damping>
-        <max_torque>3000</max_torque>
+        <stiffness>$(optenv ROVER_COUPLING_K 8000)</stiffness>
+        <damping>$(optenv ROVER_COUPLING_D 200)</damping>
+        <max_torque>$(optenv ROVER_COUPLING_MAX 3000)</max_torque>
         <rest_capture_delay>2.5</rest_capture_delay>
         <constraint a="BLS_joint" b="FLS_joint" ratio="-0.577165"/>
         <constraint a="BRS_joint" b="FRS_joint" ratio="-0.572734"/>
