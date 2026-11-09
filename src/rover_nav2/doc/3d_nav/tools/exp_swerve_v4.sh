@@ -1,6 +1,6 @@
 #!/bin/bash
 # Swerve v4 (exp/nav2_3d_swerve_v4.yaml: slower lateral and yaw acceleration, less lateral noise) on
-# the plugin suspension: one recorded marsyard left_diag run to measure the command-direction
+# the plugin suspension: recorded marsyard left_diag runs (v2 and v4 under 8 burners, v4 at light load) to measure the
 # variation (v2: 124 deg/s after the smoother), then 14 goals x2 against 2026-11-09_3d_gt_swerve_susp_x2
 # (13/28). Arg 1: PID to wait for. Arg 2: deadline (epoch).
 E=$HOME/.ros/rover_3d_nav; L=$HOME/rover_3d_nav_results/batch.log; B=$HOME/.ros/rover_benchmark
@@ -10,6 +10,7 @@ clean() { for p in /proc/[0-9]*; do grep -qa ROVER_BENCH_RUN $p/environ 2>/dev/n
 while kill -0 $1 2>/dev/null; do [ "$(date +%s)" -ge "$2" ] && { log "deadline while waiting"; exit 1; }; sleep 20; done
 cd /home/ram/ROS2_Autonomous_2026_27
 log "start ($(git rev-parse --short HEAD))"
+for o in v2 v4; do BURN=8 $E/tools/bag_run.sh swerve_$o marsyard.sdf 6.0 5.0 0.7 swerve $E/exp/nav2_3d_swerve_$o.yaml; done
 $E/tools/bag_run.sh swerve_v4 marsyard.sdf 6.0 5.0 0.7 swerve $E/exp/nav2_3d_swerve_v4.yaml
 source $E/tools/simenv.sh
 O=$B/2026-11-09_3d_gt_swerve_v4
