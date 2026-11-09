@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <thread>
+#include <vector>
 
 namespace rover_traversability
 {
@@ -23,45 +25,61 @@ Eigen::VectorXf trajectoryCosts(
   const int batch = static_cast<int>(x.rows()), steps = static_cast<int>(x.cols());
   const int stride = std::max(1, c.point_step);
   Eigen::VectorXf out = Eigen::VectorXf::Zero(batch);
-  for (int b = 0; b < batch; ++b) {
-    double cost = 0.0;
-    bool have_dir = false;
-    double last_dir = 0.0;
-    for (int t = 0; t < steps; t += stride) {
-      const double v_x = vx(b, t), v_y = vy(b, t);
-      const double speed = std::hypot(v_x, v_y);
-      const double body_dir = std::atan2(v_y, v_x);
-      if (speed >= c.min_speed) {
-        const double dir = yaw(b, t) + body_dir;
-        if (have_dir) {
-          const double d = std::remainder(dir - last_dir, 2.0 * M_PI);
-          cost += c.w_redirect * std::fabs(d);
+  auto rows = [&](int b0, int b1) {
+    for (int b = b0; b < b1; ++b) {
+      double cost = 0.0;
+      bool have_dir = false;
+      double last_dir = 0.0;
+      for (int t = 0; t < steps; t += stride) {
+        const double v_x = vx(b, t), v_y = vy(b, t);
+        const double speed = std::hypot(v_x, v_y);
+        const double body_dir = std::atan2(v_y, v_x);
+        if (speed >= c.min_speed) {
+          const double dir = yaw(b, t) + body_dir;
+          if (have_dir) {
+            const double d = std::remainder(dir - last_dir, 2.0 * M_PI);
+            cost += c.w_redirect * std::fabs(d);
+          }
+          last_dir = dir;
+          have_dir = true;
         }
-        last_dir = dir;
-        have_dir = true;
-      }
 
-      const PoseResult r = evaluatePose(g, x(b, t), y(b, t), yaw(b, t), p, e, cache);
-      if (r.status == PoseStatus::kUnknown) {
-        cost += c.unknown_cost;
-        continue;
+        const PoseResult r = evaluatePose(g, x(b, t), y(b, t), yaw(b, t), p, e, cache);
+        if (r.status == PoseStatus::kUnknown) {
+          cost += c.unknown_cost;
+          continue;
+        }
+        if (r.status == PoseStatus::kLethal || r.u_tip > c.u_tip_lethal) {
+          cost += c.collision_cost;
+          continue;
+        }
+        const double excess = c.u_free > 0.0 ?
+          std::max(0.0, r.u - c.u_free) / (1.0 - c.u_free) : r.u;
+        cost += c.w_terrain * excess * excess;
+        if (speed >= c.min_speed) {
+          // Slope of the support plane along the direction of travel, body frame.
+          const double s = std::tan(r.pitch) * std::cos(body_dir) +
+            std::tan(r.roll) * std::sin(body_dir);
+          if (s > 0.0) {cost += c.w_uphill * s * dt * stride;}
+        }
       }
-      if (r.status == PoseStatus::kLethal || r.u_tip > c.u_tip_lethal) {
-        cost += c.collision_cost;
-        continue;
-      }
-      const double excess = c.u_free > 0.0 ?
-        std::max(0.0, r.u - c.u_free) / (1.0 - c.u_free) : r.u;
-      cost += c.w_terrain * excess * excess;
-      if (speed >= c.min_speed) {
-        // Slope of the support plane along the direction of travel, body frame.
-        const double s = std::tan(r.pitch) * std::cos(body_dir) +
-          std::tan(r.roll) * std::sin(body_dir);
-        if (s > 0.0) {cost += c.w_uphill * s * dt * stride;}
-      }
+      out(b) = static_cast<float>(cost);
     }
-    out(b) = static_cast<float>(cost);
+  };
+  // Rollouts are independent, so the batch splits into contiguous blocks, one per thread.
+  // Each block writes only its own rows of out, the result does not depend on the split.
+  const int n = std::clamp(c.threads, 1, std::max(1, batch / 64));
+  if (n == 1) {
+    rows(0, batch);
+    return out;
   }
+  std::vector<std::thread> pool;
+  pool.reserve(n - 1);
+  for (int k = 1; k < n; ++k) {
+    pool.emplace_back(rows, batch * k / n, batch * (k + 1) / n);
+  }
+  rows(0, batch / n);
+  for (auto & th : pool) {th.join();}
   return out;
 }
 

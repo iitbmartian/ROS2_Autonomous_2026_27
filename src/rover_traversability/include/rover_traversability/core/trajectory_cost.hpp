@@ -39,6 +39,9 @@ struct TrajectoryCostParams
   double w_uphill{5.0};
   int point_step{3};               // evaluate every n-th point of a rollout
   double min_speed{0.02};          // m/s, below it the travel direction is undefined
+  // Threads over the batch. At 1000 rollouts x 17 points the critic took 24 to 34 ms of a 50 ms
+  // control period on one core, and every TerrainCritic run missed its rate hundreds of times.
+  int threads{1};
 };
 
 using Rollouts = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;

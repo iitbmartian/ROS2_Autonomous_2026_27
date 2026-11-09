@@ -30,6 +30,7 @@ void TerrainCritic::initialize()
   getParam(cost_.w_redirect, "redirect_weight", 2.0);
   getParam(cost_.w_uphill, "uphill_weight", 5.0);
   getParam(cost_.point_step, "trajectory_point_step", 3);
+  getParam(cost_.threads, "threads", 4);
   std::string phys_path;
   getParam(phys_path, "physical_params_file", core::defaultPhysicalParamsPath());
   // The costmap applies the yaw-independent checks at every cell already.

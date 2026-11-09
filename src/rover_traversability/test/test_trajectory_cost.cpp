@@ -155,3 +155,25 @@ TEST(TrajectoryCost, TipUtilisationAboveTheLethalLevelIsACollision)
   EXPECT_NEAR(
     trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 10 * 20.0 * u_tip * u_tip, 0.5);
 }
+
+TEST(TrajectoryCost, ThreadedBatchMatchesOneThread)
+{
+  // 300 rollouts fanning out over a 20 deg sidehill, some lethal, some not. The threaded split
+  // must give exactly the single-threaded costs.
+  const auto g = slopeY(20.0);
+  const int batch = 300;
+  Rollouts x(batch, 20), y(batch, 20), yaw(batch, 20), vx(batch, 20), vy(batch, 20);
+  for (int b = 0; b < batch; ++b) {
+    line(x, y, yaw, vx, vy, b, -M_PI + 2.0 * M_PI * b / batch, 0.3, 0.0);
+  }
+  TrajectoryCostParams c;
+  c.u_free = 0.5;
+  c.u_tip_lethal = 0.8;
+  const auto one = trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05);
+  c.threads = 4;
+  const auto four = trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05);
+  ASSERT_EQ(one.size(), four.size());
+  for (int b = 0; b < batch; ++b) {EXPECT_EQ(one(b), four(b)) << b;}
+  EXPECT_GE(one.maxCoeff(), 1.0e6);
+  EXPECT_LT(one.minCoeff(), 1.0e3);
+}

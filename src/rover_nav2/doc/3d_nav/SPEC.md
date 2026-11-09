@@ -169,6 +169,11 @@ than standing still, and the Ackermann controller stopped climbing (lane25 0/3).
 monitor, which aborts within `tip_margin` of the tip limits, at about `u_tip` 0.82. Defaults 0 and
 1 keep the original cost.
 
+The critic must fit the control period. It evaluates every `trajectory_point_step`-th point of each
+rollout, and splits the batch over `threads` threads (default 4, 2026-11-09). On one core 1000 x 17
+points took 18 to 34 ms of the 50 ms period, and every TerrainCritic run missed the rate hundreds
+of times.
+
 ### Speed and safety
 
 - Speed governor: `v_max = v_nominal * (1 - alpha * u')`, floored at `v_min`, where
