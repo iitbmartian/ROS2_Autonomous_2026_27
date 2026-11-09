@@ -1102,3 +1102,24 @@ Ram: split `ram/3d_nav` per package at the end, not now. Agreed structure, squas
 - Decision: the approach-from-behind and the re-approach recovery are out of the 3D tree. ApproachGoals and its gtests stay in rover_traversability for a later version that only acts when the lead-in is clear. Tree note added.
 - Also: lane25_top was stopped twice by the tip monitor at 20 s, roll 13.4 deg and pitch 17 to 19 deg, on the plugin suspension. This morning on the torque node it went 3/3. Needs a look: real roll on the ramp entry, or something else.
 - The night after 2D: swerve x2 (exp_tonight), then `exp_gate_clean.sh` (plain tree on the plugin suspension, 6 worlds x3) for a clean suspension-only comparison, until about 10:00.
+
+### 2026-11-09 07:15, both stacks on the plugin suspension: the honest Phase 3 comparison
+
+Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b0eb): 2D baseline, swerve x2 and the plain 3D gate, all on the plugin suspension, 6 worlds x3 (ledge excluded, waiting on measured step data). Scored with `python3 ~/.ros/rover_3d_nav/tools/phase3_gate.py 2026-11-09_3d_gt_gate_clean/runs.csv 2026-11-09_2d_base_susp/runs.csv`, output `evidence/phase3_gate_clean_vs_2d_susp.txt`. Per-goal table: `~/rover_3d_nav_results/2026-11-09_compare_plugin_susp.txt`.
+
+| World | 3D ok | 2D ok | 3D unsafe | 2D unsafe | 3D recov | 2D recov | time ratio | gate |
+|---|---|---|---|---|---|---|---|---|
+| bars | 0/6 | 0/6 | 0 | 0 | 61 | 72 | n/a | pass (neither crosses) |
+| crater_field | 9/9 | 8/9 | 0 | 2 | 0 | 18 | 1.03 | pass |
+| marsyard | 8/9 | 9/9 | 0 | 0 | 1 | 0 | 1.72 | FAIL (time, behind_left timeout) |
+| rock_field | 8/9 | 3/9 | 0 | 0 | 15 | 22 | 1.71 (1 goal) | FAIL (time on far_right only) |
+| slopes | 12/15 | 6/15 | 0 | 0 | 0 | 144 | 0.97 | pass |
+| urc_mix | 7/9 | 9/9 | 0 | 0 | 37 | 0 | 1.40 | FAIL (far_south) |
+
+- Totals: 3D 44/57 vs 2D 35/57, unsafe 0 vs 2, recoveries 114 vs 256. Time ratio 1.33 over the 11 goals both reach.
+- 2D's crater_field unsafe entries fell from 11 (torque node) to 2. So most of the 2D unsafe count quoted until now was the suspension artifact. The paper and deck numbers must all move to these runs. The safety story weakens: 3D's advantage is now reach (rock_field, slopes) and far fewer recoveries, not unsafe entries.
+- Against this morning's torque-node gate (ledge excluded): 3D 44/57 vs 49/57. Lost: slopes lane25 0/3 (all three tip-stopped at roll 13 deg, pitch 14 to 23 deg, was 3/3), bars 1/6 to 0/6, marsyard behind_left, rock_field far_right r1 (aborted).
+- marsyard slowness is not the path: lengths match 2D (7.5 to 8.0 m) but some runs average 0.12 to 0.15 m/s against 2D's 0.30, with a large spread (left_diag 20, 40, 66 s). Both stacks use the same MPPI controller, so the 3D costmap or the governor near the goal is the suspect. Recording it (below).
+- Swerve x2 on the plugin suspension: 13/28. 12 runs tip-stopped at roll 13 to 14 deg with pitch near 0, mostly within 1 m of the goal, also on gentle marsyard where Ackermann stays under 9 deg. The open-loop probe on flat ground holds 0.2 deg with the plugin, so this is something in closed-loop swerve driving, not the suspension model.
+- Not v1.1 yet. Open before it: lane25 tip stops, far_south, marsyard time.
+- Running now: `tools/bag_swerve_roll.sh` x2 (swerve, marsyard left_diag, bag of /imu/data, /joint_states, the cmd_vel chain), then `tools/bag_run.sh` for Ackermann slopes lane25 and marsyard behind_left (same bag plus /speed_limit and the plans).
