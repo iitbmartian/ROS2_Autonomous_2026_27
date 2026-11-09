@@ -79,13 +79,18 @@
        from config/rover_kinematics.yaml's four_bar and differential blocks. Damping
        can be far higher than the node's 50, since there is no stale-state delay to
        destabilise it.
+       max_torque: 400 N m let the loops slip in swerve spin-in-place on marsyard. At K 8000
+       the clamp bites from 2.9 deg of error, and the wheels' scrub torque then twisted the
+       residuals to 40 deg with a front rocker on its 0.45 rad limit for 33 s and the body
+       rolled to 15 deg (2026-11-09 bag run_swerve_v4_burn8). The real loops are rigid links,
+       so the clamp only guards the solver: 3000, under the joints' 5000 effort limit.
        ================================================================= -->
   <xacro:if value="${suspension == 'plugin'}">
     <gazebo>
       <plugin filename="rover_gazebo_rocker_coupling" name="rover_gazebo::RockerCouplingSystem">
         <stiffness>8000</stiffness>
         <damping>200</damping>
-        <max_torque>400</max_torque>
+        <max_torque>3000</max_torque>
         <rest_capture_delay>2.5</rest_capture_delay>
         <constraint a="BLS_joint" b="FLS_joint" ratio="-0.577165"/>
         <constraint a="BRS_joint" b="FRS_joint" ratio="-0.572734"/>
