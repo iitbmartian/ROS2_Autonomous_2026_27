@@ -1308,3 +1308,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   variants. Each stack is drift-checked against the 2026-11-09 K 8000 runs before any comparison.
   exp_critic_mt_rest dropped, exp_bag_rock requeued after it at D 200 (env overrides, no rebuild).
   If the spin check passes, D 200 becomes the default on `ram/suspension`.
+- 17:05 health: exp_reapproach_late stopped by PID before urc_mix far_south r3 (D 500 coupling,
+  far_south 2 x 600 s timeouts, rock_field still to go), so the D 200 rerun keeps its overnight
+  window. Its 14 rows are kept (marsyard 9/9, urc_mix mid_20m 3/3, far_south 0/2). exp_d200
+  started, gz has K 30000 D 200 MAX 3000.
