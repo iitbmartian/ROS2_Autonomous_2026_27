@@ -1274,3 +1274,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - exp_critic_mt done 13:07: threaded critic v2, rock_field 8/9, crater_field 6/9 (far_left 0/3
   again), 26 control-rate misses over 19 runs against 200 to 630 per run unthreaded. Swerve mt
   skipped by its deadline, it is in exp_critic_mt_rest.
+- 14:08 health: both rock bags (exp_bag_rock) failed at once, the script passed `rock_field`
+  without `.sdf` and gz sim could not find the world. My error. Bag 2 stopped by PID, script fixed
+  and requeued at the end of the chain (deadline 11 Nov 11:00). exp_coupling_diag started 14:05,
+  checked that ROVER_COUPLING_K/D/MAX reach the gz process (8000, 200, 400 on the first stage).
