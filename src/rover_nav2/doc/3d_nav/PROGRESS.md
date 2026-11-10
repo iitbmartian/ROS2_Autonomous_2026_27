@@ -1312,3 +1312,16 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   far_south 2 x 600 s timeouts, rock_field still to go), so the D 200 rerun keeps its overnight
   window. Its 14 rows are kept (marsyard 9/9, urc_mix mid_20m 3/3, far_south 0/2). exp_d200
   started, gz has K 30000 D 200 MAX 3000.
+- 18:10 health: the D 200 spin check logged "passed (max residual 0 deg)", which was wrong.
+  rocker_residuals.py crashed opening the bag while it was still closing, and the check's awk
+  fallback turned the empty result into 0. Rerun by hand on
+  `bags/run_swerve_v4_d200_burn8_1110_1705`: e1 6.6, e2 5.2, e3 1.8 deg, front rocker never at
+  its limit, goal reached (status 4), no tip stop. The table for this run is K 8000 clamp 400: 39,
+  D 500: 1.8, D 200: 6.6. So D 200 misses the 5 deg bar narrowly, on swerve only (Ackermann runs
+  stayed under 5 deg even at K 8000). Decision: the three-way Ackermann rerun at D 200 keeps
+  running, because swerve is v2 and D 500 is unusable. D 200 is not made the default yet.
+  `tools/exp_spin_d300.sh` (after exp_bag_rock, deadline 11 Nov 13:00) records the same spin bag
+  at D 300 and D 250, retrying the residual script until it prints a result. The default becomes
+  the smallest D that holds 5 deg without the pitch shake.
+- First D 200 rows (critic v2, slopes): lane15_top 3/3, lane35_top refused 3/3, lane25_top 3
+  timeouts (the known lane25 problem, still open).
