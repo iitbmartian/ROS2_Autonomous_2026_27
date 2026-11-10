@@ -159,8 +159,13 @@ def main(argv=None):
                         continue
                     row = runner.run_one(gs, goal, rep, out, env)
                     new = not os.path.exists(csv_path)
+                    # Resuming into a runs.csv written before a column was added: keep its header.
+                    fields = CSV_FIELDS
+                    if not new:
+                        with open(csv_path, newline='') as f:
+                            fields = next(csv.reader(f), CSV_FIELDS)
                     with open(csv_path, 'a', newline='') as f:
-                        w = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+                        w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
                         if new:
                             w.writeheader()
                         w.writerow(row)

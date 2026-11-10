@@ -3,7 +3,9 @@
 
     python3 compare_final.py [tag ...]   default: 3d_gt_ack_critic_v2 3d_gt_gate_final 2d_base_final
 
-Cells are successes/runs, then the median time of the successful runs. Totals count successes,
+Cells are successes/runs, reached in brackets (ground truth ends within 0.5 m, heading and
+Nav2's verdict ignored, from final_error_m so older runs score too), then the median time of the
+successful runs. Totals count successes,
 unsafe entries and recoveries. success is the benchmark's column, so refusals scored as expected
 (lane35) count as successes.
 """
@@ -28,12 +30,21 @@ for t in tags:
     data[t] = d
 
 
+def reached(r):
+    if r['goal_id'].startswith('lane35'):
+        return r['success'] == '1'
+    try:
+        return float(r['final_error_m']) <= 0.5
+    except ValueError:
+        return False
+
+
 def cell(rows):
     if not rows:
         return '-'
     ok = [r for r in rows if r['success'] == '1']
     times = [float(r['time_to_goal_s']) for r in ok if r['status'] == 'succeeded']
-    s = f'{len(ok)}/{len(rows)}'
+    s = f'{len(ok)}/{len(rows)} ({sum(map(reached, rows))})'
     return s + (f', {statistics.median(times):.0f} s' if times else '')
 
 
@@ -47,5 +58,5 @@ for t in tags:
     ok = sum(r['success'] == '1' for r in rs)
     uns = sum(int(r['unsafe_entries'] or 0) for r in rs)
     rec = sum(int(r['recoveries'] or 0) for r in rs)
-    row.append(f'{ok}/{len(rs)}, unsafe {uns}, rec {rec}')
+    row.append(f'{ok}/{len(rs)} ({sum(map(reached, rs))}), unsafe {uns}, rec {rec}')
 print('| total | | ' + ' | '.join(row) + ' |')

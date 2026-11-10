@@ -84,6 +84,20 @@ def is_success(status, final_err, radius):
     return status == 'succeeded' and final_err <= radius
 
 
+def is_reached(final_err, radius):
+    """Reached, heading ignored: ground truth ends within radius of the goal, whatever Nav2
+    reported. Separates getting there from Nav2's final heading and 0.15 m checks."""
+    return final_err <= radius
+
+
+def first_reach_time(poses, goal_xy, radius):
+    """Seconds from the first pose until ground truth first comes within radius, or nan."""
+    for p in poses:
+        if math.hypot(p[1] - goal_xy[0], p[2] - goal_xy[1]) <= radius:
+            return p[0] - poses[0][0]
+    return float('nan')
+
+
 def estimate_error(est, gt_pose, spawn):
     """Position and yaw error of a frame's estimate (x, y, yaw), which starts at the spawn pose,
     against the last ground-truth pose (t, x, y, z, roll, pitch, yaw). None without an estimate."""

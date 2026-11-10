@@ -116,3 +116,15 @@ def test_refused_needs_no_success_and_staying_low():
     assert m.is_refused('aborted', low, 0.25)
     assert not m.is_refused('succeeded', low, 0.25)
     assert not m.is_refused('aborted', high, 0.25)
+
+
+def test_reached_ignores_status_and_heading():
+    assert m.is_reached(0.19, 0.5)
+    assert not m.is_reached(0.51, 0.5)
+
+
+def test_first_reach_time():
+    # x = 0.1 * i from t = 0, goal at x = 1.0: within 0.25 m first at x = 0.8, t = 0.8 s.
+    poses = [(0.1 * i, 0.1 * i, 0.0, 0.0, 0.0, 0.0, 0.0) for i in range(11)]
+    assert m.first_reach_time(poses, (1.0, 0.0), 0.25) == pytest.approx(0.8)
+    assert math.isnan(m.first_reach_time(poses, (5.0, 0.0), 0.25))

@@ -1213,3 +1213,20 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - Decision (logged, v1.1): critic v2 becomes the Ackermann 3D default once the threaded critic (632d83c) confirms the same or better on slopes, rock_field, crater_field (running now, exp_critic_mt).
 - Swerve v4 on the final coupling: 5/21, many timeouts and cancels on slopes and rock_field. The coupling slip is fixed, swerve is still slow. Rerun threaded in exp_critic_mt_rest.
 - Health fix 11:03: at the swerve stage's 4 h cap `ros2 run` died on TERM but the benchmark under it survived, because guard.sh killed its watchdog (and with it the KILL stage) as soon as the leader exited. The orphan blocked exp_critic_mt's slopes stage for 30 min (guard refuses a second runner, exit 91). Killed by PID, guard.sh now sweeps the process group with KILL after every wait (tested with a surviving child). Slopes requeued in `tools/exp_critic_mt_rest.sh` (after exp_reapproach_late, deadline 11 Nov 08:00).
+
+### 2026-11-10 13:40, reached metric, heading stays strict
+
+- Decision (Ram, with one part dropped): heading stays part of success, and the benchmark gains a
+  separate heading-free `reached` column (ground truth ends within the 0.5 m success radius,
+  whatever Nav2 reported) plus `first_reach_s`. Refusal goals copy success. Exempting heading on
+  goals that keep failing was dropped: it picks goals by outcome, the 2D tree has no goal checker
+  selector so it would favour 3D, and on crater_field far_left the heading is feasible (2D and plain
+  3D end near 0 deg, critic v2 ends 94 to 98 deg off at 0.16 to 0.19 m), so it would hide a critic
+  v2 defect. That sideways arrival is now the bug to fix.
+- Code in src only, not installed while the chain runs (install/ is a copy). cli.py keeps an
+  existing runs.csv header on resume, so old out dirs stay readable. 18 metric tests pass
+  (`python3 -m pytest -q src/rover_nav2/test/test_benchmark_metrics.py`).
+- Overnight data scored with reached from final_error_m (`compare_final.py`,
+  analysis/2026-11-10_three_way_reached.md): critic v2 42/57 strict, 47 reached. Plain 3D 33, 34.
+  2D 29, 32. Critic v2's 5 extra: crater far_left 2, rock_field ahead_10m and far_left 1 each,
+  sidehill 1.

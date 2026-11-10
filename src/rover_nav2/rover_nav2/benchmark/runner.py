@@ -52,6 +52,9 @@ CSV_FIELDS = [
     # Velocity chain, moving/total messages per stage while navigating: shows which link
     # dropped the command when the rover never moved.
     'cmd_chain',
+    # Heading-free arrival: ground truth ends within the success radius whatever Nav2 reported,
+    # and when it first came that close. Refusal goals copy success.
+    'reached', 'first_reach_s',
 ]
 
 # Stage name, topic, message type, along the velocity chain from the controller to the wheels.
@@ -590,6 +593,10 @@ class Runner:
                     max_roll_deg=f'{math.degrees(mr):.2f}',
                     max_pitch_deg=f'{math.degrees(mp):.2f}',
                     path_length_m=f'{metrics.path_length(poses):.3f}', rtf=f'{rtf:.3f}')
+                row['reached'] = (row['success'] if goal.get('expect') == 'refuse'
+                                  else int(metrics.is_reached(err, self.a.success_radius)))
+                fr = metrics.first_reach_time(poses, (goal['x'], goal['y']), self.a.success_radius)
+                row['first_reach_s'] = '' if math.isnan(fr) else f'{fr:.2f}'
             else:
                 row.update(status='startup_failed', success=0, note=note)
         finally:
