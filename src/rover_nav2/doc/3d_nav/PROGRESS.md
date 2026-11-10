@@ -1214,7 +1214,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - Swerve v4 on the final coupling: 5/21, many timeouts and cancels on slopes and rock_field. The coupling slip is fixed, swerve is still slow. Rerun threaded in exp_critic_mt_rest.
 - Health fix 11:03: at the swerve stage's 4 h cap `ros2 run` died on TERM but the benchmark under it survived, because guard.sh killed its watchdog (and with it the KILL stage) as soon as the leader exited. The orphan blocked exp_critic_mt's slopes stage for 30 min (guard refuses a second runner, exit 91). Killed by PID, guard.sh now sweeps the process group with KILL after every wait (tested with a surviving child). Slopes requeued in `tools/exp_critic_mt_rest.sh` (after exp_reapproach_late, deadline 11 Nov 08:00).
 
-### 2026-11-10 13:40, reached metric, heading stays strict
+### 2026-11-10 12:50, reached metric, heading stays strict
 
 - Decision (Ram, with one part dropped): heading stays part of success, and the benchmark gains a
   separate heading-free `reached` column (ground truth ends within the 0.5 m success radius,
@@ -1231,7 +1231,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   2D 29, 32. Critic v2's 5 extra: crater far_left 2, rock_field ahead_10m and far_left 1 each,
   sidehill 1.
 
-### 2026-11-10 14:20, correction: the 2D baseline slowed 2 to 4x on the final suspension
+### 2026-11-10 13:05, correction: the 2D baseline slowed 2 to 4x on the final suspension
 
 - The "3D 0.7x the 2D time" result from this morning does not hold as a 3D gain. Medians of
   successes on the same goals, before (2026-11-09_2d_base_susp, coupling K 8000) and after
@@ -1252,3 +1252,25 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   obstacle and roughness). One marsyard ahead_8m 2D run on each coupling with bags of /imu/data,
   the local costmap and cmd_vel_nav, after the chain. If the stiff coupling is not physical, the
   coupling needs another value, which is a rover_gazebo change (branch ram/suspension).
+
+### 2026-11-10 13:20, cause hunt for the final-coupling slowdown, chain requeued
+
+- From the poses already recorded (`tools/coupling_diag.py`, marsyard ahead_8m, 3 runs each):
+
+  | run | time s | path m | v p50 | reverse | pitch jitter mdeg | pitch rate p95 deg/s |
+  |---|---|---|---|---|---|---|
+  | 2D, K 8000 | 21 | 7.9 | 0.46 | 0.00 | 28 | 2.8 |
+  | 2D, K 30000 | 76 | 10.6 | 0.08 | 0.19 | 284 | 30.9 |
+  | plain 3D, K 8000 | 22 | 8.0 | 0.46 | 0.00 | 30 | 3.3 |
+  | plain 3D, K 30000 | 27 | 7.9 | 0.34 | 0.00 | 274 | 28.7 |
+
+  On flat ground the body now vibrates in pitch, 10x the jitter, and 2D drives backward 19 percent
+  of the time. Not yet shown which link turns the vibration into lost speed (2D voxel marks from a
+  shaking sensor, the velocity chain, or wheel contact). No new warnings in the logs.
+- `tools/exp_coupling_diag.sh` (2D and plain 3D, marsyard ahead_8m x2, couplings old K 8000 D 200
+  MAX 400, final K 30000 D 500 MAX 3000, then one gain at a time: K 8000 MAX 3000, K 30000 D 200,
+  K 30000 D 1500, K 15000 D 500), env overrides only. Runs after exp_bag_rock, deadline 18:30.
+  exp_reapproach_late (23:59) and exp_critic_mt_rest (11 Nov 09:30) requeued after it.
+- exp_critic_mt done 13:07: threaded critic v2, rock_field 8/9, crater_field 6/9 (far_left 0/3
+  again), 26 control-rate misses over 19 runs against 200 to 630 per run unthreaded. Swerve mt
+  skipped by its deadline, it is in exp_critic_mt_rest.
