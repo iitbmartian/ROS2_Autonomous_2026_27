@@ -1194,3 +1194,22 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - `python3 tools/compare_final.py 3d_gt_ack_critic_v2 3d_gt_gate_final` (saved to ~/rover_3d_nav_results/analysis/2026-11-10_critic_v2_vs_plain_final.md): critic v2 42/57, 0 unsafe, 23 recoveries; plain 33/57, 0 unsafe, 161 recoveries. Critic v2 leads on rock_field (6/9 against 1/9), urc_mix far_south (2/3 against 0/3, the first far_south successes), bars (4/6 against 1/6), marsyard left_diag. Plain leads only on crater_field far_left (2/3 against 0/3). Both fail lane25 and sidehill_uphill 0/3. Times of shared successes are within 10 percent.
 - So on the final coupling the heading-aware critic is the better Ackermann controller, despite missing its control rate (the threaded fix runs after this chain). Decision for v1.1 waits for the 2D baseline and the threaded critic rerun, but critic v2 is the likely default.
 - Queued `tools/exp_reapproach_late.sh` after exp_bag_rock (deadline 10 Nov 22:00): runs the re-approach worlds the main chain skips if its 09:00 deadline hits first, the 2D stage runs about 10 min per run.
+
+### 2026-11-10 11:20, Phase 3 gate on the final suspension: critic v2 passes 17 of 18 items, plain 3D 16 of 18
+
+- exp_final_susp done at 10:10. Re-approach skipped by the 09:00 deadline (exp_reapproach_late picks it up). Per-goal table: `python3 tools/compare_final.py` (saved to ~/rover_3d_nav_results/analysis/2026-11-10_three_way_final.md).
+
+| | reached | unsafe | recoveries |
+|---|---|---|---|
+| critic v2 (Ackermann + TerrainCritic u_free 0.5, u_tip_lethal 0.80) | 42/57 | 0 | 23 |
+| plain 3D | 33/57 | 0 | 161 |
+| 2D baseline (bounded 2D params) | 29/57 | 0 | 297 |
+| swerve v4 (marsyard, slopes, rock_field, cut at the 4 h cap) | 5/21 | 0 | 11 |
+
+- Gate, `tools/phase3_gate.py <3d runs.csv> <2d runs.csv>` (evidence/phase3_gate_ack_critic_v2_final.txt, phase3_gate_gate_final_final.txt), per world unsafe, recoveries and time to goal against 2D:
+  - critic v2: every unsafe and recovery item passes. Time to goal ratio on goals both reach 0.50 (marsyard) to 1.23 (rock_field), slopes 0.75, urc_mix 0.69. One FAIL: crater_field, the 3D misses far_left (0/3, 2D 1/3).
+  - plain 3D: FAIL crater_field recoveries (5 against 2), FAIL rock_field (misses far_right, 1/9 overall).
+- So Phase 3 is not formally passed, one item short with critic v2. crater_field far_left is the next target, then lane25 and sidehill_uphill (0/3 in every 3D variant, and 2D).
+- Decision (logged, v1.1): critic v2 becomes the Ackermann 3D default once the threaded critic (632d83c) confirms the same or better on slopes, rock_field, crater_field (running now, exp_critic_mt).
+- Swerve v4 on the final coupling: 5/21, many timeouts and cancels on slopes and rock_field. The coupling slip is fixed, swerve is still slow. Rerun threaded in exp_critic_mt_rest.
+- Health fix 11:03: at the swerve stage's 4 h cap `ros2 run` died on TERM but the benchmark under it survived, because guard.sh killed its watchdog (and with it the KILL stage) as soon as the leader exited. The orphan blocked exp_critic_mt's slopes stage for 30 min (guard refuses a second runner, exit 91). Killed by PID, guard.sh now sweeps the process group with KILL after every wait (tested with a surviving child). Slopes requeued in `tools/exp_critic_mt_rest.sh` (after exp_reapproach_late, deadline 11 Nov 08:00).

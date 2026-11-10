@@ -17,4 +17,8 @@ setsid "$@" & pid=$!
   kill -KILL -$pid 2>/dev/null; echo "guard: cap ${cap}s hit: $*" >&2 ) & wd=$!
 wait $pid; rc=$?
 kill $wd 2>/dev/null; wait $wd 2>/dev/null
+# The leader can die on TERM while a child it started survives (2026-11-10: ros2 run exited 143 at
+# the cap, the benchmark under it lived on for 50 min and blocked the next chain). Killing the
+# watchdog above also cancelled its KILL stage, so sweep the group here, every time.
+kill -KILL -$pid 2>/dev/null
 exit $rc
