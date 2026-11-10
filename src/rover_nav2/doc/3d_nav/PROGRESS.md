@@ -1230,3 +1230,25 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   analysis/2026-11-10_three_way_reached.md): critic v2 42/57 strict, 47 reached. Plain 3D 33, 34.
   2D 29, 32. Critic v2's 5 extra: crater far_left 2, rock_field ahead_10m and far_left 1 each,
   sidehill 1.
+
+### 2026-11-10 14:20, correction: the 2D baseline slowed 2 to 4x on the final suspension
+
+- The "3D 0.7x the 2D time" result from this morning does not hold as a 3D gain. Medians of
+  successes on the same goals, before (2026-11-09_2d_base_susp, coupling K 8000) and after
+  (2026-11-10_2d_base_final, K 30000): 2D marsyard ahead_8m 21 to 76 s (path 7.6 to 8.9 to 12.8 m),
+  behind_left 26 to 123 s, crater ahead_10m 25 to 92 s, urc_mix mid_20m 48 to 93 s, past_lanes 49
+  to 78 s. 2D also drives slower on paths of the same length (left_diag 22 s to 36 to 42 s on
+  7.8 m). The 2D params and code did not change between the two (commits 5d0ac82 to 371c825 touch
+  rover_gazebo coupling, the critic and docs).
+- 3D on the same change: plain 3D ahead_8m 22 to 27 s, ahead_10m 25 to 35, mid_20m 47 to 59,
+  past_lanes 47 to 71 (2026-11-09_3d_gt_gate_clean vs 2026-11-10_3d_gt_gate_final), so 3D slowed
+  15 to 50 percent and 2D 1.6 to 4.7x. Against the K 8000 2D baseline, critic v2 is 1.0 to 1.4x
+  the 2D time on straight goals, about parity, not faster.
+- Consequence: the time-to-goal items of this morning's Phase 3 gate and the 42 vs 29 count are
+  measured against a degraded 2D baseline. The 3D vs plain 3D comparison is unaffected (same
+  suspension).
+- Next, before any gate or paper number: find why the stiffer coupling slows both stacks and makes
+  2D wander (suspect: more body pitch on bumps, so the 2D voxel layer and the 3D governor see more
+  obstacle and roughness). One marsyard ahead_8m 2D run on each coupling with bags of /imu/data,
+  the local costmap and cmd_vel_nav, after the chain. If the stiff coupling is not physical, the
+  coupling needs another value, which is a rover_gazebo change (branch ram/suspension).
