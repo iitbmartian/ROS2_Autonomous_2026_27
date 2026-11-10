@@ -1278,3 +1278,33 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   without `.sdf` and gz sim could not find the world. My error. Bag 2 stopped by PID, script fixed
   and requeued at the end of the chain (deadline 11 Nov 11:00). exp_coupling_diag started 14:05,
   checked that ROVER_COUPLING_K/D/MAX reach the gz process (8000, 200, 400 on the first stage).
+
+### 2026-11-10 16:10, cause found: coupling damping D 500 shakes the body
+
+- `tools/exp_coupling_diag.sh` done 15:15 (2026-11-10_coupling_diag, marsyard ahead_8m x2 per row,
+  `tools/coupling_diag.py`, analysis/2026-11-10_coupling_diag.md):
+
+  | K, D, clamp | 2D time s | 2D reverse | 3D time s | pitch jitter mdeg (2D/3D) |
+  |---|---|---|---|---|
+  | 8000, 200, 400 (old) | 21 | 0.00 | 22 | 30 / 36 |
+  | 8000, 200, 3000 | 21 | 0.00 | 22 | 30 / 26 |
+  | 30000, 200, 3000 | 20 | 0.00 | 22 | 20 / 24 |
+  | 15000, 500, 3000 | 83 | 0.21 | 28 | 406 / 409 |
+  | 30000, 500, 3000 (final) | 198 | 0.31 | 26 | 286 / 267 |
+  | 30000, 1500, 3000 | 68 | 0.17 | 129 | 475 / 442 |
+
+- Damping, not stiffness or clamp: every D 200 row matches the old coupling, every D of 500 or more
+  shakes the body at 2 to 3 Hz and slows 2D 3 to 9x. More damping shakes more, so the plugin's
+  damping term is likely acting on a delayed or noisy velocity (the coupling is closed over a ROS
+  topic at 500 Hz on sim time, see 2026-11-06), which turns damping into a destabilising term.
+  Not checked inside the plugin, that is rover_gazebo.
+- So every result run on the final coupling (2026-11-10_*: critic v2 42/57, plain 33/57, 2D
+  29/57, swerve v4, critic v2 mt, re-approach late) was measured on a shaking rover. Kept, labelled
+  D 500, not used for the gate or the paper.
+- Next (`tools/exp_d200.sh`, after exp_reapproach_late, deadline 11 Nov 10:00): the loaded swerve
+  v4 spin bag at K 30000 D 200, which is the run that showed the 40 deg loop slip. It must keep the
+  residuals under 5 deg with no tip stop, else D 200 is not adopted and the chain stops. Then
+  critic v2, plain 3D and the bounded 2D baseline on all 6 worlds x3 at D 200, gate for both 3D
+  variants. Each stack is drift-checked against the 2026-11-09 K 8000 runs before any comparison.
+  exp_critic_mt_rest dropped, exp_bag_rock requeued after it at D 200 (env overrides, no rebuild).
+  If the spin check passes, D 200 becomes the default on `ram/suspension`.
