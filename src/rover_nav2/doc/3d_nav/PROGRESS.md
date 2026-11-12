@@ -1325,3 +1325,47 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   the smallest D that holds 5 deg without the pitch shake.
 - First D 200 rows (critic v2, slopes): lane15_top 3/3, lane35_top refused 3/3, lane25_top 3
   timeouts (the known lane25 problem, still open).
+
+## 2026-11-12
+
+- 07:45 The chain finished on 11 Nov 10:01 and the machine then sat idle for about 22 h, because
+  the health checks were not acted on. Restarted.
+- **D 200 three-way, drift-checked first** (`tools/drift_check.py`, each stack against its own
+  2026-11-09 K 8000 runs). The 2D baseline and plain 3D match their 9 Nov per-goal times (ratios
+  0.8 to 1.3, almost all 1.00) and success counts, so D 200 restores the pre-shake behaviour and
+  the comparison is valid. Critic v2 had no full 9 Nov run to compare against.
+  Per goal: `~/rover_3d_nav_results/analysis/2026-11-12_three_way_d200.md` (`tools/compare_final.py`).
+
+  | stack (D 200) | strict ok | reached | unsafe | recoveries |
+  |---|---|---|---|---|
+  | plain 3D (`3d_gt_gate_d200`) | 46/57 | 48 | 0 | 88 |
+  | critic v2 (`3d_gt_ack_critic_v2_d200`) | 39/57 | 45 | 0 | 82 |
+  | 2D bounded (`2d_base_d200`) | 34/57 | 38 | 4 | 271 |
+
+- Phase 3 gate (`evidence/phase3_gate_{gate,ack_critic_v2}_d200.txt`, `phase3_gate.py`): unsafe
+  items pass on every world for both. Time items pass for plain 3D on every world (ratios 0.97 to
+  1.30). Recoveries fail for plain 3D on marsyard (3 vs 0), rock_field (29 vs 19) and urc_mix
+  (7 vs 1), for critic v2 on marsyard (4 vs 0) and urc_mix (36 vs 1), and critic v2 misses
+  urc_mix far_south 0/3. **Gate not met yet.** Critic v2 is worse than plain 3D at D 200
+  (lane25 0/3, sidehill 0/3, rock ahead_10m 0/3, far_south 0/3), so it does not become the default.
+- Plain 3D's recoveries come from 4 runs: marsyard left_diag r2 (timeout 0.18 m from the goal),
+  rock_field far_left r3 (timeout at 0.52 m), far_right r2 (aborted), urc_mix far_south r3.
+- **Rock freeze cause** (`tools/bag_timeline.py` on `bags/run_rock_ahead10_plain_burn8_1111_0923`,
+  the timed-out rock bag): commands pass unchanged through cmd_vel_nav, smoothed and cmd_vel, so
+  nothing downstream drops them. From 140 s the rover sits at (8.35, -0.6), 1.8 m short, beside
+  rock_big_004 (0.47 x 0.42 x 0.33 m at 9.06, -0.37). IsPathValid fails on every BT tick, so the
+  consistent-replanning tree replans at its 2 Hz cap (1898 plans in 1230 s), and the plans flip
+  between passing north and south of the rock, each starting with a reverse cusp. MPPI never
+  commits, 11 "Failed to make progress". Jazzy's IsPathValid service has no cost threshold, it
+  rejects a pose whose centre is on a LETHAL or INSCRIBED cell, while Smac's footprint check
+  accepts such poses. So near a rock every Smac path is "invalid" the moment it is made. The other
+  node deaths in that log are at shutdown only.
+- Next: `tools/exp_novalid.sh` (after exp_d300_check, deadline 12 Nov 15:00), plain 3D with
+  `behavior_trees/navigate_to_pose_ackermann_3d_novalid.xml` (IsPathValid removed, path kept
+  until 10 s old or the goal changes) on rock_field, marsyard and urc_mix x3 at D 200. If the
+  recoveries drop to baseline or below, the 3D tree takes the change, all 6 worlds rerun.
+- Coupling: the swerve spin bags (residuals run by hand, the chain's call crashed again in the
+  chain only, not reproducible with the same env and cwd) give D 300 4.7 deg, D 250 5.0 deg
+  (D 200 6.6, D 500 1.8). `tools/exp_d300_check.sh` (running) repeats the marsyard pitch-jitter
+  test at D 300 and D 250. If D 300 is as clean as D 200 it becomes the default on `ram/suspension`.
+- Rock bag 1 (same goal) succeeded, bag 2 is the stall above.

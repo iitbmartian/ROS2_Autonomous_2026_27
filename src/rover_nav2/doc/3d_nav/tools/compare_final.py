@@ -19,7 +19,7 @@ B = Path.home() / '.ros/rover_benchmark'
 tags = sys.argv[1:] or ['3d_gt_ack_critic_v2', '3d_gt_gate_final', '2d_base_final']
 data, goals = {}, []
 for t in tags:
-    f = B / f'2026-11-10_{t}' / 'runs.csv'
+    f = B / (t if t.startswith('20') else f'2026-11-10_{t}') / 'runs.csv'
     d = defaultdict(list)
     if f.exists():
         for r in csv.DictReader(open(f)):
