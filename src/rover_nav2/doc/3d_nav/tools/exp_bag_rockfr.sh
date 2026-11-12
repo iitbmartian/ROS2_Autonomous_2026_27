@@ -9,7 +9,7 @@ while kill -0 $2 2>/dev/null; do [ "$(date +%s)" -ge "$1" ] && { log "deadline w
 source $E/tools/simenv.sh; cd /home/ram/ROS2_Autonomous_2026_27; unset ROVER_COUPLING_K ROVER_COUPLING_D ROVER_COUPLING_MAX
 for g in "rockfr rock_field.sdf 16.5 -4.0 0.0"; do set -- $g $1; [ "$(date +%s)" -ge "$6" ] && { log "deadline before $1"; break; }
   BURN=8 $E/tools/guard.sh 1800 $E/tools/bag_run.sh open_$1 $2 $3 $4 $5 ackermann $X/nav2_3d_lethalfree.yaml; clean
-  b=$(ls -td $E/bags/run_open_$1_* | grep -v '\.' | head -1)
+  b=$(ls -td $E/bags/run_open_$1_* | grep -v '[.][a-z]*$' | head -1)
   log "$1: $(tail -1 $b.goal.out 2>/dev/null), bag $b"
   set -- $6 0
 done

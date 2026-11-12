@@ -1428,3 +1428,19 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   far_right to find where it stalls. Queued `tools/exp_plain_d250.sh` (after that, deadline
   14 Nov 00:00): plain 3D on all 6 worlds at D 250, gate against `2d_base_d250`, so the D 250
   numbers exist for the default tree too.
+
+## 2026-11-13
+
+- 03:12 exp_d250 done. Drift check D 200 to D 250 (`analysis/2026-11-13_d250_drift_gate.md`,
+  `drift_check.py` pairs in the file): 2D is steady (median time ratios 0.92 to 1.01 on every goal
+  both reach, ok counts within one run per goal). 3D lethal-free is steady except marsyard
+  behind_left 3/3 to 1/3 and rock_field far_right 1/3 to 2/3. So the D 250 numbers stand as the
+  reported ones. Totals 3D lethal-free 43/57 rec 114, 2D 34/57.
+- Gate at D 250 (`evidence/phase3_gate_lethalfree_d250.txt`): 3 FAIL, a different set from D 200.
+  Unsafe 0 on every world (2D 1 on crater_field). Recoveries now pass on marsyard (0 vs 0) and
+  rock_field (36 vs 37). Fails: urc_mix recoveries 22 vs 15 (far_south), marsyard ttg 1.63
+  (behind_left), bars ttg item (3D misses past_bars_4m, 2D got it 1/3 at 118 s). The recurring
+  culprits stay urc_mix far_south and the bars, both bagged this night.
+- Bag log fix: `exp_bag_open.sh` logged an empty bag path because `grep -v '\.'` drops every path
+  under `~/.ros`. The bag itself is fine (`bags/run_open_farsouth_burn8_1113_0312`, timeout).
+  Fixed in the queued `exp_bag_rockfr.sh` (`grep -v '[.][a-z]*$'`).
