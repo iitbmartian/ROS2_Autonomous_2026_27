@@ -1369,3 +1369,36 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   (D 200 6.6, D 500 1.8). `tools/exp_d300_check.sh` (running) repeats the marsyard pitch-jitter
   test at D 300 and D 250. If D 300 is as clean as D 200 it becomes the default on `ram/suspension`.
 - Rock bag 1 (same goal) succeeded, bag 2 is the stall above.
+- 08:15 to 10:40 `exp_novalid` (plain 3D, tree without IsPathValid, D 200), against plain 3D and
+  2D at D 200 (ok, recoveries):
+
+  | world | plain 3D | no IsPathValid | 2D |
+  |---|---|---|---|
+  | marsyard | 7/9, 3 | 8/9, 0 | 8/9, 0 |
+  | rock_field | 7/9, 29 | 8/9, 19 | 4/9, 19 |
+  | urc_mix | 8/9, 7 | 5/9, 35 | 9/9, 1 |
+
+  marsyard and rock_field now meet the recoveries item. urc_mix got worse: far_south 0/3 (two
+  aborts 12.7 and 13.8 m out, one at 1.8 m), one mid_20m startup_failed. far_south is a long route
+  into unmapped ground, and without any check a path into a newly mapped hazard is kept up to 10 s.
+  So the check is needed, but with Smac's own rule.
+- 3D costmaps use a point footprint (inflation 0.08 m), so INSCRIBED is the 0.071 m ring next to
+  a lethal cell. Smac's polygon check rejects only LETHAL under the footprint, so its pose centres
+  can sit on INSCRIBED cells, which Nav2's IsPathValid rejects.
+- New BT condition `IsPathLethalFree` (`rover_traversability/src/bt/is_path_lethal_free.cpp`,
+  plugin `rover_is_path_lethal_free_bt_node`): reads `global_costmap/costmap_raw`, fails only when
+  a path pose centre is on a LETHAL cell, unknown and inscribed pass, passes until a costmap
+  arrives and when frames differ (warned once). gtest `test_is_path_lethal_free` 5 hand-computed
+  cases on a 4 x 3 grid (free, inscribed and unknown pass, first lethal index, off-grid, bad grid).
+  Tree `behavior_trees/navigate_to_pose_ackermann_3d_lethalfree.xml`, overlay
+  `tools/exp/nav2_3d_lethalfree.yaml`. Fixed `test_params_overlay` (had failed since the 3D tree
+  got its own BT file, it now checks the tree is the only bt_navigator difference), 40 tests pass.
+- 13:05 `tools/exp_lethalfree.sh` (deadline 21:50): plain 3D with the lethal-free tree, all 6
+  worlds x3 at D 200, gate against `2026-11-11_2d_base_d200` into
+  `evidence/phase3_gate_lethalfree_d200.txt`. The first run used the new tree (merged params checked)
+  and reached the goal in 21.8 s. If the gate passes, the 3D tree takes IsPathLethalFree.
+- Damping, from `exp_d300_check` (marsyard ahead_8m x2, `analysis/2026-11-12_coupling_d300.md`):
+  D 250 is shake-free (2D 20 s, 3D 22 s, pitch jitter 20 and 26 mdeg) and peaks at 5.0 deg in the
+  swerve spin. D 300 3D is clean but 2D timed out twice about 0.45 m from the goal, jitter 48 mdeg,
+  which is odd given D 250 and D 200 are clean. Not chased now, swerve is v2. Proposed default D 250
+  (spin at the 5 deg bar), the gate work stays at D 200 to match the 2D baseline.

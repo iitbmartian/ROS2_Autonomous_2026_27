@@ -1,0 +1,6 @@
+# Lethal-only path check experiment, merged last (nav_extra_overlay): the 3D tree with IsPathValid
+# replaced by IsPathLethalFree (behavior_trees/navigate_to_pose_ackermann_3d_lethalfree.xml).
+bt_navigator:
+  ros__parameters:
+    default_nav_to_pose_bt_xml: "/home/ram/ROS2_Autonomous_2026_27/src/rover_nav2/behavior_trees/navigate_to_pose_ackermann_3d_lethalfree.xml"
+    plugin_lib_names: ["rover_is_path_lethal_free_bt_node"]

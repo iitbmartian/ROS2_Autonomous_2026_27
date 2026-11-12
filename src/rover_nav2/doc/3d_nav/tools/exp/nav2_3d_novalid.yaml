@@ -1,0 +1,5 @@
+# No-IsPathValid experiment, merged last (nav_extra_overlay): the 3D tree without IsPathValid
+# (behavior_trees/navigate_to_pose_ackermann_3d_novalid.xml, read from the source tree).
+bt_navigator:
+  ros__parameters:
+    default_nav_to_pose_bt_xml: "/home/ram/ROS2_Autonomous_2026_27/src/rover_nav2/behavior_trees/navigate_to_pose_ackermann_3d_novalid.xml"

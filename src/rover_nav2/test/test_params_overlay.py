@@ -55,9 +55,14 @@ def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     assert cm['observation_sources'] == ['terrain_hazards']
     assert cm['polygons'] == ['CentreApproach']
     assert cm['terrain_hazards']['topic'] == '/terrain/hazard_points'
+    # bt_navigator differs only in the tree, the 3D one keeps a valid path instead of 1 Hz replans.
+    bt, base_bt = merged['bt_navigator']['ros__parameters'], base['bt_navigator']['ros__parameters']
+    assert bt['default_nav_to_pose_bt_xml'].endswith('navigate_to_pose_ackermann_3d.xml')
+    diff = {k for k in set(bt) | set(base_bt) if bt.get(k) != base_bt.get(k)}
+    assert diff <= {'default_nav_to_pose_bt_xml', 'plugin_lib_names'}, diff
     # Everything else is the 2D tuning, untouched.
     for section in base:
-        if section not in ('local_costmap', 'global_costmap', 'collision_monitor'):
+        if section not in ('local_costmap', 'global_costmap', 'collision_monitor', 'bt_navigator'):
             assert merged[section] == base[section], section
 
 

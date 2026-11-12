@@ -64,7 +64,15 @@ target_include_directories(rover_near_goal_too_long_bt_node PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 target_compile_definitions(rover_near_goal_too_long_bt_node PRIVATE BT_PLUGIN_EXPORT)
 ament_target_dependencies(rover_near_goal_too_long_bt_node behaviortree_cpp geometry_msgs rclcpp)
+# Lethal-only path validity for the 3D tree (IsPathLethalFree), in place of Nav2's IsPathValid.
+add_library(rover_is_path_lethal_free_bt_node SHARED src/bt/is_path_lethal_free.cpp)
+target_include_directories(rover_is_path_lethal_free_bt_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_definitions(rover_is_path_lethal_free_bt_node PRIVATE BT_PLUGIN_EXPORT)
+ament_target_dependencies(rover_is_path_lethal_free_bt_node behaviortree_cpp nav2_msgs nav_msgs rclcpp)
 install(TARGETS rover_approach_goals_bt_node rover_near_goal_too_long_bt_node
+  rover_is_path_lethal_free_bt_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
@@ -88,6 +96,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_approach_goals rover_approach_goals_bt_node)
   ament_add_gtest(test_near_goal_too_long test/test_near_goal_too_long.cpp)
   target_link_libraries(test_near_goal_too_long rover_near_goal_too_long_bt_node)
+  ament_add_gtest(test_is_path_lethal_free test/test_is_path_lethal_free.cpp)
+  target_link_libraries(test_is_path_lethal_free rover_is_path_lethal_free_bt_node)
   find_package(ament_cmake_pytest REQUIRED)
 
   ament_add_gtest(test_traversability_layer test/test_traversability_layer.cpp
