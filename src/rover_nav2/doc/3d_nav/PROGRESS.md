@@ -1444,3 +1444,14 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - Bag log fix: `exp_bag_open.sh` logged an empty bag path because `grep -v '\.'` drops every path
   under `~/.ros`. The bag itself is fine (`bags/run_open_farsouth_burn8_1113_0312`, timeout).
   Fixed in the queued `exp_bag_rockfr.sh` (`grep -v '[.][a-z]*$'`).
+- far_south bag (`bags/run_open_farsouth_burn8_1113_0312`, lethal-free tree, D 250, timeout;
+  `bag_timeline.py <bag> 30 -20 10`): the rover drives cleanly for 300 s to (23.3, -9.1), 12.7 m
+  short, then stays within 0.25 m of that point for 900 s while cmd_vel asks for about 0.1 m/s
+  forward at every stage (nav, smoothed, out). So it is physically stuck, not a planner or command
+  chain stall. The nearest object is `rock_080` in `urc_mix.sdf`, a static box 0.24 x 0.30 x
+  0.107 m at (23.44, -9.78), about 0.6 m ahead-right, so most likely the front-right wheel is
+  against its vertical face. 0.107 m is right at `step_max` 0.10 m, so the map rates it passable.
+  Candidate fixes (not learned): a stall check that marks the cells ahead of the stuck wheel lethal
+  and replans, or a margin on step_max for sharp edges. Waiting for the rock_field far_right bag
+  to see if it is the same pattern before choosing. The wheel column in `bag_timeline.py` reads
+  0.00 throughout (joint_states velocity is empty in these bags), so it is not usable.
