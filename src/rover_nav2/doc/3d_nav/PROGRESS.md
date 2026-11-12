@@ -1455,3 +1455,10 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   and replans, or a margin on step_max for sharp edges. Waiting for the rock_field far_right bag
   to see if it is the same pattern before choosing. The wheel column in `bag_timeline.py` reads
   0.00 throughout (joint_states velocity is empty in these bags), so it is not usable.
+- bars past_bars_4m bag (`bags/run_open_bars4m_burn8_1113_0333`, aborted, `bag_timeline.py <bag> 4 0 5`):
+  the rover sits 30 s at x 0.93 with the right front wheel against the 8 cm bar (x 1.45) at
+  0.2 m/s, climbs it, then stops at (1.9, 0.28) from 70 s on with the left front wheel at the
+  12 cm bar face (x 2.45). 12 cm is over step_max, and the gap between the bars is too tight for
+  an Ackermann turn, so MPPI dithers at 0 to 0.12 m/s until the abort. Same signature as far_south:
+  a wheel pressed on a sharp step face at low commanded speed. Bars is a synthetic course, so it
+  gets no tuning of its own (tuning stance), the general fix for far_south is what counts.
