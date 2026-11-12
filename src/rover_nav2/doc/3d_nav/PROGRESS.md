@@ -1412,3 +1412,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   then the gate into `evidence/phase3_gate_lethalfree_d250.txt`. These become the reported
   numbers, after a drift check of each stack against its D 200 runs.
 - 13:10 Status page for Ram: `tools/dashboard/gen.py` builds a static page every 5 min from the chain (status, queue with ETA, next goals, deliverables, results, gate, logs), `serve.sh` serves it on the Tailscale address only, port 8080, both from the user crontab. `plan.json` (queue, goals, deliverables) is kept by hand at each check.
+- 13:25 Queued `tools/exp_bag_open.sh` (after exp_d250, deadline 13 Nov 16:00): bags of urc_mix far_south and bars past_bars_4m with the lethal-free tree at D 250, the goals every stack still fails. `bag_run.sh` now takes an overlay for Ackermann too. Target dates on the status page: v1.1 14 Nov (15 Nov if the gate needs one more fix), v2 (swerve) 20 Nov.

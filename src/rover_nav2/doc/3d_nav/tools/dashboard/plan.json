@@ -29,6 +29,12 @@
     }
    ],
    "deadline": "2026-11-13 14:00"
+  },
+  {
+   "script": "exp_bag_open.sh",
+   "label": "Bags of goals every stack fails (urc_mix far_south, bars past_bars_4m), lethal-free tree, D 250",
+   "stages": [],
+   "deadline": "2026-11-13 16:00"
   }
  ],
  "compare": [
@@ -51,16 +57,20 @@
  ],
  "deliverables": [
   {
-   "what": "Phase 3 gate evidence (D 200)",
+   "what": "Phase 3 gate evidence with IsPathLethalFree (D 200)",
    "when": "12 Nov night"
   },
   {
    "what": "Final v1.1 numbers at D 250 + gate",
-   "when": "13 Nov midday"
+   "when": "13 Nov early morning"
   },
   {
-   "what": "v1.1 checkpoint: paper and deck update",
-   "when": "13 to 14 Nov"
+   "what": "v1.1 delivered (Ackermann 3D nav, gate passed, PR-ready branch, paper and deck updated)",
+   "when": "14 Nov (15 Nov if the gate needs one more fix)"
+  },
+  {
+   "what": "v2 delivered (swerve: Phase 4 gate, swerve near-goal slowness fixed)",
+   "when": "20 Nov target"
   },
   {
    "what": "Real-rover tests",
