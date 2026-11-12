@@ -1402,3 +1402,12 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   swerve spin. D 300 3D is clean but 2D timed out twice about 0.45 m from the goal, jitter 48 mdeg,
   which is odd given D 250 and D 200 are clean. Not chased now, swerve is v2. Proposed default D 250
   (spin at the 5 deg bar), the gate work stays at D 200 to match the 2D baseline.
+- Ram approved D 250 as the default and the push. `ram/suspension` 0d5e518 sets the rocker
+  coupling damping default 500 to 250 (comment in rover_gazebo.xacro has the evidence), merged into
+  `ram/3d_nav` (16bfac2), both branches pushed. The installed xacro is a symlink to the source, so
+  the default is live at once. exp_lethalfree keeps D 200 by env, so the gate attempt still
+  compares with the D 200 2D baseline.
+- Queued `tools/exp_d250.sh` (after exp_lethalfree, deadline 13 Nov 14:00): plain 3D with the
+  lethal-free tree, then the bounded 2D baseline, all 6 worlds x3 with no coupling override (D 250),
+  then the gate into `evidence/phase3_gate_lethalfree_d250.txt`. These become the reported
+  numbers, after a drift check of each stack against its D 200 runs.
