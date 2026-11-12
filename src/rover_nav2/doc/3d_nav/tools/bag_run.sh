@@ -3,6 +3,7 @@
 # command chain, plans and speed limit. Args: tag world x y yaw drive(ackermann/swerve), optional overlay (any drive, swerve defaults to v2).
 # Hard wall cap 1200 s on the goal.
 # Env BURN=n adds n busy-loop processes during the goal, to reproduce benchmark load (RTF 0.3 to 0.45).
+# Env EXTRA_TOPICS adds topics to the bag (for example the costmaps).
 E=$HOME/.ros/rover_3d_nav; OUT=$E/bags/run_$1${BURN:+_burn$BURN}_$(date +%m%d_%H%M)
 source $E/tools/simenv.sh
 export GZ_PARTITION=rover_bag ROVER_BENCH_RUN=bag_run
@@ -15,7 +16,7 @@ LP=$!
 for i in $(seq 120); do ros2 lifecycle get /bt_navigator 2>/dev/null | grep -q active && break; sleep 5; done
 sleep 10
 ros2 bag record -o $OUT /imu/data /odom /joint_states /cmd_vel_nav /cmd_vel_smoothed /cmd_vel \
-  /rover/steer_mode /plan /local_plan /speed_limit /behavior_tree_log /tf_static > $OUT.bag.log 2>&1 &
+  /rover/steer_mode /plan /local_plan /speed_limit /behavior_tree_log /tf_static ${EXTRA_TOPICS} > $OUT.bag.log 2>&1 &
 BP=$!
 sleep 3
 BP2=(); for i in $(seq ${BURN:-0}); do timeout 1500 python3 -c "while True: pass" & BP2+=($!); done

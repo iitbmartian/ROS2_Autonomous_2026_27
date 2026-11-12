@@ -1462,3 +1462,15 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   an Ackermann turn, so MPPI dithers at 0 to 0.12 m/s until the abort. Same signature as far_south:
   a wheel pressed on a sharp step face at low commanded speed. Bars is a synthetic course, so it
   gets no tuning of its own (tuning stance), the general fix for far_south is what counts.
+- rock_field far_right bag (`bags/run_open_rockfr_burn8_1113_0346`, lethal-free tree, D 250,
+  timeout): the same signature. The rover stops at (2.75, -0.95) after 50 s and stays there about
+  1050 s with forward commands up to 0.29 m/s, then breaks free and drives on. `rock_061` (box
+  0.19 x 0.18, top about 0.12 m above ground, over step_max) sits at (3.28, -1.39), right where the
+  front-right wheel is. So three of the stuck goals (far_south, far_right, bars) are a wheel
+  against a sharp rock face. Open question: does the map rate these rocks lethal (and the per-cell
+  heading check misses the wheel), or does it under-rate a small rock? The bags have no costmaps.
+- `bag_run.sh` takes env `EXTRA_TOPICS`. Queued `tools/exp_bag_cm.sh` (after exp_plain_d250,
+  deadline 14 Nov 06:00): far_right and far_south again on the default tree with the global and
+  local costmaps and hazard points, for `costmap_vs_rocks.py`.
+- marsyard behind_left: plain 3D at D 250 timed out 3/3 (0.46 m out), lethal-free 1/3. At D 200
+  plain 2/3, lethal-free 3/3. A D 250 effect near the goal on both trees, next to look at.
