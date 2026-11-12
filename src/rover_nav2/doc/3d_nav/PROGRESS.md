@@ -1393,7 +1393,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   Tree `behavior_trees/navigate_to_pose_ackermann_3d_lethalfree.xml`, overlay
   `tools/exp/nav2_3d_lethalfree.yaml`. Fixed `test_params_overlay` (had failed since the 3D tree
   got its own BT file, it now checks the tree is the only bt_navigator difference), 40 tests pass.
-- 13:05 `tools/exp_lethalfree.sh` (deadline 21:50): plain 3D with the lethal-free tree, all 6
+- 12:44 `tools/exp_lethalfree.sh` (deadline 21:50): plain 3D with the lethal-free tree, all 6
   worlds x3 at D 200, gate against `2026-11-11_2d_base_d200` into
   `evidence/phase3_gate_lethalfree_d200.txt`. The first run used the new tree (merged params checked)
   and reached the goal in 21.8 s. If the gate passes, the 3D tree takes IsPathLethalFree.
