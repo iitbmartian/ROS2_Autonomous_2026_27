@@ -1413,3 +1413,18 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   numbers, after a drift check of each stack against its D 200 runs.
 - 13:10 Status page for Ram: `tools/dashboard/gen.py` builds a static page every 5 min from the chain (status, queue with ETA, next goals, deliverables, results, gate, logs), `serve.sh` serves it on the Tailscale address only, port 8080, both from the user crontab. `plan.json` (queue, goals, deliverables) is kept by hand at each check.
 - 13:25 Queued `tools/exp_bag_open.sh` (after exp_d250, deadline 13 Nov 16:00): bags of urc_mix far_south and bars past_bars_4m with the lethal-free tree at D 250, the goals every stack still fails. `bag_run.sh` now takes an overlay for Ackermann too. Target dates on the status page: v1.1 14 Nov (15 Nov if the gate needs one more fix), v2 (swerve) 20 Nov.
+- 17:00 exp_lethalfree done, gate `evidence/phase3_gate_lethalfree_d200.txt` (command in
+  `tools/exp_lethalfree.sh`): 3 FAIL items. Unsafe entries 0 on every world (2D 4 on crater_field).
+  Recoveries fail on marsyard (4 vs 0, one left_diag run at 112 s, which also makes ttg 1.65),
+  rock_field (41 vs 19, far_right aborts twice 14.1 m short) and urc_mix (37 vs 1, far_south 1/3).
+  Total 42/57 against plain 3D 46/57 at D 200 (`compare_final.py`), so the lethal-free tree is not
+  made the default. The lost goals: slopes lane25_top 0/3 (plain 3/3), where IsPathLethalFree
+  triggers 9 replans in 16 s as lethal cells fill in, the path flips sides mid-slope and the
+  safety monitor cancels at roll 13.3, pitch -19.1 deg. The check works as intended on rocks, but
+  replanning on a slope is harmful. Remaining recoveries come from three goals that fail on every
+  3D tree: rock_field far_right ("Failed to make progress" about 2.4 m out, every time), urc_mix
+  far_south and bars.
+- Queued `tools/exp_bag_rockfr.sh` (after exp_bag_open, deadline 13 Nov 18:00): bag of rock_field
+  far_right to find where it stalls. Queued `tools/exp_plain_d250.sh` (after that, deadline
+  14 Nov 00:00): plain 3D on all 6 worlds at D 250, gate against `2d_base_d250`, so the D 250
+  numbers exist for the default tree too.
