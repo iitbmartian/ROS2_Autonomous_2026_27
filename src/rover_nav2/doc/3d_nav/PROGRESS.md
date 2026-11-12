@@ -1411,3 +1411,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   lethal-free tree, then the bounded 2D baseline, all 6 worlds x3 with no coupling override (D 250),
   then the gate into `evidence/phase3_gate_lethalfree_d250.txt`. These become the reported
   numbers, after a drift check of each stack against its D 200 runs.
+- 13:10 Status page for Ram: `tools/dashboard/gen.py` builds a static page every 5 min from the chain (status, queue with ETA, next goals, deliverables, results, gate, logs), `serve.sh` serves it on the Tailscale address only, port 8080, both from the user crontab. `plan.json` (queue, goals, deliverables) is kept by hand at each check.

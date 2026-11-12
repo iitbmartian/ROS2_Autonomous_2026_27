@@ -1,0 +1,71 @@
+{
+ "headline": "Phase 3 gate attempt with IsPathLethalFree, then final numbers at D 250",
+ "queue": [
+  {
+   "script": "exp_lethalfree.sh",
+   "label": "Plain 3D + IsPathLethalFree, 6 worlds x3, D 200, then gate vs 2D D 200",
+   "stages": [
+    {
+     "out": "2026-11-12_3d_gt_lethalfree_d200",
+     "rows": 57,
+     "ref": "2026-11-11_3d_gt_gate_d200"
+    }
+   ],
+   "deadline": "2026-11-12 21:50"
+  },
+  {
+   "script": "exp_d250.sh",
+   "label": "Final numbers on default D 250: 3D lethal-free, then 2D bounded, 6 worlds x3, gate",
+   "stages": [
+    {
+     "out": "2026-11-13_3d_gt_lethalfree_d250",
+     "rows": 57,
+     "ref": "2026-11-11_3d_gt_gate_d200"
+    },
+    {
+     "out": "2026-11-13_2d_base_d250",
+     "rows": 57,
+     "ref": "2026-11-11_2d_base_d200"
+    }
+   ],
+   "deadline": "2026-11-13 14:00"
+  }
+ ],
+ "compare": [
+  "2026-11-12_3d_gt_lethalfree_d200",
+  "2026-11-11_3d_gt_gate_d200",
+  "2026-11-11_2d_base_d200"
+ ],
+ "gates": [
+  "phase3_gate_lethalfree_d200.txt",
+  "phase3_gate_gate_d200.txt",
+  "phase3_gate_lethalfree_d250.txt"
+ ],
+ "next_goals": [
+  "Phase 3 gate: recoveries no worse than 2D on every world (fails now on marsyard, rock_field, urc_mix)",
+  "If the lethal-free tree passes: make it the 3D default tree, close Phase 3",
+  "Final reported numbers at D 250, drift-checked against D 200",
+  "Open failures: slopes lane25 and sidehill_uphill, urc_mix far_south",
+  "Paper and deck update at the v1.1 checkpoint",
+  "Hardware facts from Ram before 22 Nov (odom, L2, SBG IMU topics, CG height and mass, 0.07 m wheel offset)"
+ ],
+ "deliverables": [
+  {
+   "what": "Phase 3 gate evidence (D 200)",
+   "when": "12 Nov night"
+  },
+  {
+   "what": "Final v1.1 numbers at D 250 + gate",
+   "when": "13 Nov midday"
+  },
+  {
+   "what": "v1.1 checkpoint: paper and deck update",
+   "when": "13 to 14 Nov"
+  },
+  {
+   "what": "Real-rover tests",
+   "when": "from 22 Nov"
+  }
+ ],
+ "deadline": "2026-11-22 00:00"
+}
