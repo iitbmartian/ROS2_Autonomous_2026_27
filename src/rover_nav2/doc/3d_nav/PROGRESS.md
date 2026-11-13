@@ -1488,3 +1488,16 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   3 m) as low cost, never lethal, which fits the under-rating idea. Re-running far_south with the
   costmaps (`tools/exp_bag_cm2.sh`, guard floor 6 GB for this one 0.3 GB bag).
 - Disk is at 93% (8.8 GB free). Our data is about 6 GB (~/.ros 6.3 GB, results 1.5 GB). Asked Ram.
+- 09:10 Cleared temp on Ram's ok (~/.cache, /tmp older than 2 h, old ~/.ros/log): 8.7 to 12 GB free.
+- Root cause of small rocks under-rated in the global map: at 0.2 m a rock under 0.2 m fills one
+  cell. The Kalman cell estimate mixes rock and ground points, and `stepOf` in features.cpp takes
+  second-highest minus second-lowest over the wheel disc (one stray cell treated as noise), plus the
+  3x3 median, so a single-cell rock is dropped. The local map at 0.05 m sees it, but Smac routes on
+  the global map and MPPI (point footprint, heading-blind) follows the path with a wheel onto it.
+  The costmap layer already keeps the worst of several grid cells per costmap cell.
+- Experiment g01: `pipeline_3d.launch.py` gets a `mapping_params` arg (empty keeps
+  terrain_mapping_sim.yaml, forwarded to terrain_mapping.launch.py `params_file`).
+  `tools/exp/terrain_mapping_sim_g01.yaml` sets the global map to 0.1 m, 90 m square (farthest goal
+  42 m). Queued `tools/exp_g01.sh` (after the far_south costmap bag and `tools/exp_bag_behind.sh`,
+  a bag of marsyard behind_left): plain 3D at D 250 on rock_field, urc_mix, marsyard, slopes,
+  gate into `evidence/phase3_gate_g01_d250.txt`. Watch rtf, the global map has 4x the cells.
