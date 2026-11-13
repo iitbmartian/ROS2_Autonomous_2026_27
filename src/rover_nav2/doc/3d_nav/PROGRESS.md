@@ -1567,3 +1567,14 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - Queued `tools/exp_south.sh` (after exp_fs_rep): far_south only, 6 runs with the fix and 6 plain,
   since 3 per side cannot separate a fix from noise. Then `tools/exp_swerve_fs.sh`: swerve (v4
   overlay) on all 6 worlds x3 at D 250 with the fix, the first v2 numbers on the new defaults.
+- Faster loop on Ram's ask (20:50): full 6-world runs only at checkpoints (candidate default, v1.1,
+  v2), each fix tested on a targeted goal set plus 2 or 3 regression goals, a bag first to find the
+  cause, offline replay for map-side changes, 6 runs only on high-variance goals. Swerve run cut to
+  marsyard, rock_field, urc_mix, slopes x2. New `tools/replay_fine_step.sh` and
+  `replay_fine_step_cmp.py`: replays /terrain/global, /terrain/local_features and /tf from a bag
+  through two global features nodes (fine step off and on, ROS domain 77) and lists where the fine
+  step raised the step and the best utilisation. Queue: exp_fs_rep, then `tools/exp_bag_slope.sh`
+  (lane25 with the fix and the terrain topics), exp_south, exp_swerve_fs.
+- Queue slip caught: requeued scripts got the launching zsh pid as wait pid (pgrep matched the
+  shell's own command line), so exp_south and exp_swerve_fs would have started at once beside the
+  running benchmark. Killed within a minute, requeued from one bash with `$!`.

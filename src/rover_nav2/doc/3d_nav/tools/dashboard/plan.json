@@ -1,25 +1,6 @@
 {
- "headline": "Fine step fix: marsyard and rock_field gate items now pass, urc_mix far_south still racks up recoveries. Finishing the 6-world run",
+ "headline": "Fix on all 6 worlds: 48/57 vs 44/57, unsafe 0, gate down to 2 FAIL (urc_mix far_south, bars 4m). Drift checks running",
  "queue": [
-  {
-   "script": "exp_fs2.sh",
-   "label": "Fix on crater_field and bars, then gate on all 6 worlds",
-   "stages": [
-    {
-     "out": "2026-11-13_3d_gt_fs_d250",
-     "rows": 57,
-     "ref": "2026-11-13_3d_gt_plain_d250"
-    }
-   ],
-   "deadline": "2026-11-13 21:30"
-  },
-  {
-   "script": "exp_bag_fs.sh",
-   "label": "Recordings with the fix: far_south (costmaps) and slopes sidehill (governor)",
-   "stages": [],
-   "deadline": "2026-11-14 00:00",
-   "minutes": 40
-  },
   {
    "script": "exp_fs_rep.sh",
    "label": "Repeat the fix on slopes, urc_mix, marsyard (drift check)",
@@ -31,16 +12,48 @@
     }
    ],
    "deadline": "2026-11-14 06:00"
+  },
+  {
+   "script": "exp_south.sh",
+   "label": "far_south only, 6 with the fix and 6 plain",
+   "stages": [
+    {
+     "out": "2026-11-14_3d_gt_south_fs_d250",
+     "rows": 6,
+     "ref": "2026-11-13_3d_gt_fs_d250"
+    },
+    {
+     "out": "2026-11-14_3d_gt_south_plain_d250",
+     "rows": 6,
+     "ref": "2026-11-13_3d_gt_fs_d250"
+    }
+   ],
+   "deadline": "2026-11-14 12:00"
+  },
+  {
+   "script": "exp_swerve_fs.sh",
+   "label": "v2 swerve with the fix, 6 worlds x3",
+   "stages": [
+    {
+     "out": "2026-11-14_3d_gt_swerve_fs_d250",
+     "rows": 57,
+     "ref": "2026-11-13_3d_gt_plain_d250"
+    }
+   ],
+   "deadline": "2026-11-14 18:00"
   }
  ],
  "compare": [
   "2026-11-13_3d_gt_fs_d250",
   "2026-11-13_3d_gt_plain_d250",
-  "2026-11-13_2d_base_d250"
+  "2026-11-13_2d_base_d250",
+  "2026-11-13_3d_gt_fs_rep_d250",
+  "2026-11-14_3d_gt_swerve_fs_d250"
  ],
  "gates": [
   "phase3_gate_fs_d250.txt",
-  "phase3_gate_plain_d250.txt"
+  "phase3_gate_plain_d250.txt",
+  "phase4_gate_swerve_fs_d250.txt"
  ],
  "next_goals": [
   "marsyard behind_left at D 250: 0/3, timeouts 0.46 m out (near-goal)",
@@ -55,7 +68,7 @@
    "when": "done 13 Nov"
   },
   {
-   "what": "Fix small rocks (fine step into global map, built and tested), gate passes",
+   "what": "Small-rock fix (fine step): 48/57, gate 2 FAIL, drift check running",
    "when": "14 Nov"
   },
   {
@@ -73,14 +86,14 @@
  ],
  "deadline": "2026-11-22 00:00",
  "issues": [
-  "urc_mix far_south: with the fix it arrives 3/3, but 2 runs still stall (13 'Failed to make progress' each), gate recoveries 28 vs 15",
+  "urc_mix far_south: with the fix all runs arrive, but some still stall on the way (gate recoveries 28 vs 15). 6 vs 6 repeat queued",
   "slopes sidehill slower with the fix (109 and 246 s vs 38 s), lane25 0/3 vs 1/3, may be noise, repeat queued",
   "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic course, low priority)",
   "Disk 91%, 12 GB free"
  ],
  "plans": [
-  "Tonight: finish the 6-world run with the fix, record far_south and sidehill, repeat the moved worlds",
-  "Then: fix the remaining far_south stall, make the fine step the default, re-run the gate",
+  "Tonight: drift-check the fix (repeat), far_south 6 vs 6, then the first swerve run with the fix",
+  "14 Nov: make the fine step the default if the repeat holds, fix far_south, close Phase 3",
   "15 Nov: v1.1 (Ackermann 3D nav), 20 Nov: v2 swerve, 22 Nov: real rover"
  ]
 }
