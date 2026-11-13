@@ -1501,3 +1501,11 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   42 m). Queued `tools/exp_g01.sh` (after the far_south costmap bag and `tools/exp_bag_behind.sh`,
   a bag of marsyard behind_left): plain 3D at D 250 on rock_field, urc_mix, marsyard, slopes,
   gate into `evidence/phase3_gate_g01_d250.txt`. Watch rtf, the global map has 4x the cells.
+- far_south costmap bag (`bags/run_cm_farsouth_burn8_1113_0901`, default tree, D 250, timeout):
+  stuck at (22.75, -9.55) from 300 s to the end, heading about -0.6 rad, which puts the front-left
+  wheel on the face of rock_080 (23.44, -9.78, 0.107 m). The global costmap at 0.2 m rates the
+  rock_080 cell low cost (above 0, below 60) at 279, 330 and 601 s, never lethal, while the rover
+  sits against it. Confirms the under-rating. marsyard behind_left bag (`bags/run_behind_burn8_1113_0923`)
+  succeeded, so that goal is intermittent, not stuck.
+- exp_g01 rtf 0.284 to 0.289 on rock_field, same as plain 3D (0.286 to 0.291), so the 0.1 m
+  global map costs no measurable sim speed.
