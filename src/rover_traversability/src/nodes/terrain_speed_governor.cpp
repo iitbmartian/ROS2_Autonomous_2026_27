@@ -11,6 +11,7 @@
 #include <mutex>
 #include <string>
 
+#include "geometry_msgs/msg/vector3_stamped.hpp"
 #include "nav2_msgs/msg/speed_limit.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -53,6 +54,9 @@ public:
     tfl_ = std::make_unique<tf2_ros::TransformListener>(*tf_);
     pub_ = create_publisher<nav2_msgs::msg::SpeedLimit>(
       declare_parameter<std::string>("speed_limit_topic", "/speed_limit"), 1);
+    // Why the limit is what it is: x u_ahead (-1 when not evaluated), y reason (0 terrain,
+    // 1 no or stale map, 2 no transform), z map age in s. For bags, no effect on the limit.
+    diag_pub_ = create_publisher<geometry_msgs::msg::Vector3Stamped>("~/diagnostics", 1);
     map_sub_ = create_subscription<grid_map_msgs::msg::GridMap>(
       declare_parameter<std::string>("map_topic", "/terrain/local_features"), 1,
       [this](grid_map_msgs::msg::GridMap::ConstSharedPtr m) {
@@ -83,6 +87,16 @@ private:
     pub_->publish(msg);
   }
 
+  void diag(double u, int reason, double age)
+  {
+    geometry_msgs::msg::Vector3Stamped d;
+    d.header.stamp = now();
+    d.vector.x = u;
+    d.vector.y = reason;
+    d.vector.z = age;
+    diag_pub_->publish(d);
+  }
+
   void tick()
   {
     std::shared_ptr<const TerrainSnapshot> t;
@@ -93,8 +107,10 @@ private:
       tw = twist_;
     }
     // No fresh terrain: hold the floor speed rather than trust old ground.
-    if (!t || (now() - t->stamp).seconds() > map_timeout_) {
+    const double age = t ? (now() - t->stamp).seconds() : -1.0;
+    if (!t || age > map_timeout_) {
       publish(gp_.v_min);
+      diag(-1.0, 1, age);
       return;
     }
     geometry_msgs::msg::TransformStamped tf;
@@ -102,6 +118,7 @@ private:
       tf = tf_->lookupTransform(t->frame, base_frame_, tf2::TimePointZero);
     } catch (const tf2::TransformException &) {
       publish(gp_.v_min);
+      diag(-1.0, 2, age);
       return;
     }
     const core::Pose2 start{tf.transform.translation.x, tf.transform.translation.y,
@@ -113,6 +130,7 @@ private:
     const auto poses = core::predictPoses(start, vx, vy, tw.angular.z, lookahead_, dt_);
     const double u = core::worstUtilisation(t->grid, p_, e_, poses, unknown_u_, &t->cache);
     publish(core::speedLimit(u, gp_));
+    diag(u, 0, age);
   }
 
   core::PhysicalParams p_;
@@ -126,6 +144,7 @@ private:
   std::unique_ptr<tf2_ros::Buffer> tf_;
   std::unique_ptr<tf2_ros::TransformListener> tfl_;
   rclcpp::Publisher<nav2_msgs::msg::SpeedLimit>::SharedPtr pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr diag_pub_;
   rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr map_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::TimerBase::SharedPtr timer_;

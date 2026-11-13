@@ -1509,3 +1509,12 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   succeeded, so that goal is intermittent, not stuck.
 - exp_g01 rtf 0.284 to 0.289 on rock_field, same as plain 3D (0.286 to 0.291), so the 0.1 m
   global map costs no measurable sim speed.
+- marsyard behind_left: all three plain D 250 timeouts reach within 0.5 m at 20 to 63 s, then sit
+  0.45 to 0.48 m out until 240 s (goal checker xy 0.15 m). The successful bag shows where the time
+  goes: the speed governor holds its 0.05 m/s floor for about 65 s from 2.4 to 1.2 m before the
+  goal (inside the marsyard rock ring), then 0.5 m/s to the goal. 2D has no governor. At 0.04 m/s
+  the 2 s twist projection covers 8 cm, so the floor means u near 1 at the rover itself or a stale
+  map (map_timeout), not something far ahead.
+- `terrain_speed_governor` publishes `~/diagnostics` (Vector3Stamped: u_ahead, reason 0 terrain /
+  1 stale map / 2 no TF, map age), no change to the limit. rover_traversability 98 tests pass.
+  Queued `tools/exp_bag_gov.sh` (after exp_g01): two behind_left bags with it.
