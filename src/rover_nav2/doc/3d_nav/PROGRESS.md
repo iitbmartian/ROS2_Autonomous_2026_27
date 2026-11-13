@@ -1518,3 +1518,9 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - `terrain_speed_governor` publishes `~/diagnostics` (Vector3Stamped: u_ahead, reason 0 terrain /
   1 stale map / 2 no TF, map age), no change to the limit. rover_traversability 98 tests pass.
   Queued `tools/exp_bag_gov.sh` (after exp_g01): two behind_left bags with it.
+- exp_g01 cost: rtf fell from 0.288 (rock_field ahead_10m) to 0.20 to 0.21 on far_right, and one
+  terrain_features process runs at 132% CPU (the other at 26%). The global features at 0.1 m cost
+  grows with the observed area (4x cells per m^2), so the "no cost" note above holds only for short
+  routes. If g01 helps, the shippable form is cheaper: features only for global cells near the rover,
+  or keep 0.2 m and take the step from the 0.05 m local map. far_right r1 still aborted 14.0 m out
+  under g01 (it overlapped the low-priority build).
