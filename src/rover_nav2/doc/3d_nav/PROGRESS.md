@@ -1601,3 +1601,12 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   running) and marsyard behind_left near-goal timeouts.
 - behind_left: all 3D timeouts reach 0.5 m at 50 to 67 s, then hold 0.33 to 0.48 m out for 180 s with no recovery, error or collision monitor action, no rock within 1.3 m of the goal. Queued `tools/exp_bag_fsbl.sh` (3 bags with the fix, governor diagnostics, both costmaps) after exp_south, before the swerve run (v1.1 gate first).
 - 22:05 disk 92% (9.7 GB, under the guard's 10 GB floor, the next bags would be refused). Temp clearing freed nothing, so the analysed lane25 bag was compressed losslessly with zstd, 1.4 GB to 267 MB (verified with zstd -t and the tar listing). 11 GB free.
+
+## 2026-11-14
+
+- 23:52 exp_south done (urc_mix far_south only, D 250, `tools/exp_south.sh`): with the fine step
+  5/6 (times 95, 98, 194, 194, 235 s, recoveries 0, 0, 7, 7, 7, one abort with 15), plain 2/6
+  (238 and 248 s with 7 recoveries each, two aborts with 15, one timeout with 14, one canceled).
+  Counting the earlier runs, far_south with the fix is 11/12 (exp_fs 3/3, exp_fs_rep 3/3, here
+  5/6), plain 4/9 at D 250 (exp_plain_d250 2/3, here 2/6). The fix is real on the goal that drove
+  the urc_mix gate failure. It still needs 7 recoveries in about half of its runs.
