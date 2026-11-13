@@ -1558,3 +1558,12 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   `tools/exp_bag_fs.sh` (bags with the fix of far_south with costmaps and sidehill with governor
   diagnostics, `bag_run.sh` takes env EXTRA_LAUNCH), `tools/exp_fs_rep.sh` (repeat of slopes,
   urc_mix, marsyard with the fix, the drift check).
+- 18:47 exp_fs2 done, gate on all 6 worlds with the fix (`evidence/phase3_gate_fs_d250.txt`):
+  2 FAIL, 48/57 against plain 44/57, unsafe 0 everywhere. bars 3/6 (past_bars_6m 3/3, plain 0/6),
+  crater_field 9/9 rec 0. Left: urc_mix recoveries 28 vs 15 and ttg 1.53 (far_south r2, r3), bars
+  ttg item (past_bars_4m 0/3, 2D 1/3). Not drift-checked yet (exp_fs_rep running).
+- Fix bags both succeeded: far_south passes rock_080 at 320 s and arrives at 460 s
+  (`bags/run_fsfarsouth_burn8_1113_1848`), sidehill in 4 min (`bags/run_fssidehill_burn8_1113_1856`).
+- Queued `tools/exp_south.sh` (after exp_fs_rep): far_south only, 6 runs with the fix and 6 plain,
+  since 3 per side cannot separate a fix from noise. Then `tools/exp_swerve_fs.sh`: swerve (v4
+  overlay) on all 6 worlds x3 at D 250 with the fix, the first v2 numbers on the new defaults.
