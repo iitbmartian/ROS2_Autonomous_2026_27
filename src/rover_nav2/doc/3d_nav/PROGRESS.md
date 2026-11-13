@@ -1583,7 +1583,7 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   14 in the repeat (2D 15), far_south median 294 to 103 s, so its ttg is noisy. marsyard
   behind_left 1/3 then 0/3, so the fix does not solve that goal reliably (still near-goal timeouts,
   0.45 m out). left_diag 3/3 then 2/3. slopes lane25 0/3 both, sidehill 2/3 both.
-- Offline replay of the lane25 bag (`tools/replay_fine_step.sh bags/run_slope25_burn8_1113_2117
+- Offline replay of the lane25 bag (`tools/replay_fine_step.sh bags/run_slope25_burn8_1113_2117 (now .tar.zst)
   analysis/replay/slope25`, output `analysis/replay/slope25.txt` and `.png`): the fine step raises
   1018 of 11786 global cells by more than 2 cm, 128 newly over step_max, 126 newly at best
   utilisation >= 1. The large raises sit in straight lines at y -1.3 to -1.5 and -8.5 to -8.7 and
@@ -1600,3 +1600,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   plainly. Not a tuning dive (tuning stance). Next gate work: urc_mix far_south (exp_south 6 vs 6
   running) and marsyard behind_left near-goal timeouts.
 - behind_left: all 3D timeouts reach 0.5 m at 50 to 67 s, then hold 0.33 to 0.48 m out for 180 s with no recovery, error or collision monitor action, no rock within 1.3 m of the goal. Queued `tools/exp_bag_fsbl.sh` (3 bags with the fix, governor diagnostics, both costmaps) after exp_south, before the swerve run (v1.1 gate first).
+- 22:05 disk 92% (9.7 GB, under the guard's 10 GB floor, the next bags would be refused). Temp clearing freed nothing, so the analysed lane25 bag was compressed losslessly with zstd, 1.4 GB to 267 MB (verified with zstd -t and the tar listing). 11 GB free.
