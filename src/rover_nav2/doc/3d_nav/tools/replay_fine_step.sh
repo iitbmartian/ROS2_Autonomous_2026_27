@@ -9,7 +9,7 @@ export ROS_DOMAIN_ID=77 ROS_LOCALHOST_ONLY=1
 T=$HOME/.ros/rover_3d_nav/tools
 common="-p use_sim_time:=true -p input_topic:=/terrain/global -p sensor_frame:=lidar3d_link"
 ros2 run rover_terrain_mapping terrain_features_node --ros-args -r __node:=feat_off $common \
-  -p output_topic:=/replay/off -p fine_step_topic:="" > $OUT.off.log 2>&1 & P1=$!
+  -p output_topic:=/replay/off > $OUT.off.log 2>&1 & P1=$!
 ros2 run rover_terrain_mapping terrain_features_node --ros-args -r __node:=feat_on $common \
   -p output_topic:=/replay/on -p fine_step_topic:=/terrain/local_features > $OUT.on.log 2>&1 & P2=$!
 python3 $T/replay_fine_step_cmp.py $OUT > $OUT.txt 2>&1 & P3=$!

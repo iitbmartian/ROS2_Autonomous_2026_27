@@ -1,5 +1,5 @@
 {
- "headline": "Fix on all 6 worlds: 48/57 vs 44/57, unsafe 0, gate down to 2 FAIL (urc_mix far_south, bars 4m). Drift checks running",
+ "headline": "Fix holds on the repeat except slopes (lane25 0/6 with the fix). Faster loop: targeted runs, bags, offline replay; full runs only at checkpoints",
  "queue": [
   {
    "script": "exp_fs_rep.sh",
@@ -12,6 +12,13 @@
     }
    ],
    "deadline": "2026-11-14 06:00"
+  },
+  {
+   "script": "exp_bag_slope.sh",
+   "label": "Recording of slopes lane25 with the fix (terrain topics, for offline replay)",
+   "stages": [],
+   "deadline": "2026-11-13 23:00",
+   "minutes": 10
   },
   {
    "script": "exp_south.sh",
@@ -32,11 +39,11 @@
   },
   {
    "script": "exp_swerve_fs.sh",
-   "label": "v2 swerve with the fix, 6 worlds x3",
+   "label": "v2 swerve with the fix, marsyard rock_field urc_mix slopes x2",
    "stages": [
     {
      "out": "2026-11-14_3d_gt_swerve_fs_d250",
-     "rows": 57,
+     "rows": 26,
      "ref": "2026-11-13_3d_gt_plain_d250"
     }
    ],
@@ -87,13 +94,14 @@
  "deadline": "2026-11-22 00:00",
  "issues": [
   "urc_mix far_south: with the fix all runs arrive, but some still stall on the way (gate recoveries 28 vs 15). 6 vs 6 repeat queued",
-  "slopes sidehill slower with the fix (109 and 246 s vs 38 s), lane25 0/3 vs 1/3, may be noise, repeat queued",
+  "slopes lane25 0/6 with the fix (safety monitor cancels at about 20 s), plain 1/3 to 3/3. Recording and offline replay tonight",
   "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic course, low priority)",
   "Disk 91%, 12 GB free"
  ],
  "plans": [
-  "Tonight: drift-check the fix (repeat), far_south 6 vs 6, then the first swerve run with the fix",
-  "14 Nov: make the fine step the default if the repeat holds, fix far_south, close Phase 3",
+  "Tonight: find what the fine step adds on the slopes lanes (replay), fix it, targeted re-test",
+  "Also tonight: far_south 6 vs 6, first swerve look with the fix",
+  "14 Nov: make the fine step the default, one full 6-world checkpoint run, close Phase 3",
   "15 Nov: v1.1 (Ackermann 3D nav), 20 Nov: v2 swerve, 22 Nov: real rover"
  ]
 }

@@ -1578,3 +1578,24 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
 - Queue slip caught: requeued scripts got the launching zsh pid as wait pid (pgrep matched the
   shell's own command line), so exp_south and exp_swerve_fs would have started at once beside the
   running benchmark. Killed within a minute, requeued from one bash with `$!`.
+- 21:17 exp_fs_rep done (repeat of the fix on slopes, urc_mix, marsyard,
+  `drift_check.py 2026-11-13_3d_gt_fs_d250:2026-11-13_3d_gt_fs_rep_d250`): urc_mix 9/9 both, rec
+  14 in the repeat (2D 15), far_south median 294 to 103 s, so its ttg is noisy. marsyard
+  behind_left 1/3 then 0/3, so the fix does not solve that goal reliably (still near-goal timeouts,
+  0.45 m out). left_diag 3/3 then 2/3. slopes lane25 0/3 both, sidehill 2/3 both.
+- Offline replay of the lane25 bag (`tools/replay_fine_step.sh bags/run_slope25_burn8_1113_2117
+  analysis/replay/slope25`, output `analysis/replay/slope25.txt` and `.png`): the fine step raises
+  1018 of 11786 global cells by more than 2 cm, 128 newly over step_max, 126 newly at best
+  utilisation >= 1. The large raises sit in straight lines at y -1.3 to -1.5 and -8.5 to -8.7 and
+  along the lane25 ramp edge: the causeway sides of slopes.sdf (2.5 m wide, falling up to 0.8 m
+  over 0.3 m). Coarse step there 0.10, fine 0.21 to 0.26. These are real drop-offs, so the fine
+  step is the more correct one, it widens the lethal band at each side by about a cell. No rocks or
+  phantom steps on the lane surfaces.
+- sidehill with the fix (`bags/run_fssidehill_burn8_1113_1856`, governor diagnostics): u 0.9 to 1.0
+  for about 35 s on the 20 deg approach, which is the slow part. lane25 and sidehill are built to
+  sit at the limits (25 deg ramp near the pitch limit with the 2.9 deg abort margin, 20 deg roll
+  when driven along x), so small changes of line flip them. Unsafe 0 throughout.
+- Decision: keep the fine step (more correct physically, 48/57 vs 44/57 on 6 worlds, gate 2 FAIL
+  vs 2 with marsyard ttg fixed), accept the slopes marginal results as a known cost, report them
+  plainly. Not a tuning dive (tuning stance). Next gate work: urc_mix far_south (exp_south 6 vs 6
+  running) and marsyard behind_left near-goal timeouts.
