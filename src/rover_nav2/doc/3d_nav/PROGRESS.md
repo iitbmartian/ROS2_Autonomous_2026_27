@@ -1474,3 +1474,17 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   local costmaps and hazard points, for `costmap_vs_rocks.py`.
 - marsyard behind_left: plain 3D at D 250 timed out 3/3 (0.46 m out), lethal-free 1/3. At D 200
   plain 2/3, lethal-free 3/3. A D 250 effect near the goal on both trees, next to look at.
+- 08:15 exp_plain_d250 done, gate `evidence/phase3_gate_plain_d250.txt`: 2 FAIL, the best so far.
+  Plain 3D (default tree) at D 250 is 44/57, unsafe 0, rec 68, against lethal-free 43/57 rec 114
+  and 2D 36/57 unsafe 1 rec 271 (`compare_final.py 2026-11-13_3d_gt_plain_d250
+  2026-11-13_3d_gt_lethalfree_d250 2026-11-13_2d_base_d250`). Recoveries now pass on every world
+  (rock_field 1 vs 37, urc_mix 7 vs 15). The fails are ttg items where 3D misses a goal 2D reaches:
+  marsyard behind_left (0/3, all timeouts about 0.46 m out) and bars past_bars_4m (2D 1/3). The
+  lethal-free tree is dropped, plain stays the default.
+- exp_bag_cm: the far_right bag recorded 1321 s but no goal ran. bt_navigator logged "Failed to
+  send goal response (timeout)" and send_goal.py never got the handle, a lost DDS response under
+  the extra costmap load. far_south was refused by guard.sh at 9 GB free (floor 10 GB). The global
+  costmap in that bag is 0.2 m resolution and rates rock_061 (0.19 m wide, 0.12 m tall, seen from
+  3 m) as low cost, never lethal, which fits the under-rating idea. Re-running far_south with the
+  costmaps (`tools/exp_bag_cm2.sh`, guard floor 6 GB for this one 0.3 GB bag).
+- Disk is at 93% (8.8 GB free). Our data is about 6 GB (~/.ros 6.3 GB, results 1.5 GB). Asked Ram.
