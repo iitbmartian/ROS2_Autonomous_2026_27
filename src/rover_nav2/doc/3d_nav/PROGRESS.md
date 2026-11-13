@@ -1623,3 +1623,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   (after the swerve look): the re-approach tree with the fine step at D 250 on marsyard x3, rock_field
   x2, far_south x3. Then `tools/exp_ckpt.sh`, the v1.1 candidate checkpoint (fine step plus
   re-approach, 6 worlds x3, gate), to be killed if exp_reap shows the tree hurts.
+- 01:04 health: exp_ckpt never started (the script lacked the exec bit, nohup printed permission denied and I did not check the pid). chmod +x and requeued after exp_reap (pid 881229). Queue now: exp_swerve_fs, exp_reap, exp_ckpt.
