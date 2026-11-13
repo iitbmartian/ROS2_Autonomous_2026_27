@@ -1624,3 +1624,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   x2, far_south x3. Then `tools/exp_ckpt.sh`, the v1.1 candidate checkpoint (fine step plus
   re-approach, 6 worlds x3, gate), to be killed if exp_reap shows the tree hurts.
 - 01:04 health: exp_ckpt never started (the script lacked the exec bit, nohup printed permission denied and I did not check the pid). chmod +x and requeued after exp_reap (pid 881229). Queue now: exp_swerve_fs, exp_reap, exp_ckpt.
+- 02:10 disk at 10 GB, the guard floor. Every bag directory older than 1 h was archived losslessly to `bags/<name>.tar.zst` (zstd -t and a file-count check against the directory before removing it), 30 bags, freed 2 GB, 12 GB free. To analyse one again: `tar --zstd -xf bags/<name>.tar.zst -C bags`.
