@@ -1599,3 +1599,4 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   vs 2 with marsyard ttg fixed), accept the slopes marginal results as a known cost, report them
   plainly. Not a tuning dive (tuning stance). Next gate work: urc_mix far_south (exp_south 6 vs 6
   running) and marsyard behind_left near-goal timeouts.
+- behind_left: all 3D timeouts reach 0.5 m at 50 to 67 s, then hold 0.33 to 0.48 m out for 180 s with no recovery, error or collision monitor action, no rock within 1.3 m of the goal. Queued `tools/exp_bag_fsbl.sh` (3 bags with the fix, governor diagnostics, both costmaps) after exp_south, before the swerve run (v1.1 gate first).

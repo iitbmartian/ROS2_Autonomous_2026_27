@@ -1,25 +1,6 @@
 {
- "headline": "Fix holds on the repeat except slopes (lane25 0/6 with the fix). Faster loop: targeted runs, bags, offline replay; full runs only at checkpoints",
+ "headline": "Fix repeat holds (urc_mix 9/9 rec 14). Slopes: fine step correctly marks causeway drop-offs, lane25 and sidehill stay marginal. Now: far_south 6 vs 6, then behind_left recordings",
  "queue": [
-  {
-   "script": "exp_fs_rep.sh",
-   "label": "Repeat the fix on slopes, urc_mix, marsyard (drift check)",
-   "stages": [
-    {
-     "out": "2026-11-13_3d_gt_fs_rep_d250",
-     "rows": 33,
-     "ref": "2026-11-13_3d_gt_fs_d250"
-    }
-   ],
-   "deadline": "2026-11-14 06:00"
-  },
-  {
-   "script": "exp_bag_slope.sh",
-   "label": "Recording of slopes lane25 with the fix (terrain topics, for offline replay)",
-   "stages": [],
-   "deadline": "2026-11-13 23:00",
-   "minutes": 10
-  },
   {
    "script": "exp_south.sh",
    "label": "far_south only, 6 with the fix and 6 plain",
@@ -36,6 +17,13 @@
     }
    ],
    "deadline": "2026-11-14 12:00"
+  },
+  {
+   "script": "exp_bag_fsbl.sh",
+   "label": "3 recordings of marsyard behind_left with the fix (near-goal stall at 0.4 m)",
+   "stages": [],
+   "deadline": "2026-11-14 08:00",
+   "minutes": 45
   },
   {
    "script": "exp_swerve_fs.sh",
@@ -93,15 +81,15 @@
  ],
  "deadline": "2026-11-22 00:00",
  "issues": [
-  "urc_mix far_south: with the fix all runs arrive, but some still stall on the way (gate recoveries 28 vs 15). 6 vs 6 repeat queued",
-  "slopes lane25 0/6 with the fix (safety monitor cancels at about 20 s), plain 1/3 to 3/3. Recording and offline replay tonight",
-  "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic course, low priority)",
-  "Disk 91%, 12 GB free"
+  "marsyard behind_left: every 3D timeout reaches 0.5 m in 50 to 67 s, then sits 0.33 to 0.48 m out for 180 s, no error (2D 3/3). Recordings queued",
+  "urc_mix far_south: arrives 3/3 with the fix, time is noisy (median 103 to 294 s). 6 vs 6 running",
+  "slopes lane25 0/6 and sidehill 4/6 with the fix: near-limit tests, the fine step correctly marks the causeway drop-offs, kept as a known cost",
+  "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic, low priority)"
  ],
  "plans": [
-  "Tonight: find what the fine step adds on the slopes lanes (replay), fix it, targeted re-test",
-  "Also tonight: far_south 6 vs 6, first swerve look with the fix",
-  "14 Nov: make the fine step the default, one full 6-world checkpoint run, close Phase 3",
+  "Tonight: far_south 6 vs 6, behind_left recordings, first swerve look",
+  "14 Nov morning: fix the behind_left near-goal stall, make the fine step the default",
+  "14 Nov: one full 6-world checkpoint run and the gate, close Phase 3",
   "15 Nov: v1.1 (Ackermann 3D nav), 20 Nov: v2 swerve, 22 Nov: real rover"
  ]
 }
