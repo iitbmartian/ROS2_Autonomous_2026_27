@@ -1546,3 +1546,15 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   `evidence/phase3_gate_fs_d250.txt`.
 - Status page simplified on Ram's ask: status, now, current issues, plan, queue with ETA,
   milestones, one benchmark table and the gate verdicts (plan.json has `issues` and `plans`).
+- 17:16 exp_fs done (4 worlds), gate `evidence/phase3_gate_fs_d250.txt` (bars and crater_field
+  not run yet, so their two FAILs are missing data). Plain 3D with global_fine_step at D 250:
+  rock_field 9/9 rec 0 (plain 9/9 rec 1, far_right median 62 to 49 s), urc_mix 9/9 (plain 8/9),
+  marsyard 7/9 (plain 6/9) and its ttg item now passes (1.27, was a FAIL), slopes 11/15 (plain
+  13/15: lane25 0/3 vs 1/3, sidehill 2/3 at 109 and 246 s vs 3/3 at 38 s). Still failing on
+  urc_mix: recoveries 28 vs 15 and ttg 1.53, both from far_south r2 and r3 (14 recoveries each,
+  13 "Failed to make progress", they still arrive). Not drift-checked yet, no claim.
+- My miss: nothing was queued behind exp_fs and the machine idled 17:16 to 18:04. Now queued in
+  order: `tools/exp_fs2.sh` (crater_field and bars with the fix, gate on all 6 worlds),
+  `tools/exp_bag_fs.sh` (bags with the fix of far_south with costmaps and sidehill with governor
+  diagnostics, `bag_run.sh` takes env EXTRA_LAUNCH), `tools/exp_fs_rep.sh` (repeat of slopes,
+  urc_mix, marsyard with the fix, the drift check).

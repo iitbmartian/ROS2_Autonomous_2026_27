@@ -4,13 +4,14 @@
 # Hard wall cap 1200 s on the goal.
 # Env BURN=n adds n busy-loop processes during the goal, to reproduce benchmark load (RTF 0.3 to 0.45).
 # Env EXTRA_TOPICS adds topics to the bag (for example the costmaps).
+# Env EXTRA_LAUNCH adds pipeline_3d launch args (for example global_fine_step:=true).
 E=$HOME/.ros/rover_3d_nav; OUT=$E/bags/run_$1${BURN:+_burn$BURN}_$(date +%m%d_%H%M)
 source $E/tools/simenv.sh
 export GZ_PARTITION=rover_bag ROVER_BENCH_RUN=bag_run
 cd /home/ram/ROS2_Autonomous_2026_27
 mkdir -p $E/bags
 setsid ros2 launch rover_bringup pipeline_3d.launch.py world:=$2 gui:=false viz:=false \
-  odom_source:=ground_truth drive:=$6 suspension:=plugin governor_v_nominal:=0.5 governor_u_free:=0.3 \
+  odom_source:=ground_truth drive:=$6 suspension:=plugin governor_v_nominal:=0.5 governor_u_free:=0.3 ${EXTRA_LAUNCH} \
   $( [ -n "$7" ] && echo nav_extra_overlay:=$7 || { [ "$6" = swerve ] && echo nav_extra_overlay:=$E/exp/nav2_3d_swerve_v2.yaml; } ) > $OUT.launch.log 2>&1 &
 LP=$!
 for i in $(seq 120); do ros2 lifecycle get /bt_navigator 2>/dev/null | grep -q active && break; sleep 5; done
