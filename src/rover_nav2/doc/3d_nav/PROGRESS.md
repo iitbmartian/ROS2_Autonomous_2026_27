@@ -1610,3 +1610,16 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   Counting the earlier runs, far_south with the fix is 11/12 (exp_fs 3/3, exp_fs_rep 3/3, here
   5/6), plain 4/9 at D 250 (exp_plain_d250 2/3, here 2/6). The fix is real on the goal that drove
   the urc_mix gate failure. It still needs 7 recoveries in about half of its runs.
+- 00:56 behind_left bags with the fix (`tools/exp_bag_fsbl.sh`), all 3 timeouts. Bag 1 is invalid:
+  `steer_controller` failed to load at startup (spawner FATAL), so the rover only drove along x.
+  Bags 2 and 3 show the failure: the rover arrives aligned with the goal heading but about 0.35 m
+  to the side (offset (0.15, 0.35) from the goal, about 0.37 m lateral to yaw 2.5), then saws
+  forward and back at about 0.12 m/s with no yaw rate for 900 s. A car-like rover cannot close a
+  pure lateral offset that way, and every saw moves more than the progress checker's 0.10 m, so
+  no recovery runs. Same as the 2026-11-09 analysis.
+- That analysis produced `behavior_trees/navigate_to_pose_ackermann_3d_reapproach.xml`
+  (NearGoalTooLong, then a 1.5 m back-up and a new approach), never fully evaluated: the
+  2026-11-10 run got marsyard 9/9 at D 500 before it was stopped. Queued `tools/exp_reap.sh`
+  (after the swerve look): the re-approach tree with the fine step at D 250 on marsyard x3, rock_field
+  x2, far_south x3. Then `tools/exp_ckpt.sh`, the v1.1 candidate checkpoint (fine step plus
+  re-approach, 6 worlds x3, gate), to be killed if exp_reap shows the tree hurts.
