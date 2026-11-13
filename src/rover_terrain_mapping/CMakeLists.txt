@@ -50,7 +50,7 @@ target_link_libraries(contract_layers PUBLIC rover_traversability::traversabilit
 
 # Feature math (SPEC.md layer contract), plain C++ on Eigen.
 find_package(Eigen3 REQUIRED NO_MODULE)
-add_library(terrain_features STATIC src/features.cpp)
+add_library(terrain_features STATIC src/features.cpp src/fine_step.cpp)
 target_include_directories(terrain_features PUBLIC include)
 find_package(Threads REQUIRED)
 target_link_libraries(terrain_features PUBLIC Eigen3::Eigen Threads::Threads)
@@ -120,6 +120,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_features test/test_features.cpp)
   target_link_libraries(test_features terrain_features)
+
+  ament_add_gtest(test_fine_step test/test_fine_step.cpp)
+  target_link_libraries(test_fine_step terrain_features)
 
   ament_add_gtest(test_depth_range_cut test/test_depth_range_cut.cpp)
   target_link_libraries(test_depth_range_cut depth_range_cut)

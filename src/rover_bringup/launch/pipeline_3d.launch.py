@@ -97,7 +97,8 @@ def _launch(context):
         PythonLaunchDescriptionSource(os.path.join(launch_dir, 'terrain_mapping.launch.py')),
         launch_arguments={'sim': 'true', 'lowest_beam': str(lowest),
                           'fill_holes': LaunchConfiguration('fill_holes'),
-                          'params_file': LaunchConfiguration('mapping_params')}.items())])
+                          'params_file': LaunchConfiguration('mapping_params'),
+                          'global_fine_step': LaunchConfiguration('global_fine_step')}.items())])
     # nav2_sim.rviz plus the terrain elevation and slope maps (grid_map_rviz_plugin).
     rviz = Node(
         package='rviz2', executable='rviz2', output='screen',
@@ -159,6 +160,8 @@ def generate_launch_description():
                                  description='governor speed on benign terrain, m/s'),
            DeclareLaunchArgument('fill_holes', default_value='false',
                                  description='terrain_features: fill small enclosed unknown patches'),
+           DeclareLaunchArgument('global_fine_step', default_value='false',
+                                 description='global map takes the step of the 0.05 m local map'),
            DeclareLaunchArgument('mapping_params', default_value='',
                                  description='terrain_mapping_node parameter file, empty for '
                                              'terrain_mapping_sim.yaml'),

@@ -54,6 +54,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
+            'global_fine_step', default_value='false',
+            description='Global features take the step of the fine local map (small rocks)'),
+        DeclareLaunchArgument(
             'sim', default_value='true',
             description='Use /clock and the simulation parameter files'),
         DeclareLaunchArgument(
@@ -111,6 +114,9 @@ def generate_launch_description():
             parameters=[{'use_sim_time': LaunchConfiguration('sim'),
                          'input_topic': '/terrain/global',
                          'output_topic': '/terrain/global_features',
+                         'fine_step_topic': PythonExpression(
+                             ["'/terrain/local_features' if '", LaunchConfiguration('global_fine_step'),
+                              "' == 'true' else ''"]),
                          'sensor_frame': LaunchConfiguration('sensor_frame'),
                          'negative.min_beam_angle': LaunchConfiguration('lowest_beam'),
                          'fill_holes': LaunchConfiguration('fill_holes')}],

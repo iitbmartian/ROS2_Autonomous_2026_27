@@ -1524,3 +1524,25 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   routes. If g01 helps, the shippable form is cheaper: features only for global cells near the rover,
   or keep 0.2 m and take the step from the 0.05 m local map. far_right r1 still aborted 14.0 m out
   under g01 (it overlapped the low-priority build).
+- 11:15 to 14:02 power outage, chain lost about 3 h. exp_g01 stopped at 11 rows and is dropped:
+  rock_field 4/9 against plain 9/9 at D 250, rtf down to 0.20, and the 0.1 m global features cost
+  (132% CPU) would not fit the Orin anyway.
+- Governor bag (`bags/run_gov1_burn8_1113_1408`, behind_left, succeeded, `governor diagnostics`):
+  map age 0.20 to 0.27 s throughout (never stale), and u_ahead is inf (no safe pose) for about 130 s
+  from 2.2 to 0.85 m before the goal, so the 0.05 m/s floor is right for what the governor sees.
+  The cause is `rock_085` (ellipsoid 0.38 x 0.27 m, top 0.112 m, over step_max) 0.4 m left of the
+  track, under the left wheel. Same root as the stuck goals: Smac routes on the 0.2 m global map,
+  where this rock is averaged away, and MPPI (point footprint) follows. The governor is doing its job.
+- Fine step into the global map (`rover_terrain_mapping/fine_step.hpp`, `src/fine_step.cpp`): each
+  global cell remembers the max step of the 0.05 m local map cells inside it from the latest local
+  map that covered at least half of it (less cover keeps the larger of old and new, so the local
+  map's edge never erases a rock seen from closer). The global step is max(own, remembered).
+  `terrain_features_node` param `fine_step_topic` (empty = off), launch arg `global_fine_step`
+  (terrain_mapping.launch.py and pipeline_3d.launch.py, default false). gtest `test_fine_step`
+  7 hand-computed cases (indexing, single rock cell, full cover replaces, partial cover keeps,
+  unknown ignored, 90 deg transform, apply). rover_terrain_mapping tests pass (240).
+- Queued `tools/exp_fs.sh` (after exp_bag_gov, deadline 14 Nov 02:00): plain 3D at D 250 with
+  `global_fine_step:=true` on rock_field, urc_mix, marsyard, slopes x3, gate into
+  `evidence/phase3_gate_fs_d250.txt`.
+- Status page simplified on Ram's ask: status, now, current issues, plan, queue with ETA,
+  milestones, one benchmark table and the gate verdicts (plan.json has `issues` and `plans`).

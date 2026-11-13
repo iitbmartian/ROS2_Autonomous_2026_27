@@ -25,6 +25,7 @@
 #include "tf2_ros/transform_listener.h"
 
 #include "rover_terrain_mapping/features.hpp"
+#include "rover_terrain_mapping/fine_step.hpp"
 #include "rover_traversability/grid_map_msg.hpp"
 #include "rover_traversability/core/physical_params.hpp"
 #include "rover_traversability/core/pose_evaluation.hpp"
@@ -99,6 +100,15 @@ public:
     pub_ = create_publisher<grid_map_msgs::msg::GridMap>(out, 1);
     sub_ = create_subscription<grid_map_msgs::msg::GridMap>(
       in, 1, [this](grid_map_msgs::msg::GridMap::ConstSharedPtr m) {onMap(*m);});
+    // Global instance only: carry the step of the fine local map into this coarse one, so a
+    // rock smaller than a cell is not averaged away (fine_step.hpp). Empty topic turns it off.
+    const auto fine_topic = declare_parameter<std::string>("fine_step_topic", "");
+    fine_min_cover_ = declare_parameter<double>("fine_step_min_cover", 0.5);
+    if (!fine_topic.empty()) {
+      fine_sub_ = create_subscription<grid_map_msgs::msg::GridMap>(
+        fine_topic, 1, [this](grid_map_msgs::msg::GridMap::ConstSharedPtr m) {onFine(*m);});
+      RCLCPP_INFO(get_logger(), "terrain_features: fine step from %s", fine_topic.c_str());
+    }
     RCLCPP_INFO(
       get_logger(), "terrain_features: %s -> %s, plane radius %.3f m, step radius %.3f m, "
       "negative obstacles from '%s'", in.c_str(), out.c_str(), fp_.plane_radius,
@@ -106,6 +116,32 @@ public:
   }
 
 private:
+  static CellGrid cellGrid(const GridGeometry & g)
+  {
+    return CellGrid{g.rows, g.cols, g.resolution, g.center_x, g.center_y};
+  }
+
+  void onFine(const grid_map_msgs::msg::GridMap & m)
+  {
+    if (coarse_frame_.empty()) {return;}
+    Eigen::MatrixXf st;
+    if (!readLayer(m, L::kStep, st)) {return;}
+    geometry_msgs::msg::TransformStamped tf;
+    try {
+      tf = tf_buffer_->lookupTransform(
+        coarse_frame_, m.header.frame_id, m.header.stamp, tf2::durationFromSec(0.1));
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000, "no fine map pose, fine step skipped: %s", e.what());
+      return;
+    }
+    const auto & q = tf.transform.rotation;
+    const double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+    fuseFineStep(
+      fine_memory_, coarse_geom_, st, cellGrid(geometryOf(m)),
+      Planar{tf.transform.translation.x, tf.transform.translation.y, yaw}, fine_min_cover_);
+  }
+
   void onMap(const grid_map_msgs::msg::GridMap & in)
   {
     Eigen::MatrixXf z, var;
@@ -134,6 +170,17 @@ private:
     // would never have two values to compare.
     fp_.step_radius = std::max(wheel_radius_, 1.5 * g.resolution);
     const FeatureLayers f = computeFeatures(z, var, fp_);
+    Eigen::MatrixXf step = f.step;
+    if (fine_sub_) {
+      const CellGrid cg = cellGrid(g);
+      if (coarse_frame_ != in.header.frame_id || !cg.sameAs(coarse_geom_)) {
+        coarse_frame_ = in.header.frame_id;
+        coarse_geom_ = cg;
+        fine_memory_.resize(0, 0);
+      } else if (fine_memory_.size() > 0) {
+        applyFineStep(step, fine_memory_);
+      }
+    }
 
     Eigen::MatrixXf neg = Eigen::MatrixXf::Constant(
       z.rows(), z.cols(), std::numeric_limits<float>::quiet_NaN());
@@ -164,7 +211,7 @@ private:
     writeLayer(out, L::kSlope, f.slope);
     writeLayer(out, "slope_std", f.slope_std);
     writeLayer(out, L::kRoughness, f.roughness);
-    writeLayer(out, L::kStep, f.step);
+    writeLayer(out, L::kStep, step);
     writeLayer(out, L::kNormalX, f.normal_x);
     writeLayer(out, L::kNormalY, f.normal_y);
     writeLayer(out, L::kNormalZ, f.normal_z);
@@ -180,7 +227,7 @@ private:
       tg.center_y = g.center_y;
       tg.elevation = z;
       tg.variance = var;
-      tg.step = f.step;
+      tg.step = step;
       tg.negative_obstacle = neg;
       // The roughness layer is the residual of a wheelbase / 2 plane fit, already the support
       // area, so the centre cell is read as is (rough_radius 0 below). A further disc max
@@ -258,6 +305,11 @@ private:
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr pub_;
   rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr sub_;
+  rclcpp::Subscription<grid_map_msgs::msg::GridMap>::SharedPtr fine_sub_;
+  std::string coarse_frame_;
+  CellGrid coarse_geom_;
+  Eigen::MatrixXf fine_memory_;
+  double fine_min_cover_{0.5};
 };
 
 }  // namespace rover_terrain_mapping

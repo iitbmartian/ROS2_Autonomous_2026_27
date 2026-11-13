@@ -1,81 +1,63 @@
 {
- "headline": "Phase 3 gate attempt with IsPathLethalFree, then final numbers at D 250",
+ "headline": "Power outage 11:15 to 14:02. 0.1 m global map dropped (rock_field 4/9, CPU cost). Next: take the step height from the fine local map into the global map",
  "queue": [
   {
-   "script": "exp_lethalfree.sh",
-   "label": "Plain 3D + IsPathLethalFree, 6 worlds x3, D 200, then gate vs 2D D 200",
-   "stages": [
-    {
-     "out": "2026-11-12_3d_gt_lethalfree_d200",
-     "rows": 57,
-     "ref": "2026-11-11_3d_gt_gate_d200"
-    }
-   ],
-   "deadline": "2026-11-12 21:50"
-  },
-  {
-   "script": "exp_d250.sh",
-   "label": "Final numbers on default D 250: 3D lethal-free, then 2D bounded, 6 worlds x3, gate",
-   "stages": [
-    {
-     "out": "2026-11-13_3d_gt_lethalfree_d250",
-     "rows": 57,
-     "ref": "2026-11-11_3d_gt_gate_d200"
-    },
-    {
-     "out": "2026-11-13_2d_base_d250",
-     "rows": 57,
-     "ref": "2026-11-11_2d_base_d200"
-    }
-   ],
-   "deadline": "2026-11-13 14:00"
-  },
-  {
-   "script": "exp_bag_open.sh",
-   "label": "Bags of goals every stack fails (urc_mix far_south, bars past_bars_4m), lethal-free tree, D 250",
+   "script": "exp_bag_gov.sh",
+   "label": "Governor recordings, marsyard behind_left (why it crawls at 0.05 m/s near the goal)",
    "stages": [],
-   "deadline": "2026-11-13 16:00"
+   "deadline": "2026-11-13 16:00",
+   "minutes": 30
   }
  ],
  "compare": [
-  "2026-11-12_3d_gt_lethalfree_d200",
-  "2026-11-11_3d_gt_gate_d200",
-  "2026-11-11_2d_base_d200"
+  "2026-11-13_3d_gt_plain_d250",
+  "2026-11-13_3d_gt_lethalfree_d250",
+  "2026-11-13_2d_base_d250"
  ],
  "gates": [
-  "phase3_gate_lethalfree_d200.txt",
-  "phase3_gate_gate_d200.txt",
+  "phase3_gate_plain_d250.txt",
   "phase3_gate_lethalfree_d250.txt"
  ],
  "next_goals": [
-  "Phase 3 gate: recoveries no worse than 2D on every world (fails now on marsyard, rock_field, urc_mix)",
-  "If the lethal-free tree passes: make it the 3D default tree, close Phase 3",
-  "Final reported numbers at D 250, drift-checked against D 200",
-  "Open failures: slopes lane25 and sidehill_uphill, urc_mix far_south",
-  "Paper and deck update at the v1.1 checkpoint",
-  "Hardware facts from Ram before 22 Nov (odom, L2, SBG IMU topics, CG height and mass, 0.07 m wheel offset)"
+  "marsyard behind_left at D 250: 0/3, timeouts 0.46 m out (near-goal)",
+  "marsyard behind_left: governor holds its 0.05 m/s floor 65 s near the goal, diagnostics added, find the cause",
+  "Small sharp rocks under-rated in the 0.2 m global map (far_south, rock far_right): finer step check or rock dilation",
+  "Close Phase 3, v1.1 branch, paper and deck",
+  "Disk cleared to 12 GB free (91%)"
  ],
  "deliverables": [
   {
-   "what": "Phase 3 gate evidence with IsPathLethalFree (D 200)",
-   "when": "12 Nov night"
+   "what": "Final D 250 numbers and gate: 3D default 44/57, 2 gate items left",
+   "when": "done 13 Nov"
   },
   {
-   "what": "Final v1.1 numbers at D 250 + gate",
-   "when": "13 Nov early morning"
+   "what": "Fix small rocks (fine step into global map) and governor crawl, gate passes",
+   "when": "14 Nov"
   },
   {
-   "what": "v1.1 delivered (Ackermann 3D nav, gate passed, PR-ready branch, paper and deck updated)",
-   "when": "14 Nov (15 Nov if the gate needs one more fix)"
+   "what": "v1.1: Ackermann 3D nav, PR-ready branch, paper and deck",
+   "when": "15 Nov"
   },
   {
-   "what": "v2 delivered (swerve: Phase 4 gate, swerve near-goal slowness fixed)",
-   "when": "20 Nov target"
+   "what": "v2: swerve",
+   "when": "20 Nov"
   },
   {
    "what": "Real-rover tests",
    "when": "from 22 Nov"
   }
  ],
- "deadline": "2026-11-22 00:00"
+ "deadline": "2026-11-22 00:00",
+ "issues": [
+  "Small rocks (under 0.2 m) vanish in the coarse global map, so the planner drives a wheel into them and the rover gets stuck (urc_mix far_south, rock_field far_right, bars)",
+  "Speed governor crawls at 0.05 m/s for about 65 s near the marsyard behind_left goal, so 3D misses it (gate item)",
+  "bars past_bars_4m: wheel pinned on the 12 cm bar, 3D 0/3 (synthetic course, low priority)",
+  "Disk at 91%, 12 GB free"
+ ],
+ "plans": [
+  "Now: governor recordings to find why it holds the 0.05 m/s floor",
+  "Next: carry the fine 0.05 m step into the global map (code written, building and testing), then benchmark rock_field, urc_mix, marsyard",
+  "Then: fix the governor crawl, re-run the Phase 3 gate",
+  "15 Nov: v1.1 (Ackermann 3D nav), 20 Nov: v2 swerve, 22 Nov: real rover"
+ ]
 }
