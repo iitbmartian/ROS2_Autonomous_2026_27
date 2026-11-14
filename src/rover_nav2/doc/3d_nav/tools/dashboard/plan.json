@@ -1,30 +1,6 @@
 {
- "headline": "Fix repeat holds (urc_mix 9/9 rec 14). Slopes: fine step correctly marks causeway drop-offs, lane25 and sidehill stay marginal. Now: far_south 6 vs 6, then behind_left recordings",
+ "headline": "far_south fixed (fine step 5/6 vs plain 2/6). behind_left: rover parks 0.35 m beside the goal and saws, testing the re-approach tree next. v1.1 checkpoint queued",
  "queue": [
-  {
-   "script": "exp_south.sh",
-   "label": "far_south only, 6 with the fix and 6 plain",
-   "stages": [
-    {
-     "out": "2026-11-14_3d_gt_south_fs_d250",
-     "rows": 6,
-     "ref": "2026-11-13_3d_gt_fs_d250"
-    },
-    {
-     "out": "2026-11-14_3d_gt_south_plain_d250",
-     "rows": 6,
-     "ref": "2026-11-13_3d_gt_fs_d250"
-    }
-   ],
-   "deadline": "2026-11-14 12:00"
-  },
-  {
-   "script": "exp_bag_fsbl.sh",
-   "label": "3 recordings of marsyard behind_left with the fix (near-goal stall at 0.4 m)",
-   "stages": [],
-   "deadline": "2026-11-14 08:00",
-   "minutes": 45
-  },
   {
    "script": "exp_swerve_fs.sh",
    "label": "v2 swerve with the fix, marsyard rock_field urc_mix slopes x2",
@@ -36,16 +12,42 @@
     }
    ],
    "deadline": "2026-11-14 18:00"
+  },
+  {
+   "script": "exp_reap.sh",
+   "label": "Targeted: re-approach tree + fine step (marsyard x3, rock_field x2, far_south x3)",
+   "stages": [
+    {
+     "out": "2026-11-14_3d_gt_reap_fs_d250",
+     "rows": 24,
+     "ref": "2026-11-13_3d_gt_plain_d250"
+    }
+   ],
+   "deadline": "2026-11-14 10:00"
+  },
+  {
+   "script": "exp_ckpt.sh",
+   "label": "v1.1 checkpoint: fine step + re-approach, 6 worlds x3, gate",
+   "stages": [
+    {
+     "out": "2026-11-14_3d_gt_ckpt_d250",
+     "rows": 57,
+     "ref": "2026-11-13_3d_gt_plain_d250"
+    }
+   ],
+   "deadline": "2026-11-14 18:00"
   }
  ],
  "compare": [
+  "2026-11-14_3d_gt_ckpt_d250",
   "2026-11-13_3d_gt_fs_d250",
   "2026-11-13_3d_gt_plain_d250",
   "2026-11-13_2d_base_d250",
-  "2026-11-13_3d_gt_fs_rep_d250",
+  "2026-11-14_3d_gt_reap_fs_d250",
   "2026-11-14_3d_gt_swerve_fs_d250"
  ],
  "gates": [
+  "phase3_gate_ckpt_d250.txt",
   "phase3_gate_fs_d250.txt",
   "phase3_gate_plain_d250.txt",
   "phase4_gate_swerve_fs_d250.txt"
@@ -81,15 +83,15 @@
  ],
  "deadline": "2026-11-22 00:00",
  "issues": [
-  "marsyard behind_left: every 3D timeout reaches 0.5 m in 50 to 67 s, then sits 0.33 to 0.48 m out for 180 s, no error (2D 3/3). Recordings queued",
-  "urc_mix far_south: arrives 3/3 with the fix, time is noisy (median 103 to 294 s). 6 vs 6 running",
-  "slopes lane25 0/6 and sidehill 4/6 with the fix: near-limit tests, the fine step correctly marks the causeway drop-offs, kept as a known cost",
+  "marsyard behind_left: rover arrives 0.35 m beside the goal and saws back and forth (car-like, can't slide sideways). Re-approach tree test queued",
+  "urc_mix far_south: fixed by the fine step (11/12 across runs vs plain 4/9), still 7 recoveries in half the runs",
+  "slopes lane25 and sidehill marginal with the fine step (near-limit tests, drop-offs now marked correctly)",
   "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic, low priority)"
  ],
  "plans": [
-  "Tonight: far_south 6 vs 6, behind_left recordings, first swerve look",
-  "14 Nov morning: fix the behind_left near-goal stall, make the fine step the default",
-  "14 Nov: one full 6-world checkpoint run and the gate, close Phase 3",
-  "15 Nov: v1.1 (Ackermann 3D nav), 20 Nov: v2 swerve, 22 Nov: real rover"
+  "Overnight: swerve first look, then the re-approach test, then the v1.1 checkpoint run (about 5 h)",
+  "14 Nov afternoon: checkpoint gate, make fine step + re-approach the 3D default, rebuild and test the 2D stack",
+  "15 Nov: v1.1 delivered (PR-ready branch, paper and deck)",
+  "20 Nov: v2 swerve, 22 Nov: real rover"
  ]
 }

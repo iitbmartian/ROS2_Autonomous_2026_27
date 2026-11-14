@@ -1625,3 +1625,23 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   re-approach, 6 worlds x3, gate), to be killed if exp_reap shows the tree hurts.
 - 01:04 health: exp_ckpt never started (the script lacked the exec bit, nohup printed permission denied and I did not check the pid). chmod +x and requeued after exp_reap (pid 881229). Queue now: exp_swerve_fs, exp_reap, exp_ckpt.
 - 02:10 disk at 10 GB, the guard floor. Every bag directory older than 1 h was archived losslessly to `bags/<name>.tar.zst` (zstd -t and a file-count check against the directory before removing it), 30 bags, freed 2 GB, 12 GB free. To analyse one again: `tar --zstd -xf bags/<name>.tar.zst -C bags`.
+- 04:35 exp_swerve_fs done (first v2 look, swerve v4 overlay with the fine step at D 250,
+  marsyard, rock_field, urc_mix, slopes x2): 17/28, unsafe 0, rec 30, gate items on those worlds
+  fail for rock_field ttg (misses far_left) and urc_mix ttg 1.81. Swerve stays 2 to 3x slower than
+  Ackermann (urc_mix mid_20m 164 s against 47 s), the known v2 item.
+- 06:14 exp_reap done (re-approach tree with the fine step, targeted): marsyard 9/9, behind_left
+  3/3 (was 0/3 plain, 1/3 then 0/3 with the fine step alone), rock_field 5/6 (one ahead_10m abort),
+  far_south 2/3.
+- 09:18 exp_ckpt done, the v1.1 candidate (fine step + re-approach, 6 worlds x3, D 250,
+  `evidence/phase3_gate_ckpt_d250.txt`, `compare_final.py 2026-11-14_3d_gt_ckpt_d250
+  2026-11-13_3d_gt_fs_d250 2026-11-13_3d_gt_plain_d250 2026-11-13_2d_base_d250`): 49/57, unsafe 0,
+  rec 46, against fine step alone 48/57 rec 65, plain 44/57 rec 68, 2D 36/57 unsafe 1 rec 271.
+  Gate 2 FAIL: marsyard recoveries 3 vs 0 and ttg 1.73 (behind_left 3/3 now, but the back-up makes
+  it 60 s against 2D 25 s, and the back-ups count as recoveries), bars past_bars_4m (0/3, 2D 1/3).
+  urc_mix now passes (8/9, rec 0, ttg 0.92). rock_field ahead_10m 1/3 in this run (3/3 with the fine
+  step alone), checking it.
+- My miss: the hourly health-check job had expired (session cron jobs last 7 days), so nothing
+  checked from 04:04 and the machine idled 09:18 to 13:32, 4 h lost. Recreated the job (expires
+  21 Nov, renew before), with the keep-two-queued rule and the disk floor in its text. Started
+  `tools/exp_ck2.sh` (rock_field ahead_10m x6, behind_left x3 with the candidate), then
+  `tools/exp_ck3.sh` (candidate drift check, marsyard, rock_field, urc_mix x3).

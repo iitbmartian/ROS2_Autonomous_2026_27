@@ -129,7 +129,7 @@ def summary(d):
 
 
 LABEL = {'3d_gt_plain_d250': '3D (default)', '3d_gt_lethalfree_d250': '3D lethal-free check',
-         '2d_base_d250': '2D baseline', '3d_gt_g01_d250': '3D, 0.1 m global map', '3d_gt_fs_d250': '3D + fine step (fix)', '3d_gt_fs_rep_d250': '3D + fine step, repeat', '3d_gt_swerve_fs_d250': 'Swerve + fine step'}
+         '2d_base_d250': '2D baseline', '3d_gt_g01_d250': '3D, 0.1 m global map', '3d_gt_fs_d250': '3D + fine step (fix)', '3d_gt_fs_rep_d250': '3D + fine step, repeat', '3d_gt_swerve_fs_d250': 'Swerve + fine step', '3d_gt_reap_fs_d250': '3D + fine step + re-approach (targeted)', '3d_gt_ckpt_d250': 'v1.1 candidate (fine step + re-approach)'}
 
 
 def nice(d):
