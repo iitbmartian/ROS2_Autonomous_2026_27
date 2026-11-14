@@ -1,36 +1,29 @@
 {
- "headline": "v1.1 numbers confirmed by a repeat (26/27 on the three worlds that moved). Paper and deck drafted. Last check: re-approach A/B on one rock-field goal, then push ~19:30",
+ "headline": "v1.1 cut: branch ram/3d_nav-v1.1 and tag 3d-nav-v1.1 ready locally (push pending Ram). A/B cleared the re-approach. v1.1 repeat on the last three worlds running",
  "queue": [
   {
-   "script": "exp_bag_ra10.sh",
-   "label": "Recordings of rock_field ahead_10m with v1.1",
-   "stages": [],
-   "deadline": "2026-11-14 18:00",
-   "minutes": 10
-  },
-  {
-   "script": "exp_bag_swslow.sh",
-   "label": "v2 start: recordings of the slow swerve run",
-   "stages": [],
-   "deadline": "2026-11-14 19:00",
-   "minutes": 30
-  },
-  {
-   "script": "exp_ab10.sh",
-   "label": "A/B: re-approach tree vs pre-v1.1 tree on rock_field ahead_10m, 6 runs each",
+   "script": "exp_ck4.sh",
+   "label": "v1.1 repeat on slopes, crater_field, bars",
    "stages": [
     {
-     "out": "2026-11-14_3d_gt_ab10_reap_d250",
-     "rows": 6,
-     "ref": "2026-11-14_3d_gt_ck2_d250"
-    },
-    {
-     "out": "2026-11-14_3d_gt_ab10_plaintree_d250",
-     "rows": 6,
-     "ref": "2026-11-14_3d_gt_ck2_d250"
+     "out": "2026-11-14_3d_gt_ck4_d250",
+     "rows": 30,
+     "ref": "2026-11-14_3d_gt_ckpt_d250"
     }
    ],
-   "deadline": "2026-11-15 06:00"
+   "deadline": "2026-11-15 08:00"
+  },
+  {
+   "script": "exp_swmid.sh",
+   "label": "v2: swerve mid_20m x3 in sim time",
+   "stages": [
+    {
+     "out": "2026-11-14_3d_gt_swmid_d250",
+     "rows": 3,
+     "ref": "2026-11-14_3d_gt_swerve_fs_d250"
+    }
+   ],
+   "deadline": "2026-11-15 10:00"
   }
  ],
  "compare": [
@@ -62,8 +55,8 @@
    "when": "done 14 Nov 09:18"
   },
   {
-   "what": "v1.1: branch ram/3d_nav-v1.1, paper and deck",
-   "when": "14 Nov ~19:30 (paper and deck drafts sent 14:30)"
+   "what": "v1.1: branch ram/3d_nav-v1.1 + tag, paper and deck",
+   "when": "cut 14 Nov 19:58, push pending"
   },
   {
    "what": "v2: swerve",
@@ -78,7 +71,7 @@
  "issues": [
   "Gate: marsyard behind_left now 3/3 but the back-up takes 60 s (2D 25 s) and counts 3 recoveries vs 0",
   "Gate: bars past_bars_4m 0/3 (2D 1/3), wheel pinned on the 12 cm bar, synthetic course",
-  "rock_field ahead_10m: 10/15 with the re-approach tree today vs 3/3 each time without it, same-day A/B queued",
+  "rock_field ahead_10m stalls in about 1 of 6 runs with or without the re-approach (A/B 5/6 vs 5/6), a known intermittent goal",
   "Swerve still 2 to 3x slower than Ackermann (v2 item)"
  ],
  "plans": [
