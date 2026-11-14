@@ -1,6 +1,7 @@
 #!/bin/bash
 # Rest of the v2 swerve baseline (slopes, crater_field, bars x3) into the same out dir, after the
 # v5 tests. Args: deadline (epoch), pid to wait for.
+# Separate out dir: the first attempt left 9 partial slopes rows in 2026-11-15_3d_gt_swbase_d250.
 E=$HOME/.ros/rover_3d_nav; L=$HOME/rover_3d_nav_results/batch.log; B=$HOME/.ros/rover_benchmark; X=$E/exp
 log() { echo "$(date '+%F %H:%M') exp_swbase_rest: $*" >> $L; }
 clean() { for p in /proc/[0-9]*; do grep -qa ROVER_BENCH_RUN $p/environ 2>/dev/null && kill -9 ${p#/proc/} 2>/dev/null; done
@@ -13,12 +14,12 @@ grep -q "ROVER_COUPLING_D 250" install/rover_gazebo/share/rover_gazebo/urdf/rove
 log "start ($(git rev-parse --short HEAD)), D 250 default"
 G3="odom_source:=ground_truth suspension:=plugin governor_v_nominal:=0.5 governor_u_free:=0.3"
 W="slopes crater_field bars"
-t=3d_gt_swbase_d250; A="--config 3d --launch-args $G3 drive:=swerve nav_extra_overlay:=$X/nav2_3d_swerve_v4.yaml global_fine_step:=true"
+t=3d_gt_swbase2_d250; A="--config 3d --launch-args $G3 drive:=swerve nav_extra_overlay:=$X/nav2_3d_swerve_v4.yaml global_fine_step:=true"
 O=$B/2026-11-15_$t
   for w in $W; do [ "$(date +%s)" -ge "$1" ] && { log "deadline before $t $w"; break; }
     $E/tools/guard.sh 9000 ros2 run rover_nav2 benchmark --worlds $w --runs 3 --tag $t $A --out $O >> $E/evidence/exp_swbase_rest.out 2>&1 || log "$t $w exited $?"; clean
     log "$t $w: $(tally $O $w)"
   done
-python3 $E/tools/phase3_gate.py $B/2026-11-15_3d_gt_swbase_d250/runs.csv $B/2026-11-13_2d_base_d250/runs.csv > $E/evidence/phase4_gate_swbase_d250.txt 2>&1
-log "gate: $(grep -c FAIL $E/evidence/phase4_gate_swbase_d250.txt) FAIL items"
+python3 $E/tools/phase3_gate.py $B/2026-11-15_3d_gt_swbase2_d250/runs.csv $B/2026-11-13_2d_base_d250/runs.csv > $E/evidence/phase4_gate_swbase2_d250.txt 2>&1
+log "gate: $(grep -c FAIL $E/evidence/phase4_gate_swbase2_d250.txt) FAIL items"
 log "done"
