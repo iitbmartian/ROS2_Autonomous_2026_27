@@ -57,7 +57,9 @@ Data: `~/.ros/rover_benchmark/2026-11-14_3d_gt_ckpt_d250`, `2026-11-13_3d_gt_pla
 - slopes lane25_top (25 deg ramp) and sidehill_uphill (20 deg) sit at the tip limits by design and
   pass in 1/3 to 3/3 of runs depending on the approach line. Never unsafe.
 - urc_mix far_south still needs up to 7 recoveries in about half of its runs.
-- Swerve (v2) works but is 2 to 3 times slower than Ackermann.
+- Swerve is not part of v1.1. The code is in the branch (`drive:=swerve`, the rover_gazebo
+  swerve-mode branch) but experimental and off by default: it reaches the goals but is 2 to 3
+  times slower than Ackermann (first look 17/28 on 4 worlds). It is the v2 work.
 - Physical parameters in `rover_physical.yaml` are placeholders until measured on the rover.
 - Simulation only, ground-truth odometry. Real odometry and the real rover come next.
 
