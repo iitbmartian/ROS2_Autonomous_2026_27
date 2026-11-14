@@ -1645,3 +1645,14 @@ Overnight chain done (`exp_tonight_1108.sh`, then `exp_gate_clean.sh`, HEAD 358b
   21 Nov, renew before), with the keep-two-queued rule and the disk floor in its text. Started
   `tools/exp_ck2.sh` (rock_field ahead_10m x6, behind_left x3 with the candidate), then
   `tools/exp_ck3.sh` (candidate drift check, marsyard, rock_field, urc_mix x3).
+- 14:20 Ram accepted both remaining gate items: marsyard behind_left (3/3, the slower back-up and
+  its 3 recoveries are the accepted cost) and bars past_bars_4m (a 12 cm bar is over step_max, so
+  not climbing it is correct, a known limit). Phase 3 gate closed on the v1.1 candidate checkpoint
+  (`evidence/phase3_gate_ckpt_d250.txt`, 49/57, unsafe 0 on every world).
+- v1.1 defaults: `pipeline_3d.launch.py` `global_fine_step` default true, the 3D tree
+  `behavior_trees/navigate_to_pose_ackermann_3d.xml` is now the re-approach tree (NearGoalTooLong,
+  1.5 m back-up), `nav2_params_sim_3d.yaml` loads `rover_near_goal_too_long_bt_node`. Rebuilt
+  rover_nav2, rover_bringup, rover_traversability, rover_terrain_mapping. Tests: rover_nav2 40,
+  rover_traversability 98, rover_terrain_mapping 244, 0 failures. nav2_params_sim.yaml and
+  pipeline.launch.py differ from main only through the earlier merged branches (ram/suspension
+  and the rover_gazebo / rover_bringup branches), nothing in them changed today.

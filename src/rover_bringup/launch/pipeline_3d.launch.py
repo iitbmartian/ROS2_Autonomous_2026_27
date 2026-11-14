@@ -160,8 +160,9 @@ def generate_launch_description():
                                  description='governor speed on benign terrain, m/s'),
            DeclareLaunchArgument('fill_holes', default_value='false',
                                  description='terrain_features: fill small enclosed unknown patches'),
-           DeclareLaunchArgument('global_fine_step', default_value='false',
-                                 description='global map takes the step of the 0.05 m local map'),
+           DeclareLaunchArgument('global_fine_step', default_value='true',
+                                 description='global map takes the step of the 0.05 m local map '
+                                             '(default since v1.1, rocks under a 0.2 m cell)'),
            DeclareLaunchArgument('mapping_params', default_value='',
                                  description='terrain_mapping_node parameter file, empty for '
                                              'terrain_mapping_sim.yaml'),

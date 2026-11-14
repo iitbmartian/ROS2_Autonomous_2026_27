@@ -1,41 +1,29 @@
 {
- "headline": "far_south fixed (fine step 5/6 vs plain 2/6). behind_left: rover parks 0.35 m beside the goal and saws, testing the re-approach tree next. v1.1 checkpoint queued",
+ "headline": "v1.1 candidate (fine step + re-approach): 49/57, unsafe 0, gate 2 FAIL. Health job had expired, machine idled 09:18 to 13:32. Follow-ups running",
  "queue": [
   {
-   "script": "exp_swerve_fs.sh",
-   "label": "v2 swerve with the fix, marsyard rock_field urc_mix slopes x2",
+   "script": "exp_ck2.sh",
+   "label": "Targeted: rock_field ahead_10m x6 and behind_left x3 with the candidate",
    "stages": [
     {
-     "out": "2026-11-14_3d_gt_swerve_fs_d250",
-     "rows": 26,
-     "ref": "2026-11-13_3d_gt_plain_d250"
+     "out": "2026-11-14_3d_gt_ck2_d250",
+     "rows": 9,
+     "ref": "2026-11-14_3d_gt_ckpt_d250"
     }
    ],
-   "deadline": "2026-11-14 18:00"
+   "deadline": "2026-11-14 17:00"
   },
   {
-   "script": "exp_reap.sh",
-   "label": "Targeted: re-approach tree + fine step (marsyard x3, rock_field x2, far_south x3)",
+   "script": "exp_ck3.sh",
+   "label": "Drift check of the candidate: marsyard, rock_field, urc_mix x3",
    "stages": [
     {
-     "out": "2026-11-14_3d_gt_reap_fs_d250",
-     "rows": 24,
-     "ref": "2026-11-13_3d_gt_plain_d250"
+     "out": "2026-11-14_3d_gt_ck3_d250",
+     "rows": 27,
+     "ref": "2026-11-14_3d_gt_ckpt_d250"
     }
    ],
-   "deadline": "2026-11-14 10:00"
-  },
-  {
-   "script": "exp_ckpt.sh",
-   "label": "v1.1 checkpoint: fine step + re-approach, 6 worlds x3, gate",
-   "stages": [
-    {
-     "out": "2026-11-14_3d_gt_ckpt_d250",
-     "rows": 57,
-     "ref": "2026-11-13_3d_gt_plain_d250"
-    }
-   ],
-   "deadline": "2026-11-14 18:00"
+   "deadline": "2026-11-15 06:00"
   }
  ],
  "compare": [
@@ -43,7 +31,6 @@
   "2026-11-13_3d_gt_fs_d250",
   "2026-11-13_3d_gt_plain_d250",
   "2026-11-13_2d_base_d250",
-  "2026-11-14_3d_gt_reap_fs_d250",
   "2026-11-14_3d_gt_swerve_fs_d250"
  ],
  "gates": [
@@ -65,8 +52,8 @@
    "when": "done 13 Nov"
   },
   {
-   "what": "Small-rock fix (fine step): 48/57, gate 2 FAIL, drift check running",
-   "when": "14 Nov"
+   "what": "v1.1 candidate checkpoint: 49/57, unsafe 0, gate 2 FAIL",
+   "when": "done 14 Nov 09:18"
   },
   {
    "what": "v1.1: Ackermann 3D nav, PR-ready branch, paper and deck",
@@ -83,15 +70,15 @@
  ],
  "deadline": "2026-11-22 00:00",
  "issues": [
-  "marsyard behind_left: rover arrives 0.35 m beside the goal and saws back and forth (car-like, can't slide sideways). Re-approach tree test queued",
-  "urc_mix far_south: fixed by the fine step (11/12 across runs vs plain 4/9), still 7 recoveries in half the runs",
-  "slopes lane25 and sidehill marginal with the fine step (near-limit tests, drop-offs now marked correctly)",
-  "bars past_bars_4m: wheel pinned on the 12 cm bar (synthetic, low priority)"
+  "Gate: marsyard behind_left now 3/3 but the back-up takes 60 s (2D 25 s) and counts 3 recoveries vs 0",
+  "Gate: bars past_bars_4m 0/3 (2D 1/3), wheel pinned on the 12 cm bar, synthetic course",
+  "rock_field ahead_10m 1/3 in the checkpoint (3/3 with the fine step alone), checking if it is noise",
+  "Swerve still 2 to 3x slower than Ackermann (v2 item)"
  ],
  "plans": [
-  "Overnight: swerve first look, then the re-approach test, then the v1.1 checkpoint run (about 5 h)",
-  "14 Nov afternoon: checkpoint gate, make fine step + re-approach the 3D default, rebuild and test the 2D stack",
+  "Now: targeted check of rock_field ahead_10m and behind_left, then a drift check of the candidate",
+  "Today: decide the gate's two items (behind_left back-up timing, bars synthetic), make the candidate the 3D default, rebuild and test the 2D stack",
   "15 Nov: v1.1 delivered (PR-ready branch, paper and deck)",
-  "20 Nov: v2 swerve, 22 Nov: real rover"
+  "16 to 20 Nov: v2 swerve speed, 22 Nov: real rover"
  ]
 }
