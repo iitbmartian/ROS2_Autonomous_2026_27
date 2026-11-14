@@ -1,0 +1,4 @@
+# A/B overlay: the 3D tree without the re-approach (the pre-v1.1 tree, kept as navigate_to_pose_ackermann_3d_lethalfree.xml's sibling).
+bt_navigator:
+  ros__parameters:
+    default_nav_to_pose_bt_xml: "/home/ram/ROS2_Autonomous_2026_27/src/rover_nav2/behavior_trees/navigate_to_pose_ackermann_3d_pre11.xml"
