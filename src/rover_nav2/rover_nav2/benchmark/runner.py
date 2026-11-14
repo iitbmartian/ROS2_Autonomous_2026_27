@@ -6,7 +6,7 @@ stack share an isolated ROS domain and Gazebo partition, so a benchmark never ta
 else's session.
 
 Per run, from Gazebo's ground-truth /odom: success, time to goal, recoveries, unsafe entries,
-path length, planner time, CPU load, real-time factor. See metrics.py and SPEC.md "Benchmark".
+path length, planner time, CPU load, real-time factor. See metrics.py.
 """
 
 import csv

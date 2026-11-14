@@ -9,7 +9,7 @@
 #   ros2 launch rover_bringup pipeline_3d.launch.py world:=marsyard.sdf
 #
 # Both costmaps use the TraversabilityLayer (rover_traversability) with the utilisation cost
-# model of SPEC.md, fed by terrain_features_node: /terrain/local_features for the local costmap,
+# model, fed by terrain_features_node: /terrain/local_features for the local costmap,
 # /terrain/global_features for the global one. Controller and planner stay the 2D sim's
 # Ackermann MPPI and Smac hybrid until the swerve mode lands (Phase 4).
 
@@ -42,7 +42,7 @@ local_costmap:
       traversability_layer:
         plugin: "rover_traversability/TraversabilityLayer"
         enabled: true
-        cost_model: utilisation          # SPEC.md cell cost from terrain_features_node
+        cost_model: utilisation          # cell cost from terrain_features_node
         map_topic: /terrain/local_features
         # The layer reports not current, and the controller stops, once the newest feature map
         # is older than this. The scan, publish, feature and costmap chain runs 0.6 to 0.8 s in

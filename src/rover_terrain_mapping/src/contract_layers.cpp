@@ -25,7 +25,7 @@ const Renames & elevationRenames()
 {
   static const Renames r = {
     {fastdem::layer::elevation, L::kElevation},
-    // The Kalman estimate's variance, as SPEC.md defines it. FastDEM's own "variance" layer is
+    // The Kalman estimate's variance, as the contract defines it. FastDEM's own "variance" layer is
     // the spread of the raw returns, which never shrinks with more scans.
     {fastdem::layer::kalman_p, L::kVariance},
     {fastdem::layer::n_points, L::kObservations},

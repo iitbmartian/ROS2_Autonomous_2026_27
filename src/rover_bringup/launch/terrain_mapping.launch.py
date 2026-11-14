@@ -12,13 +12,12 @@ Publishes /terrain/local (elevation, variance, observations, last_seen), /terrai
 (coarse, in map) and /terrain/local_features
 (slope, slope_std, step, roughness, curvature, normals, negative_obstacle), both
 grid_map_msgs/GridMap in odom. features:=native (default) computes the feature layers in
-terrain_features_node with the definitions of SPEC.md. features:=fastdem publishes FastDEM's
+terrain_features_node. features:=fastdem publishes FastDEM's
 own features instead, the Phase 0 bridge, kept for comparison.
 Needs the lidar on /lidar/points and the TF chain odom -> base_footprint -> lidar.
 sim:=false switches the default parameter files to terrain_mapping_real.yaml and fastdem_real.yaml
 (the L2 on /unilidar/cloud, gravity from the IMU). On the rover depth_range_cut runs on the Orin,
 so depth_range_cut:=false leaves it out here. base_frame overrides the mapping node's body frame.
-See rover_nav2/doc/3d_nav/SPEC.md.
 """
 
 import os

@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Speed governor and safety monitor logic (SPEC.md, speed and safety). Plain functions, tested
+// Speed governor and safety monitor logic (speed and safety). Plain functions, tested
 // without ROS. The nodes in src/nodes wire them to topics.
 
 #ifndef ROVER_TRAVERSABILITY__CORE__SPEED_SAFETY_HPP_
@@ -37,7 +37,7 @@ struct GovernorParams
 
 // v_max = v_nominal * (1 - alpha * u'), floored at v_min, with u' = (u_ahead - u_free) /
 // (1 - u_free) clamped at 0, so easy ground runs at full speed and u' still reaches 1 where
-// u_ahead does. u_free 0 is the SPEC formula. A lethal pose ahead (u > 1) floors it too:
+// u_ahead does. u_free 0 is the original formula. A lethal pose ahead (u > 1) floors it too:
 // stopping is the safety monitor's job, the governor only slows.
 double speedLimit(double u_ahead, const GovernorParams & g);
 

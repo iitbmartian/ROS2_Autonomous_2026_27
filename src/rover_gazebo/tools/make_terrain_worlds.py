@@ -15,7 +15,7 @@ rendered ground 2.5 cm below it. Rocks are boxes and ellipsoids, as in marsyard.
 is a model under models/ (on GZ_SIM_RESOURCE_PATH through this package's environment hook),
 referenced as model://<name>/meshes/terrain.stl.
 
-The worlds feed the 3D navigation benchmark (rover_nav2/doc/3d_nav/SPEC.md). Its ground-truth
+The worlds feed the 3D navigation benchmark (rover_nav2 benchmark). Its ground-truth
 height export (rover_nav2 benchmark ground_truth.py) reads these same SDF files, heightmaps and
 primitives, so the benchmark scores against exactly the terrain Gazebo simulates.
 

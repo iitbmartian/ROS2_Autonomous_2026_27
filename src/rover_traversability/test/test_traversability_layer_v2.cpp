@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// TraversabilityLayer with cost_model utilisation (SPEC.md cell cost), fed synthetic feature
+// TraversabilityLayer with cost_model utilisation (cell cost), fed synthetic feature
 // maps. Costmap 4 x 4 m at 0.05 m from (0, 0), robot at its centre (2, 2), footprint 0.4 m square
 // (inscribed 0.2 m = 4 cells, circumscribed 0.283 m). Robot speed 0 (no odometry received), so
 // the braking distance is the 0.25 m margin.

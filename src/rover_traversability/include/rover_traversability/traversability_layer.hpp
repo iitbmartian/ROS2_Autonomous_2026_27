@@ -5,12 +5,12 @@
 //
 // Design note: this layer does NOT compute terrain geometry. Slope, roughness
 // and step height are expected to already exist as layers in the incoming
-// GridMap (the feature map contract in SPEC.md, layer names in layer_names.hpp).
+// GridMap (the feature map contract, layer names in layer_names.hpp).
 // This layer only thresholds, blends and resamples. Keep it cheap, it runs on
 // the costmap update thread.
 //
 // Ported from the prototype's mrt_traversability_layer. Phase 3 replaces the
-// cost blend with the utilisation model of SPEC.md.
+// cost blend with the utilisation model.
 
 #ifndef ROVER_TRAVERSABILITY__TRAVERSABILITY_LAYER_HPP_
 #define ROVER_TRAVERSABILITY__TRAVERSABILITY_LAYER_HPP_
@@ -66,7 +66,7 @@ private:
   // Blend the three hazard channels into a single 0 to 254 cost (cost_model legacy).
   unsigned char computeCost(float slope_rad, float roughness_m, float step_m) const;
 
-  // Cost from the per-cell heading evaluation (cost_model utilisation, SPEC.md cell cost):
+  // Cost from the per-cell heading evaluation (cost_model utilisation, cell cost):
   // lethal when no heading is safe, max_soft_cost * u^2 otherwise. Unknown cells are lethal
   // within braking distance of the footprint edge and unknown_cost beyond it.
   // braking is set when the cell is lethal because of the braking rule.

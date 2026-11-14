@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// terrain_features_node: feature layers of the SPEC.md map contract from an elevation map.
+// terrain_features_node: feature layers of the map contract from an elevation map.
 //
 //   in   /terrain/local           elevation, variance, observations
 //   out  /terrain/local_features  the input layers plus slope, slope_std, roughness, step,

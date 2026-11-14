@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// TerrainCritic: MPPI critic scoring every rollout on the terrain at its actual yaw (SPEC.md,
+// TerrainCritic: MPPI critic scoring every rollout on the terrain at its actual yaw (
 // controller cost). The scoring is core::trajectoryCosts. This plugin feeds it MPPI's rollouts
 // and the latest /terrain/local_features map, in the controller's (odom) frame.
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Simulation and benchmark only (rover_nav2 benchmark sets it, see PROGRESS.md 2026-11-04).
+<!-- Simulation and benchmark only (rover_nav2 benchmark sets it).
      Sim only. Loopback has no multicast, so in LOCALHOST mode Fast DDS finds peers by unicast to
      participant ids 0..31 only, and two participants above 31 never meet (40 nodes: 32 seen).
      A 3D stack plus tools passes 32, so Nav2's lifecycle manager missed servers at random. -->

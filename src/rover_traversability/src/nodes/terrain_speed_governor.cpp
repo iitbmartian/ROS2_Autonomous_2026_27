@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// terrain_speed_governor: publishes /speed_limit from the terrain ahead (SPEC.md, speed and
+// terrain_speed_governor: publishes /speed_limit from the terrain ahead (speed and
 // safety). The rover's current twist is projected over lookahead_time, every pose on that path
 // is evaluated on /terrain/local_features, and the worst utilisation u_ahead sets
 //   v_max = v_nominal * (1 - alpha * u_ahead), floored at v_min.

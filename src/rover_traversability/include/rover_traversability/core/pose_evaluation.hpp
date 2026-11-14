@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Pose evaluation, the utilisation cost model of SPEC.md, shared by the costmap layer, the
+// Pose evaluation, the utilisation cost model, shared by the costmap layer, the
 // feature node and the MPPI critic. For a pose (x, y, yaw) on a 2.5D terrain grid it places the
 // four wheel contacts, fits the support plane through them and computes, for each limit, the
 // fraction of the allowed amount the pose uses (0 benign, 1 at the limit):

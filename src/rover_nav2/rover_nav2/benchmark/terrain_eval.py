@@ -10,7 +10,7 @@ with the ground-truth heightmap (ground_truth.py).
 
 Negative obstacles (with --craters, crater_field's craters.yaml): for every crater wider than the
 wheel track, the first time /terrain/local_features flags at least --min-cells cells inside its
-rim, against the first time the rover's footprint (ground truth) reaches the rim. SPEC.md's
+rim, against the first time the rover's footprint (ground truth) reaches the rim. The
 Phase 2 gate: every such crater flagged before the footprint reaches it.
 
 Gazebo's ground-truth /odom has its x, y origin at the spawn point, which every goal set puts at

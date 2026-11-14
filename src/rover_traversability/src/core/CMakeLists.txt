@@ -1,4 +1,4 @@
-# traversability_core: pure geometry shared by every consumer (SPEC.md). Built in its own
+# traversability_core: pure geometry shared by every consumer. Built in its own
 # directory, added before grid_map_core is found, because grid_map_core's cmake extras add Eigen
 # plugin definitions to the whole directory and the core must compile without them.
 

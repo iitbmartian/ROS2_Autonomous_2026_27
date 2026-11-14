@@ -1,7 +1,7 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
 // depth_range_cut: the Orin-side reduction of the RGB-D cloud before it crosses the network to
-// the NUC (SPEC.md, compute split). Points beyond max_range carry noise growing with range
+// the NUC (compute split). Points beyond max_range carry noise growing with range
 // squared and add little, so they are dropped, and the rest is voxel-downsampled.
 
 #ifndef ROVER_TERRAIN_MAPPING__DEPTH_RANGE_CUT_HPP_

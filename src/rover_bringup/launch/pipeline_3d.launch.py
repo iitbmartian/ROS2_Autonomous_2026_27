@@ -106,7 +106,7 @@ def _launch(context):
         arguments=['-d', os.path.join(get_package_share_directory('rover_nav2'),
                                       'rviz', 'terrain_3d.rviz')],
         condition=IfCondition(LaunchConfiguration('terrain_rviz')))
-    # Speed governor and safety monitor (SPEC.md speed and safety), each switchable for the
+    # Speed governor and safety monitor (speed and safety), each switchable for the
     # phase comparisons in the benchmark.
     safety_nodes = []
     if LaunchConfiguration('governor').perform(context).lower() in ('true', '1'):

@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Terrain features from a 2.5D elevation grid, per SPEC.md (layer contract and cost model).
+// Terrain features from a 2.5D elevation grid (layer contract and cost model).
 // Pure computation on Eigen matrices, no ROS types, so every function is unit tested.
 //
 // Grid convention: cell (i, j) is row i, column j of a matrix whose rows run along -x and

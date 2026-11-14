@@ -14,7 +14,7 @@ find_package(ament_cmake REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Vendored FastDEM, built as static libraries and linked into this package's
-# executables. See third_party/VERSION and third_party/PATCHES.md.
+# executables. See third_party/VERSION, local patches are in the git history of third_party/.
 # ---------------------------------------------------------------------------
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -48,7 +48,7 @@ target_link_libraries(contract_layers PUBLIC fastdem)
 # grid_map_core's Eigen plugin definitions out of FastDEM's translation units.
 target_link_libraries(contract_layers PUBLIC rover_traversability::traversability_core)
 
-# Feature math (SPEC.md layer contract), plain C++ on Eigen.
+# Feature math (layer contract), plain C++ on Eigen.
 find_package(Eigen3 REQUIRED NO_MODULE)
 add_library(terrain_features STATIC src/features.cpp src/fine_step.cpp)
 target_include_directories(terrain_features PUBLIC include)

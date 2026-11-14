@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Conversion from FastDEM's layers to the SPEC.md map contract (layer names in
+// Conversion from FastDEM's layers to the map contract (layer names in
 // rover_traversability/layer_names.hpp, slope in radians).
 
 #ifndef ROVER_TERRAIN_MAPPING__CONTRACT_LAYERS_HPP_
@@ -33,7 +33,7 @@ fastdem::ElevationMap toElevationContract(const fastdem::ElevationMap & src, dou
 // PHASE 0 BRIDGE, replaced by terrain_features_node in Phase 2.
 // Copy of FastDEM's feature layers under contract names, plus elevation. FastDEM's slope is in
 // degrees and becomes radians here, its _normal_* layers become normal_*. Every other value
-// passes through unchanged. FastDEM's definitions differ from SPEC.md (see PROGRESS.md).
+// passes through unchanged. FastDEM's definitions differ from the contract's.
 fastdem::ElevationMap toFeatureContract(const fastdem::ElevationMap & src);
 
 }  // namespace rover_terrain_mapping

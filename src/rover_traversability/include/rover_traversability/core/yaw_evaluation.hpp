@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Per-cell heading evaluation (SPEC.md, cell cost): evaluate the pose at yaw_bins headings per
+// Per-cell heading evaluation (cell cost): evaluate the pose at yaw_bins headings per
 // cell and keep which headings are safe and the best one.
 //
 //   safe_yaw_mask     bit k set when heading k * 2 pi / yaw_bins is safe (u <= 1). Stored in a

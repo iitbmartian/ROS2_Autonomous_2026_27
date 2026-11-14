@@ -3,7 +3,7 @@
 #
 #   ros2 launch rover_bringup pipeline_3d.launch.py drive:=swerve
 #
-# Phase 4 (SPEC.md drive and controller cost): rover_kinematics_node runs its swerve mode, MPPI
+# Phase 4 (drive and controller cost): rover_kinematics_node runs its swerve mode, MPPI
 # uses the Omni motion model and scores rollouts on the terrain at their actual heading
 # (TerrainCritic), Smac plans in 2D since there is no turning radius any more. Critics that force
 # the heading along the path are off: the point of swerve is crossing a slope facing uphill.

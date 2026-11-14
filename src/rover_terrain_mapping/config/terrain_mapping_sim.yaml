@@ -12,7 +12,7 @@ terrain_mapping:
     tf_timeout: 0.1             # s, wait for odom -> base_footprint at the scan stamp
     publish_features: false     # true publishes FastDEM's features, the Phase 0 bridge
 
-    # Each input has its own sensor model and range limits (SPEC.md, rover_terrain_mapping).
+    # Each input has its own sensor model and range limits.
     inputs: ["lidar", "depth"]
     lidar:
       topic: /lidar/points

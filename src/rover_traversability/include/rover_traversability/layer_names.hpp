@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Layer names of the elevation and feature map contract in SPEC.md. Every node and plugin uses
+// Layer names of the elevation and feature map contract. Every node and plugin uses
 // these constants, never string literals, so a rename happens in one place.
 
 #ifndef ROVER_TRAVERSABILITY__LAYER_NAMES_HPP_

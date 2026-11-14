@@ -2,7 +2,7 @@
 
     ros2 run rover_nav2 coverage_check --duration 30
 
-Phase 1 gate (PHASES.md): with the L2-like lidar, the elevation map has ground cells within
+Phase 1 gate: with the L2-like lidar, the elevation map has ground cells within
 1.0 m of the footprint edge. For each of --bins bearings around the rover, the distance from the
 footprint rectangle's edge to the nearest observed cell is measured on every /terrain/local map.
 The worst bearing is the number that matters: a single blind direction is enough to drive into.

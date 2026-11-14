@@ -1,5 +1,5 @@
 # Physical parameters of the rover. The only source of physical values for the 3D navigation
-# stack (SPEC.md, "Physical parameters"). Code never hardcodes any of these.
+# stack. Code never hardcodes any of these.
 #
 # Values from the sim URDF are real for the sim. Values marked PLACEHOLDER are guesses until
 # mechanical data arrives, and every node that loads one logs a warning at startup.

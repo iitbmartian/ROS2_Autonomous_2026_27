@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// terrain_safety_monitor (SPEC.md, speed and safety):
+// terrain_safety_monitor (speed and safety):
 //  - Lethal terrain cells inside the braking zone go out as a point cloud on
 //    /terrain/hazard_points, a source for Nav2's collision monitor. A cell is lethal when no
 //    heading is safe there, its best utilisation exceeds 1, or it is a negative obstacle. Points

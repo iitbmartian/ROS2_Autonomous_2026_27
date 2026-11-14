@@ -1,6 +1,6 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
-// Terrain cost of controller rollouts (SPEC.md, controller cost), shared by the MPPI critic and
+// Terrain cost of controller rollouts (controller cost), shared by the MPPI critic and
 // its tests. Plain arrays, no MPPI types.
 //
 // Per evaluated point of a rollout, at its actual yaw:

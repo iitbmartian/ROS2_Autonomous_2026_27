@@ -1,7 +1,7 @@
 // Copyright 2026 Mars Rover Team, IIT Bombay.
 //
 // terrain_mapping_node: fuses point clouds into 2.5D elevation maps with FastDEM and publishes
-// them in the SPEC.md layer contract.
+// them in the layer contract.
 //
 //   /terrain/local    elevation, variance, observations, last_seen   (odom, robot-centric, rolling)
 //   /terrain/global   the same layers, coarse, fixed in the map frame (optional)
@@ -209,7 +209,7 @@ public:
     if (publish_features_) {
       RCLCPP_WARN(
         get_logger(), "terrain_mapping: /terrain/local_features carries FastDEM's features, "
-        "the Phase 0 bridge. Their definitions differ from SPEC.md, see PROGRESS.md.");
+        "the Phase 0 bridge. Their definitions differ from the layer contract.");
     }
   }
 

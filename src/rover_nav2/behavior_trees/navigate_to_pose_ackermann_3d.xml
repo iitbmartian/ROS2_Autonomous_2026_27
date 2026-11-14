@@ -25,7 +25,7 @@
   ApproachGoals in rover_traversability) and a re-approach recovery were tried and removed. On
   rock_field the pre-goal or its straight lead-in sat among rocks: through-poses planning failed and
   the rover was led into a cell the planner then refused as "Start occupied", so rock_field fell from
-  8/9 to 5/9 (2026-11-08_3d_gt_gate_susp), while far_south did not improve. See PROGRESS 2026-11-08 18:15.
+  8/9 to 5/9 (2026-11-08_3d_gt_gate_susp), while far_south did not improve.
 -->
 <!--
   2026-11-09, re-approach, the 3D default since 2026-11-14 (v1.1: marsyard behind_left 0/3 to 3/3,
