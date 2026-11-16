@@ -23,6 +23,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 add_subdirectory(src/core)
 add_subdirectory(src/msg)
 add_subdirectory(src/critic)
+add_subdirectory(src/smoother)
 add_subdirectory(src/nodes)
 
 find_package(rclcpp REQUIRED)
@@ -79,6 +80,7 @@ install(TARGETS rover_approach_goals_bt_node rover_near_goal_too_long_bt_node
 
 pluginlib_export_plugin_description_file(nav2_costmap_2d costmap_plugins.xml)
 pluginlib_export_plugin_description_file(nav2_mppi_controller critics_plugins.xml)
+pluginlib_export_plugin_description_file(nav2_core smoother_plugins.xml)
 
 install(TARGETS rover_traversability_layer
   EXPORT export_${PROJECT_NAME}

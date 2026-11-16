@@ -1,0 +1,10 @@
+<library path="rover_heading_smoother">
+  <class name="rover_traversability/HeadingSmoother"
+         type="rover_traversability::HeadingSmoother"
+         base_class_type="nav2_core::Smoother">
+    <description>
+      Writes a safe body heading into every pose of a planned path from the terrain map
+      (dynamic programming over yaw bins). Crabbing allowed for swerve, not for Ackermann.
+    </description>
+  </class>
+</library>
