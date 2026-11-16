@@ -28,6 +28,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def _mapping_node(context, config):
@@ -58,6 +59,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'sim', default_value='true',
             description='Use /clock and the simulation parameter files'),
+        DeclareLaunchArgument(
+            'mask_tip_margin', default_value='0.0',
+            description='rad, safe-heading mask also needs this stability margin, use the safety '
+                        'monitor tip_margin so planned headings never trip it (0 = u <= 1 mask)'),
         DeclareLaunchArgument(
             'params_file', default_value='',
             description='terrain_mapping_node ROS parameters, empty for terrain_mapping_sim.yaml '
@@ -103,7 +108,9 @@ def generate_launch_description():
             parameters=[{'use_sim_time': LaunchConfiguration('sim'),
                          'sensor_frame': LaunchConfiguration('sensor_frame'),
                          'negative.min_beam_angle': LaunchConfiguration('lowest_beam'),
-                         'fill_holes': LaunchConfiguration('fill_holes')}],
+                         'fill_holes': LaunchConfiguration('fill_holes'),
+                         'mask_tip_margin': ParameterValue(
+                             LaunchConfiguration('mask_tip_margin'), value_type=float)}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
         # Second instance on the coarse global map, for the global costmap.
@@ -118,7 +125,9 @@ def generate_launch_description():
                               "' == 'true' else ''"]),
                          'sensor_frame': LaunchConfiguration('sensor_frame'),
                          'negative.min_beam_angle': LaunchConfiguration('lowest_beam'),
-                         'fill_holes': LaunchConfiguration('fill_holes')}],
+                         'fill_holes': LaunchConfiguration('fill_holes'),
+                         'mask_tip_margin': ParameterValue(
+                             LaunchConfiguration('mask_tip_margin'), value_type=float)}],
             condition=IfCondition(PythonExpression(
                 ["'", LaunchConfiguration('features'), "' == 'native'"]))),
     ])

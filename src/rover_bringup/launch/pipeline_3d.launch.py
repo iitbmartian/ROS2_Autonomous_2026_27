@@ -98,7 +98,8 @@ def _launch(context):
         launch_arguments={'sim': 'true', 'lowest_beam': str(lowest),
                           'fill_holes': LaunchConfiguration('fill_holes'),
                           'params_file': LaunchConfiguration('mapping_params'),
-                          'global_fine_step': LaunchConfiguration('global_fine_step')}.items())])
+                          'global_fine_step': LaunchConfiguration('global_fine_step'),
+                          'mask_tip_margin': LaunchConfiguration('mask_tip_margin')}.items())])
     # nav2_sim.rviz plus the terrain elevation and slope maps (grid_map_rviz_plugin).
     rviz = Node(
         package='rviz2', executable='rviz2', output='screen',
@@ -160,6 +161,9 @@ def generate_launch_description():
                                  description='governor speed on benign terrain, m/s'),
            DeclareLaunchArgument('fill_holes', default_value='false',
                                  description='terrain_features: fill small enclosed unknown patches'),
+           DeclareLaunchArgument('mask_tip_margin', default_value='0.0',
+                                 description='rad, terrain_features safe-heading mask margin '
+                                             '(the safety monitor tip_margin is 0.05)'),
            DeclareLaunchArgument('global_fine_step', default_value='true',
                                  description='global map takes the step of the 0.05 m local map '
                                              '(default since v1.1, rocks under a 0.2 m cell)'),

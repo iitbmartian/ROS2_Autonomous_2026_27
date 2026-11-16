@@ -68,6 +68,7 @@ public:
 
     yaw_.yaw_bins = static_cast<int>(declare_parameter<int>("yaw_bins", yaw_.yaw_bins));
     yaw_.threads = static_cast<int>(declare_parameter<int>("threads", yaw_.threads));
+    yaw_.tip_margin = declare_parameter<double>("mask_tip_margin", yaw_.tip_margin);
     eval_.risk_kappa = declare_parameter<double>("risk_kappa", eval_.risk_kappa);
     evaluate_yaws_ = declare_parameter<bool>("evaluate_yaws", true);
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
@@ -111,8 +112,8 @@ public:
     }
     RCLCPP_INFO(
       get_logger(), "terrain_features: %s -> %s, plane radius %.3f m, step radius %.3f m, "
-      "negative obstacles from '%s'", in.c_str(), out.c_str(), fp_.plane_radius,
-      fp_.step_radius, sensor_frame_.c_str());
+      "negative obstacles from '%s', mask_tip_margin %.3f rad", in.c_str(), out.c_str(),
+      fp_.plane_radius, fp_.step_radius, sensor_frame_.c_str(), yaw_.tip_margin);
   }
 
 private:

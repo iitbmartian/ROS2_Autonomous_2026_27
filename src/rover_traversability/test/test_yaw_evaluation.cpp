@@ -108,3 +108,23 @@ TEST(YawEvaluation, DiscMax)
   EXPECT_EQ(d(5, 6), 0.0f);     // sqrt(5) > 2
   EXPECT_EQ(d(0, 0), 0.0f);     // NaN centre, known neighbours
 }
+
+TEST(YawEvaluation, TipMarginClearsHeadingsTheMonitorWouldAbort)
+{
+  // 20 deg rising in +y. Bin 2 (yaw pi/4) is 45 deg off the fall line, roll about
+  // asin(sin 20 sin 45) = 14.0 deg: inside the 16.1 deg limit (u <= 1, set without a margin) but
+  // past the monitor's abort line 16.1 - 2.9 = 13.2 deg, so tip_margin 0.05 clears it. Bin 4
+  // faces straight up, pitch 20 deg against a 29.9 deg limit, and stays set.
+  YawParams y;
+  y.yaw_bins = 16;
+  const auto plain = evaluateYaws(slopeY(20.0), rover(), exact(), y);
+  y.tip_margin = 0.05;
+  const auto strict = evaluateYaws(slopeY(20.0), rover(), exact(), y);
+  const auto bits = [](const YawLayers & o) {return static_cast<unsigned>(o.safe_yaw_mask(20, 20));};
+  EXPECT_TRUE(bits(plain) & (1u << 2)) << std::hex << bits(plain);
+  EXPECT_FALSE(bits(strict) & (1u << 2)) << std::hex << bits(strict);
+  EXPECT_TRUE(bits(strict) & (1u << 4));
+  EXPECT_TRUE(bits(strict) & (1u << 12));
+  EXPECT_EQ(bits(strict) & ~bits(plain), 0u);   // a margin only ever removes headings
+  EXPECT_EQ(plain.best_utilisation(20, 20), strict.best_utilisation(20, 20));
+}

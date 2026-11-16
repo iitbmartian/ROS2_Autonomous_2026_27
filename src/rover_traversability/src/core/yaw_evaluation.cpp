@@ -69,7 +69,9 @@ YawLayers evaluateYaws(
             const PoseResult r = evaluatePose(g, x, yy, yaw, p, e, &cache);
             if (r.status == PoseStatus::kUnknown) {continue;}
             any_known = true;
-            if (r.status == PoseStatus::kOk) {
+            if (r.status == PoseStatus::kOk &&
+              (y.tip_margin <= 0.0 || r.margin >= p.stability_margin_min + y.tip_margin))
+            {
               mask |= 1u << k;
               if (symmetric) {mask |= 1u << (k + y.yaw_bins / 2);}
             }

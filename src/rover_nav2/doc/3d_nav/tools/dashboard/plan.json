@@ -1,29 +1,30 @@
 {
- "headline": "v1.1 cut locally (push pending Ram). v2: swerve v7 heading plan is within noise of v6 (36/57 vs 35/57), Ackermann heading-aware planner under test",
+ "headline": "v2: heading planner alone no gain on lane25 (1/6). Cause found: the safe-heading mask allows headings past the tip monitor abort line. Testing mask_tip_margin 0.05",
  "queue": [
-  {
-   "script": "exp_ackh.sh",
-   "label": "Ackermann + heading-aware planner: slopes x3, crater_field and marsyard regression",
-   "stages": [],
-   "deadline": "2026-11-17 08:00",
-   "minutes": 150
-  },
-  {
-   "script": "exp_bag_ackl.sh",
-   "label": "Bag of Ackermann heading planner on lane25_top (costmap timeout near the top)",
-   "stages": [],
-   "deadline": "2026-11-17 14:00",
-   "minutes": 30
-  },
   {
    "script": "exp_ackh2.sh",
    "label": "Heading planner lane25 x3 more, then rock_field, urc_mix, bars interleaved with a v1.1 repeat (ck6)",
    "stages": [],
    "deadline": "2026-11-17 14:00",
    "minutes": 330
+  },
+  {
+   "script": "exp_ackm.sh",
+   "label": "Heading planner + mask tip margin 0.05: slopes, crater_field, marsyard x3",
+   "stages": [],
+   "deadline": "2026-11-17 22:00",
+   "minutes": 180
+  },
+  {
+   "script": "exp_ackm.sh (VARIANT=ckm)",
+   "label": "v1.1 + mask tip margin 0.05: same goals, isolates the costmap effect",
+   "stages": [],
+   "deadline": "2026-11-17 22:00",
+   "minutes": 180
   }
  ],
  "compare": [
+  "2026-11-16_3d_gt_ackh_d250",
   "2026-11-16_3d_gt_sw6full_d250",
   "2026-11-16_3d_gt_sw7full_d250",
   "2026-11-15_3d_gt_swbase_d250",
@@ -37,7 +38,7 @@
   "phase4_gate_sw7full_d250.txt"
  ],
  "next_goals": [
-  "Ackermann lane25: heading planner climbs aligned (roll 2.3) but a costmap timeout aborts near the top, bag queued",
+  "Lane25: mask allows 32-41 deg off the fall line (roll under 16.1 limit, over 13.2 abort), mask_tip_margin under test",
   "Benchmark timing plan sent an empty planner id (invalid with two planners), fixed with --plan-planner-id",
   "Analyse swerve v7 bags (lane25 dither at the ramp foot, crater far_left)",
   "Swerve stays experimental: v7 gate 4 FAIL, lane35 recoveries 385",

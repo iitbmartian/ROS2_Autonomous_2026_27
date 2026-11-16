@@ -31,6 +31,10 @@ struct YawParams
 {
   int yaw_bins{16};
   int threads{4};
+  // rad. A heading's mask bit also needs this much stability margin above
+  // stability_margin_min, so the mask matches the safety monitor's abort line (its tip_margin).
+  // A heading the planner holds must not trip the monitor. 0 keeps the u <= 1 mask.
+  double tip_margin{0.0};
 };
 
 YawLayers evaluateYaws(
