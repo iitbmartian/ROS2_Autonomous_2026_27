@@ -1,13 +1,6 @@
 {
- "headline": "v2: heading planner alone no gain on lane25 (1/6). Cause found: the safe-heading mask allows headings past the tip monitor abort line. Testing mask_tip_margin 0.05",
+ "headline": "v2: heading planner 49/57 over 6 worlds, same as v1.1 (lower slopes, higher bars and urc_mix). Testing the mask tip margin for Ackermann and swerve",
  "queue": [
-  {
-   "script": "exp_ackh2.sh",
-   "label": "Heading planner lane25 x3 more, then rock_field, urc_mix, bars interleaved with a v1.1 repeat (ck6)",
-   "stages": [],
-   "deadline": "2026-11-17 14:00",
-   "minutes": 330
-  },
   {
    "script": "exp_ackm.sh",
    "label": "Heading planner + mask tip margin 0.05: slopes, crater_field, marsyard x3",
@@ -21,9 +14,19 @@
    "stages": [],
    "deadline": "2026-11-17 22:00",
    "minutes": 180
+  },
+  {
+   "script": "exp_sw7m.sh",
+   "label": "Swerve v7 + mask tip margin 0.05 on v6 failing goals plus regression",
+   "stages": [],
+   "deadline": "2026-11-18 06:00",
+   "minutes": 150
   }
  ],
  "compare": [
+  "2026-11-17_3d_gt_ackm_d250",
+  "2026-11-16_3d_gt_ackh_d2502",
+  "2026-11-16_3d_gt_ck6_d250",
   "2026-11-16_3d_gt_ackh_d250",
   "2026-11-16_3d_gt_sw6full_d250",
   "2026-11-16_3d_gt_sw7full_d250",
