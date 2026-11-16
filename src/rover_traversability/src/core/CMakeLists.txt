@@ -4,6 +4,7 @@
 
 add_library(traversability_core SHARED
   disc_dilation.cpp
+  heading_assignment.cpp
   physical_params.cpp
   pose_evaluation.cpp
   speed_safety.cpp
@@ -31,6 +32,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_pose_evaluation ${T}/test_pose_evaluation.cpp)
   target_link_libraries(test_pose_evaluation traversability_core)
+
+  ament_add_gtest(test_heading_assignment ${T}/test_heading_assignment.cpp)
+  target_link_libraries(test_heading_assignment traversability_core)
 
   ament_add_gtest(test_yaw_evaluation ${T}/test_yaw_evaluation.cpp)
   target_link_libraries(test_yaw_evaluation traversability_core)
