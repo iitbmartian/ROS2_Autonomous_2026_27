@@ -81,6 +81,8 @@ def parse_args(argv):
     p.add_argument('--plan-timeout', type=float, default=60.0,
                    help='wall s for the timing plan to succeed. A goal the planner rejects '
                         '(off the map) would otherwise hold every run this long')
+    p.add_argument('--plan-planner-id', default='',
+                   help='planner id for the timing plan. Empty works only with one planner plugin')
     p.add_argument('--launch-args', nargs='*', default=[], metavar='NAME:=VALUE',
                    help='extra arguments for the launch file, e.g. drive:=swerve governor:=false')
     p.add_argument('--tag', default=None,

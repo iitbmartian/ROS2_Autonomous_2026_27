@@ -473,6 +473,7 @@ class Runner:
             g = ComputePathToPose.Goal()
             g.goal = self.node.goal_pose(goal)
             g.use_start = False
+            g.planner_id = self.a.plan_planner_id
             gh = wait_future(self.node.plan.send_goal_async(g), 10)
             if gh is not None and gh.accepted:
                 res = wait_future(gh.get_result_async(), 30)
