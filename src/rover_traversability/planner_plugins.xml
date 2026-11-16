@@ -1,0 +1,10 @@
+<library path="rover_heading_aware_planner">
+  <class name="rover_traversability/HeadingAwarePlanner"
+         type="rover_traversability::HeadingAwarePlanner"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      Hybrid-A* on the global costmap that only lets the rover hold a body heading the terrain
+      allows at each cell (safe_yaw_mask), so a car-like rover lines up before a slope.
+    </description>
+  </class>
+</library>
