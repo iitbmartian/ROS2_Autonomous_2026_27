@@ -2,13 +2,6 @@
  "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate matches v1.1 on every world and solves lane25. Open choice: the tip margin keeps roll low but costs bar crossings (bars 4/6 without it, 2/12 with it). Margin 0 runs on all worlds tonight decide the v2 config. Swerve stays experimental.",
  "queue": [
   {
-   "log": "exp_bag_v7al",
-   "tag": "none",
-   "ref": [],
-   "label": "Recorded swerve run with the heading anchor on lane25, is the spin gone",
-   "minutes": 25
-  },
-  {
    "log": "exp_ackf06",
    "tag": "3d_gt_ackf06_d250",
    "ref": [
@@ -27,11 +20,21 @@
    ],
    "label": "v2 with margin 0 repeat on slopes and bars",
    "minutes": 140
+  },
+  {
+   "log": "exp_ackfr3",
+   "tag": "3d_gt_ackfr3_d250",
+   "ref": [
+    "tag:3d_gt_ackfr_d250",
+    "tag:3d_gt_ackf0r_d250"
+   ],
+   "label": "v2 with margin 0.05 on bars and slopes, third sample to compare margins",
+   "minutes": 140
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: swerve lane25 bag, v2 margin 0 on the other five worlds (ackf06), margin 0 repeat on slopes and bars (ackf0r)",
+  "Now: v2 margin 0 on the other five worlds (ackf06), margin 0 repeat on slopes and bars (ackf0r), margin 0.05 repeat on bars and slopes (ackfr3)",
   "v2 cut when the margin choice is made on the full runs (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
@@ -40,11 +43,15 @@
   "Phases 0 to 3 gates met. Phase 3 closed 14 Nov on v1.1 (fine global map step + re-approach tree).",
   "v1.1 against 2D: 86% vs 63% goals, 0 vs 1 unsafe, about 6x fewer recoveries, same median time. Biggest gains on slopes (13/15 vs 6/15) and bars.",
   "v2 Ackermann: heading-aware Hybrid-A* planner (only holds headings the terrain allows), safe-heading mask now uses the tip monitor's 13.2 deg abort line, and a ramp-crest mapper stall fixed.",
-  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. Crest fix and heading anchor both gave no gain (1/9 on those goals). Stays experimental.",
+  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. The heading anchor stopped the spinning, now the controller hesitates at the ramp foot. Stays experimental.",
   "Phase 5 code (governor, tip monitor, collision monitor) is on in every 3D run. Its gate is not formally recorded yet, planned on the v2 full run.",
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "17 Nov 22:00",
+   "text": "Swerve lane25 bag with the heading anchor: the spinning is gone. Now the controller dithers at the ramp foot (0.09 m/s, reversing 21% of the time) while the speed limit allows 0.37 m/s. Next swerve step is the controller's slope cost, after the v2 cut."
+  },
   {
    "when": "17 Nov 21:05",
    "text": "v2 with the tip margin off: bars 4/6 (2/12 with it), slopes 14/15 (one tip cancel by the monitor at 13.3 deg). The margin keeps roll lower but blocks the headings that cross bars. Margin 0 runs on the other worlds queued to pick the v2 config."
