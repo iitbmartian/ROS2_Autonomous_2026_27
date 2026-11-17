@@ -2,15 +2,6 @@
  "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate (heading-aware planner + tip margin + ramp-crest fix) has 51/57 over all 6 worlds, 0 unsafe, and solves lane25. A same-build v1.1 drift check and a repeat run come before the v2 cut. Swerve still trails and stays experimental.",
  "queue": [
   {
-   "log": "exp_ackf6",
-   "tag": "3d_gt_ackf6_d250",
-   "ref": [
-    "2026-11-14_3d_gt_ckpt_d250"
-   ],
-   "label": "v2 candidate on rock_field, urc_mix, bars x3, completes the 6-world check",
-   "minutes": 300
-  },
-  {
    "log": "exp_sw7f",
    "tag": "3d_gt_sw7f_d250",
    "ref": [
@@ -50,7 +41,7 @@
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: swerve crest-fix rerun (sw7f), ackf repeat on slopes and bars, swerve with the heading anchor (sw7a), v1.1 drift check on rock/urc/bars (ckm6)",
+  "Now: ackf repeat on slopes and bars (ackfr), swerve with the heading anchor (sw7a), v1.1 drift check on rock/urc/bars (ckm6)",
   "v2 cut when those pass (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
@@ -64,6 +55,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "17 Nov 15:55",
+   "text": "Swerve v7 on the crest-fix build: 1/9 on its three failing goals (was 0/9), regression 6/6. No change on lane25, still the spin-in-place pattern. The heading-anchor fix (sw7a) runs next against this as baseline."
+  },
   {
    "when": "17 Nov 13:55",
    "text": "v2 candidate on rock_field, urc_mix, bars: 18/24 (v1.1 18/24). Over 6 worlds 51/57 vs v1.1 49/57, 0 unsafe. One loss: bars past_bars_4m 0/3, with the tip margin the planner sees no safe heading near the goal (2/3 without it). v1.1 drift check on those worlds queued."
