@@ -16,6 +16,7 @@ import datetime
 import math
 import os
 import sys
+import threading
 
 import yaml
 
@@ -174,10 +175,20 @@ def main(argv=None):
     except KeyboardInterrupt:
         log('interrupted, runs.csv holds every finished run')
     finally:
-        runner.shutdown()
-        rclpy.try_shutdown()
+        # Teardown has twice hung on a futex after the last run (7 and 17 Nov), with every row
+        # already written. Bound it, so the chain moves on instead of waiting for the guard.
+        def _down():
+            runner.shutdown()
+            rclpy.try_shutdown()
+        t = threading.Thread(target=_down, daemon=True)
+        t.start()
+        t.join(30.0)
     if os.path.exists(csv_path):
         log(f"summary: {write_summary(out, f'Benchmark {a.tag or a.config} stack', [warn] if warn else [])}")
+    if t.is_alive():
+        log('teardown still running after 30 s, forcing exit')
+        sys.stdout.flush()
+        os._exit(0)
     return 0
 
 
