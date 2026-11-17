@@ -1,23 +1,6 @@
 {
- "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate matches v1.1 on every world on the same build and solves lane25 (6/6 against 1/3). The bars stall turned out to hit v1.1 too. The v2 cut waits on the margin-0 bars run and a bars bag. Swerve stays experimental.",
+ "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate matches v1.1 on every world and solves lane25. Open choice: the tip margin keeps roll low but costs bar crossings (bars 4/6 without it, 2/12 with it). Margin 0 runs on all worlds tonight decide the v2 config. Swerve stays experimental.",
  "queue": [
-  {
-   "log": "exp_ackf0",
-   "tag": "3d_gt_ackf0_d250",
-   "ref": [
-    "tag:3d_gt_ackfr_d250",
-    "2026-11-14_3d_gt_ckpt_d250"
-   ],
-   "label": "v2 candidate with tip margin 0 on bars and slopes, is the margin the bars cause?",
-   "minutes": 200
-  },
-  {
-   "log": "exp_bag_bars",
-   "tag": "none",
-   "ref": [],
-   "label": "Recorded v2 run on bars past_bars_6m, why it stalls at the first bar",
-   "minutes": 25
-  },
   {
    "log": "exp_bag_v7al",
    "tag": "none",
@@ -26,20 +9,30 @@
    "minutes": 25
   },
   {
-   "log": "exp_ackfr2",
-   "tag": "3d_gt_ackfr2_d250",
+   "log": "exp_ackf06",
+   "tag": "3d_gt_ackf06_d250",
    "ref": [
     "tag:3d_gt_ackf6_d250",
     "tag:3d_gt_ackf_d250"
    ],
-   "label": "v2 repeat on rock_field, urc_mix, crater_field, marsyard, second sample on every world",
-   "minutes": 330
+   "label": "v2 with margin 0 on bars, rock_field, urc_mix, crater_field, marsyard",
+   "minutes": 240
+  },
+  {
+   "log": "exp_ackf0r",
+   "tag": "3d_gt_ackf0r_d250",
+   "ref": [
+    "tag:3d_gt_ackf0_d250",
+    "tag:3d_gt_ackfr_d250"
+   ],
+   "label": "v2 with margin 0 repeat on slopes and bars",
+   "minutes": 140
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: v2 with margin 0 on bars and slopes (ackf0), bars bag, swerve lane25 bag, v2 repeat on the other four worlds (ackfr2)",
-  "v2 cut once bars is fixed or explained (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
+  "Now: swerve lane25 bag, v2 margin 0 on the other five worlds (ackf06), margin 0 repeat on slopes and bars (ackf0r)",
+  "v2 cut when the margin choice is made on the full runs (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
  ],
@@ -52,6 +45,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "17 Nov 21:05",
+   "text": "v2 with the tip margin off: bars 4/6 (2/12 with it), slopes 14/15 (one tip cancel by the monitor at 13.3 deg). The margin keeps roll lower but blocks the headings that cross bars. Margin 0 runs on the other worlds queued to pick the v2 config."
+  },
   {
    "when": "17 Nov 20:00",
    "text": "v1.1 + margin on rock_field, urc_mix, bars: 16/24 (v2 18/24 on the same worlds). v1.1 also stalls at the first bar on bars, so that failure is not the new planner. v2 is at least equal to v1.1 everywhere, with lane25 as the clear gain."
