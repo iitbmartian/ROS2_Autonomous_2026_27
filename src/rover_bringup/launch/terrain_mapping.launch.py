@@ -60,9 +60,9 @@ def generate_launch_description():
             'sim', default_value='true',
             description='Use /clock and the simulation parameter files'),
         DeclareLaunchArgument(
-            'mask_tip_margin', default_value='0.0',
+            'mask_tip_margin', default_value='0.05',
             description='rad, safe-heading mask also needs this stability margin, use the safety '
-                        'monitor tip_margin so planned headings never trip it (0 = u <= 1 mask)'),
+                        'monitor tip_margin so planned headings never trip it (0 = u <= 1 mask, v2 default 0.05)'),
         DeclareLaunchArgument(
             'params_file', default_value='',
             description='terrain_mapping_node ROS parameters, empty for terrain_mapping_sim.yaml '

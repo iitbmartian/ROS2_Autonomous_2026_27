@@ -10,8 +10,8 @@
 #
 # Both costmaps use the TraversabilityLayer (rover_traversability) with the utilisation cost
 # model, fed by terrain_features_node: /terrain/local_features for the local costmap,
-# /terrain/global_features for the global one. Controller and planner stay the 2D sim's
-# Ackermann MPPI and Smac hybrid until the swerve mode lands (Phase 4).
+# /terrain/global_features for the global one. The controller stays the 2D sim's Ackermann MPPI.
+# The planner is the HeadingAwarePlanner with the 2D sim's Smac hybrid as its fallback (v2).
 
 bt_navigator:
   ros__parameters:
@@ -21,6 +21,26 @@ bt_navigator:
     # ApproachGoals and NearGoalTooLong (rover_traversability). NearGoalTooLong triggers the 3D
     # tree's re-approach: 25 s within 1 m of the goal, then a 1.5 m back-up and a new approach.
     plugin_lib_names: ["rover_approach_goals_bt_node", "rover_near_goal_too_long_bt_node"]
+
+planner_server:
+  ros__parameters:
+    # v2: the HeadingAwarePlanner (rover_traversability) plans over (x, y, heading) and expands a
+    # pose only when the safe-heading mask allows that heading at that cell, so a path cannot
+    # cross a ramp diagonally. The 3D tree tries it first and falls back to GridBased (Smac).
+    planner_plugins: ["GridBased", "Heading"]
+    Heading:
+      plugin: "rover_traversability/HeadingAwarePlanner"
+      map_topic: /terrain/global_features
+      map_timeout: 5.0
+      yaw_bins: 16
+      minimum_turning_radius: 0.8   # same as GridBased (rover_control.yaml min_turn_radius)
+      allow_reverse: true
+      reverse_penalty: 2.0
+      non_straight_penalty: 1.2
+      cost_penalty: 2.0
+      allow_unknown: true
+      tolerance: 0.5
+      max_planning_time: 2.0
 
 local_costmap:
   local_costmap:

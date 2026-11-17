@@ -57,7 +57,12 @@
                 </Inverter>
                 <IsPathValid path="{path}"/>
               </ReactiveSequence>
-              <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+              <!-- v2: heading-aware planner first. When it finds no path or times out, plain Smac
+                   Hybrid-A*, so the stack never plans worse than v1.1. -->
+              <Fallback name="HeadingThenSmac">
+                <ComputePathToPose goal="{goal}" path="{path}" planner_id="Heading" error_code_id="{compute_path_error_code}"/>
+                <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+              </Fallback>
             </Fallback>
             <Sequence>
               <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
