@@ -2,20 +2,6 @@
  "headline": "v2: mask tip margin brings the heading planner back to v1.1 on slopes (13/15). The last lane25 failure is a mapper stall at the crest, fixed and under test",
  "queue": [
   {
-   "script": "exp_ackm.sh",
-   "label": "Heading planner + mask tip margin 0.05: slopes, crater_field, marsyard x3",
-   "stages": [],
-   "deadline": "2026-11-17 22:00",
-   "minutes": 180
-  },
-  {
-   "script": "exp_ackm.sh (VARIANT=ckm)",
-   "label": "v1.1 + mask tip margin 0.05: same goals, isolates the costmap effect",
-   "stages": [],
-   "deadline": "2026-11-17 22:00",
-   "minutes": 180
-  },
-  {
    "script": "exp_sw7m.sh",
    "label": "Swerve v7 + mask tip margin 0.05 on v6 failing goals plus regression",
    "stages": [],
@@ -23,14 +9,15 @@
    "minutes": 150
   },
   {
-   "script": "exp_ackm.sh (VARIANT=ackf)",
-   "label": "Heading planner + margin + empty depth cloud fix: slopes, crater_field, marsyard x3",
+   "script": "exp_ackw.sh (VARIANT=ackf SUF=6)",
+   "label": "ackf on rock_field, urc_mix, bars x3: completes the 6-world check of the v2 candidate",
    "stages": [],
-   "deadline": "2026-11-18 10:00",
-   "minutes": 90
+   "deadline": "2026-11-18 14:00",
+   "minutes": 300
   }
  ],
  "compare": [
+  "2026-11-17_3d_gt_ckm_d250",
   "2026-11-17_3d_gt_ackm_d250",
   "2026-11-16_3d_gt_ackh_d2502",
   "2026-11-16_3d_gt_ck6_d250",
