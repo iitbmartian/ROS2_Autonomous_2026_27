@@ -17,11 +17,28 @@
    "ref": [],
    "label": "Recorded v2 run on bars past_bars_6m, why it stalls at the first bar",
    "minutes": 25
+  },
+  {
+   "log": "exp_bag_v7al",
+   "tag": "none",
+   "ref": [],
+   "label": "Recorded swerve run with the heading anchor on lane25, is the spin gone",
+   "minutes": 25
+  },
+  {
+   "log": "exp_ackfr2",
+   "tag": "3d_gt_ackfr2_d250",
+   "ref": [
+    "tag:3d_gt_ackf6_d250",
+    "tag:3d_gt_ackf_d250"
+   ],
+   "label": "v2 repeat on rock_field, urc_mix, crater_field, marsyard, second sample on every world",
+   "minutes": 330
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: v2 with margin 0 on bars and slopes (ackf0), bag of v2 on bars",
+  "Now: v2 with margin 0 on bars and slopes (ackf0), bars bag, swerve lane25 bag, v2 repeat on the other four worlds (ackfr2)",
   "v2 cut once bars is fixed or explained (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
