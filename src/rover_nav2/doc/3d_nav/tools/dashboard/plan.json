@@ -20,6 +20,15 @@
    ],
    "label": "v2 with margin 0.05 on rock_field and urc_mix, second sample",
    "minutes": 130
+  },
+  {
+   "log": "exp_ackfr5",
+   "tag": "3d_gt_ackfr5_d250",
+   "ref": [
+    "tag:3d_gt_ackf_d250"
+   ],
+   "label": "v2 on crater_field and marsyard, second sample",
+   "minutes": 80
   }
  ],
  "deadline": "2026-11-22 00:00",
