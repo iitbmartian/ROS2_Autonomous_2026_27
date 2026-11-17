@@ -113,7 +113,8 @@
   "Push v1.1: ! cd ~/ROS2_Autonomous_2026_27 && git -c credential.helper='!gh auth git-credential' push origin ram/3d_nav-v1.1 3d-nav-v1.1",
   "Rover data before 22 Nov: odometry source, lidar mount and IMU topics, CG height and mass, wheel offset and step height.",
   "Lab visit with the NUC for the Phase 2 latency check.",
-  "Phase 5 time gate: compare against v1.1 Ackermann (recommended) or swerve? Default v1.1 unless you say otherwise."
+  "Phase 5 time gate: compare against v1.1 Ackermann (recommended) or swerve? Default v1.1 unless you say otherwise.",
+  "Disk is down to 11 GB free (each night uses about 1 GB). Everything clearable inside the project is cleared. Free some space outside it (MRT, Unity, Downloads?) or ok deleting old benchmark result dirs."
  ],
  "phases": [
   {
