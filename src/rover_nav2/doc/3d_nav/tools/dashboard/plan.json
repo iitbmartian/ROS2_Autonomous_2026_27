@@ -41,9 +41,9 @@
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "17 Nov: v2 candidate full 6-world check, swerve rerun with crest fix, Phase 5 gate on the v2 run",
-  "18 to 19 Nov: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
-  "20 Nov: v2 cut, paper and deck updated",
+  "Now: v2 candidate 6-world check (ackf6), swerve rerun with crest fix, ackf repeat on slopes and bars",
+  "v2 cut when those pass (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
+  "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
  ],
  "summary": [
