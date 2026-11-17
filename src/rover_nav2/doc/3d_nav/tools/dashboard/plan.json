@@ -37,11 +37,20 @@
    ],
    "label": "v2 candidate repeat on slopes and bars (noisiest worlds) before the v2 cut",
    "minutes": 200
+  },
+  {
+   "log": "exp_sw7a",
+   "tag": "3d_gt_sw7a_d250",
+   "ref": [
+    "tag:3d_gt_sw7f_d250"
+   ],
+   "label": "Swerve v7 + heading-plan anchor to the current body yaw: same goals as sw7f",
+   "minutes": 170
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: v2 candidate 6-world check (ackf6), swerve rerun with crest fix, ackf repeat on slopes and bars",
+  "Now: v2 candidate 6-world check (ackf6), swerve crest-fix rerun (sw7f), ackf repeat on slopes and bars, swerve with the heading anchor (sw7a)",
   "v2 cut when those pass (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
@@ -50,11 +59,15 @@
   "Phases 0 to 3 gates met. Phase 3 closed 14 Nov on v1.1 (fine global map step + re-approach tree).",
   "v1.1 against 2D: 86% vs 63% goals, 0 vs 1 unsafe, about 6x fewer recoveries, same median time. Biggest gains on slopes (13/15 vs 6/15) and bars.",
   "v2 Ackermann: heading-aware Hybrid-A* planner (only holds headings the terrain allows), safe-heading mask now uses the tip monitor's 13.2 deg abort line, and a ramp-crest mapper stall fixed.",
-  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. Roll still reaches the abort line, the controller looks like the cause, not the planner.",
+  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. Bag: on lane25 it spins in place chasing flipping plan headings, fix under test (sw7a).",
   "Phase 5 code (governor, tip monitor, collision monitor) is on in every 3D run. Its gate is not formally recorded yet, planned on the v2 full run.",
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "17 Nov 12:30",
+   "text": "Swerve lane25 bag: no tip problem. The rover spins in place at the ramp foot, chasing plan headings that flip ~180 deg between replans (the heading plan ignored the rover's current yaw). Fixed with a start-heading anchor, tested, swerve run sw7a queued."
+  },
   {
    "when": "17 Nov 11:40",
    "text": "v2 candidate (ackf) 33/33 on slopes, crater_field, marsyard (v1.1 31/33, rerun today also 31/33). lane25_top 3/3 for the first time, roll 7 to 10 deg. 0 unsafe."
