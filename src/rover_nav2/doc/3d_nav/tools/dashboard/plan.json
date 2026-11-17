@@ -19,6 +19,15 @@
    ],
    "label": "v2 on crater_field and marsyard, second sample",
    "minutes": 80
+  },
+  {
+   "log": "exp_sw7t",
+   "tag": "3d_gt_sw7t_d250",
+   "ref": [
+    "tag:3d_gt_sw7a_d250"
+   ],
+   "label": "Swerve without the controller's terrain cost (Ackermann climbs without it): lane25, sidehill, crater far_left plus regression",
+   "minutes": 170
   }
  ],
  "deadline": "2026-11-22 00:00",
