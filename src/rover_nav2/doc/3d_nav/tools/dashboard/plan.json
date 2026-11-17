@@ -1,87 +1,185 @@
 {
- "headline": "v2: mask tip margin brings the heading planner back to v1.1 on slopes (13/15). The last lane25 failure is a mapper stall at the crest, fixed and under test",
+ "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate (heading-aware planner + tip margin + ramp-crest fix) got 33/33 on slopes, crater_field and marsyard, v1.1 gets 31/33, and lane25 is solved (3/3). Its other three worlds run now. Swerve still trails and stays experimental.",
  "queue": [
   {
-   "script": "exp_ackm.sh (VARIANT=ackf)",
-   "label": "Heading planner + margin + empty depth cloud fix: slopes, crater_field, marsyard x3 (running)",
-   "stages": [],
-   "deadline": "2026-11-18 10:00",
+   "log": "exp_ackf",
+   "tag": "3d_gt_ackf_d250",
+   "ref": [
+    "2026-11-14_3d_gt_ckpt_d250"
+   ],
+   "label": "v2 candidate on slopes, crater_field, marsyard x3",
    "minutes": 180
   },
   {
-   "script": "exp_ackw.sh (VARIANT=ackf SUF=6)",
-   "label": "ackf on rock_field, urc_mix, bars x3: completes the 6-world check of the v2 candidate",
-   "stages": [],
-   "deadline": "2026-11-18 14:00",
+   "log": "exp_ackf6",
+   "tag": "3d_gt_ackf6_d250",
+   "ref": [
+    "2026-11-14_3d_gt_ckpt_d250"
+   ],
+   "label": "v2 candidate on rock_field, urc_mix, bars x3, completes the 6-world check",
    "minutes": 300
   },
   {
-   "script": "exp_sw7f.sh",
-   "label": "Swerve v7 + margin on the crest-fix install: lane25, sidehill, crater far_left plus regression",
-   "stages": [],
-   "deadline": "2026-11-18 20:00",
+   "log": "exp_sw7f",
+   "tag": "3d_gt_sw7f_d250",
+   "ref": [
+    "2026-11-17_3d_gt_sw7m_d250"
+   ],
+   "label": "Swerve v7 + margin on the crest-fix build: lane25, sidehill, crater far_left plus regression",
    "minutes": 170
-  }
- ],
- "compare": [
-  "2026-11-17_3d_gt_sw7m_d250",
-  "2026-11-17_3d_gt_ckm_d250",
-  "2026-11-17_3d_gt_ackm_d250",
-  "2026-11-16_3d_gt_ackh_d2502",
-  "2026-11-16_3d_gt_ck6_d250",
-  "2026-11-16_3d_gt_ackh_d250",
-  "2026-11-16_3d_gt_sw6full_d250",
-  "2026-11-16_3d_gt_sw7full_d250",
-  "2026-11-15_3d_gt_swbase_d250",
-  "2026-11-15_3d_gt_sw5_d250",
-  "2026-11-14_3d_gt_ckpt_d250",
-  "2026-11-13_2d_base_d250"
- ],
- "gates": [
-  "phase3_gate_ckpt_d250.txt",
-  "phase4_gate_swbase_d250.txt",
-  "phase4_gate_sw7full_d250.txt"
- ],
- "next_goals": [
-  "Lane25 crest: empty depth cloud (camera sees sky) stalled the mapper, fix under test in exp_ackf",
-  "Benchmark timing plan sent an empty planner id (invalid with two planners), fixed with --plan-planner-id",
-  "Analyse swerve v7 bags (lane25 dither at the ramp foot, crater far_left)",
-  "Swerve stays experimental: v7 gate 4 FAIL, lane35 recoveries 385",
-  "Disk cleared to 12 GB free (91%)"
- ],
- "deliverables": [
-  {
-   "what": "Final D 250 numbers and gate: 3D default 44/57, 2 gate items left",
-   "when": "done 13 Nov"
   },
   {
-   "what": "v1.1 candidate checkpoint: 49/57, unsafe 0, gate 2 FAIL",
-   "when": "done 14 Nov 09:18"
-  },
-  {
-   "what": "v1.1: branch ram/3d_nav-v1.1 + tag 3d-nav-v1.1, paper and deck",
-   "when": "cut 14 Nov 19:58, push by Ram"
-  },
-  {
-   "what": "v2: swerve",
-   "when": "20 Nov"
-  },
-  {
-   "what": "Real-rover tests",
-   "when": "from 22 Nov"
+   "log": "exp_ackfr",
+   "tag": "3d_gt_ackfr_d250",
+   "ref": [
+    "tag:3d_gt_ackf_d250",
+    "2026-11-14_3d_gt_ckpt_d250"
+   ],
+   "label": "v2 candidate repeat on slopes and bars (noisiest worlds) before the v2 cut",
+   "minutes": 200
   }
  ],
  "deadline": "2026-11-22 00:00",
- "issues": [
-  "Swerve v6: 35/57 vs Ackermann 49/57, systematic 0/5 on crater far_left, slopes lane25 and sidehill",
-  "rock_field ahead_10m stalls in about 1 of 6 runs (known)",
-  "slopes lane25 and sidehill marginal (near the tilt limits)",
-  "v1.1 push needs Ram to run it"
- ],
  "plans": [
-  "16 Nov: heading plan for swerve (smoother done, tests queued), governor stays 0.3",
-  "17 to 19 Nov: heading-aware slopes, dynamic tip margin, recoveries",
-  "20 Nov: v2",
+  "17 Nov: v2 candidate full 6-world check, swerve rerun with crest fix, Phase 5 gate on the v2 run",
+  "18 to 19 Nov: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
+  "20 Nov: v2 cut, paper and deck updated",
   "22 Nov: real rover"
+ ],
+ "summary": [
+  "Phases 0 to 3 gates met. Phase 3 closed 14 Nov on v1.1 (fine global map step + re-approach tree).",
+  "v1.1 against 2D: 86% vs 63% goals, 0 vs 1 unsafe, about 6x fewer recoveries, same median time. Biggest gains on slopes (13/15 vs 6/15) and bars.",
+  "v2 Ackermann: heading-aware Hybrid-A* planner (only holds headings the terrain allows), safe-heading mask now uses the tip monitor's 13.2 deg abort line, and a ramp-crest mapper stall fixed.",
+  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. Roll still reaches the abort line, the controller looks like the cause, not the planner.",
+  "Phase 5 code (governor, tip monitor, collision monitor) is on in every 3D run. Its gate is not formally recorded yet, planned on the v2 full run.",
+  "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
+ ],
+ "updates": [
+  {
+   "when": "17 Nov 11:40",
+   "text": "v2 candidate (ackf) 33/33 on slopes, crater_field, marsyard (v1.1 31/33, rerun today also 31/33). lane25_top 3/3 for the first time, roll 7 to 10 deg. 0 unsafe."
+  },
+  {
+   "when": "17 Nov 10:00",
+   "text": "Swerve v7 with the tip margin: 0/9 on its three failing goals (was 1/9), regression 5/6. No gain, rerun on the crest-fix build queued."
+  },
+  {
+   "when": "17 Nov 09:00",
+   "text": "Benchmark hung on exit for 42 min after its last run (second time). Killed, and teardown is now capped at 30 s with a forced exit."
+  },
+  {
+   "when": "17 Nov 08:05",
+   "text": "v1.1 with the tip margin: 31/33, identical goal for goal to v1.1. The margin is free for v1.1 and helps the heading planner."
+  },
+  {
+   "when": "17 Nov 06:15",
+   "text": "Ramp-crest bug: at the crest the camera sees sky, its empty point cloud had a blank frame, which blocked the mapper's TF wait and starved lidar scans. Map went stale, goal aborted 1.6 m short. Fixed (6516aeb)."
+  },
+  {
+   "when": "17 Nov 00:30",
+   "text": "lane25 cause: the heading mask allowed headings up to the 16.1 deg tip limit, but the monitor aborts at 13.2 deg. Added mask_tip_margin. Heading planner slopes 10/15 to 13/15."
+  },
+  {
+   "when": "16 Nov 22:20",
+   "text": "Heading planner over 6 worlds 49/57, equal to v1.1, better on rock_field, urc_mix, bars (21/24 vs 18/24). Swerve v7 full run 36/57, v6 was 35/57."
+  }
+ ],
+ "needs_you": [
+  "Push v1.1: ! cd ~/ROS2_Autonomous_2026_27 && git -c credential.helper='!gh auth git-credential' push origin ram/3d_nav-v1.1 3d-nav-v1.1",
+  "Rover data before 22 Nov: odometry source, lidar mount and IMU topics, CG height and mass, wheel offset and step height.",
+  "Lab visit with the NUC for the Phase 2 latency check.",
+  "Phase 5 time gate: compare against v1.1 Ackermann (recommended) or swerve? Default v1.1 unless you say otherwise."
+ ],
+ "phases": [
+  {
+   "phase": "0 Foundation",
+   "state": "done",
+   "note": "packages, terrain layer, benchmark runner, 2D baseline (1 Nov)"
+  },
+  {
+   "phase": "1 Sim fidelity",
+   "state": "done",
+   "note": "L2-like lidar, new worlds, ground truth, goal sets"
+  },
+  {
+   "phase": "2 Terrain mapping",
+   "state": "open",
+   "note": "6 of 7 worlds within 5 cm. crater_field (odometry yaw drift) and NUC latency left"
+  },
+  {
+   "phase": "3 Traversability",
+   "state": "done",
+   "note": "gate closed 14 Nov on v1.1, 49/57, 0 unsafe"
+  },
+  {
+   "phase": "4 Swerve",
+   "state": "open",
+   "note": "36/57 best, gate FAIL, experimental. v2 heading work continues"
+  },
+  {
+   "phase": "5 Speed and safety",
+   "state": "open",
+   "note": "governor and tip monitor in use, gate to record on the v2 full run. Slip layer needs wheel feedback, waits for the rover"
+  },
+  {
+   "phase": "6 Global terrain memory",
+   "state": "open",
+   "note": "global feature map in use by the planner, gate not run"
+  },
+  {
+   "phase": "7 Hardware",
+   "state": "queued",
+   "note": "from 22 Nov, needs rover data"
+  }
+ ],
+ "stacks": [
+  {
+   "label": "2D Nav2 baseline",
+   "dirs": [
+    "2026-11-13_2d_base_d250"
+   ]
+  },
+  {
+   "label": "3D Ackermann v1.1",
+   "note": "tagged 3d-nav-v1.1",
+   "dirs": [
+    "2026-11-14_3d_gt_ckpt_d250"
+   ]
+  },
+  {
+   "label": "Heading planner (ackh)",
+   "note": "before tip margin and crest fix",
+   "dirs": [
+    "2026-11-16_3d_gt_ackh_d250",
+    {
+     "dir": "2026-11-16_3d_gt_ackh_d2502",
+     "worlds": [
+      "rock_field",
+      "urc_mix",
+      "bars"
+     ]
+    }
+   ]
+  },
+  {
+   "label": "v2 candidate (ackf)",
+   "note": "heading planner + tip margin + crest fix, 6-world check in progress",
+   "dirs": [
+    "tag:3d_gt_ackf_d250",
+    "tag:3d_gt_ackf6_d250"
+   ]
+  },
+  {
+   "label": "Swerve v6",
+   "dirs": [
+    "2026-11-16_3d_gt_sw6full_d250"
+   ]
+  },
+  {
+   "label": "Swerve v7",
+   "dirs": [
+    "2026-11-16_3d_gt_sw7full_d250"
+   ]
+  }
  ]
 }
