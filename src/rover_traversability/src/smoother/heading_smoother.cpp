@@ -25,6 +25,7 @@
 #include "rover_traversability/core/pose_evaluation.hpp"
 #include "../nodes/terrain_map_input.hpp"
 #include "tf2/utils.h"
+#include "tf2_ros/buffer.h"
 
 namespace rover_traversability
 {
@@ -34,11 +35,12 @@ class HeadingSmoother : public nav2_core::Smoother
 public:
   void configure(
     const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent, std::string name,
-    std::shared_ptr<tf2_ros::Buffer>, std::shared_ptr<nav2_costmap_2d::CostmapSubscriber>,
+    std::shared_ptr<tf2_ros::Buffer> tf, std::shared_ptr<nav2_costmap_2d::CostmapSubscriber>,
     std::shared_ptr<nav2_costmap_2d::FootprintSubscriber>) override
   {
     auto node = parent.lock();
     name_ = name;
+    tf_ = tf;
     logger_ = node->get_logger();
     clock_ = node->get_clock();
     auto p = [&](const std::string & k, auto def) {
@@ -53,6 +55,8 @@ public:
     hp_.w_reverse = p("reverse_weight", 1.0).as_double();
     hp_.w_turn = p("turn_weight", 0.3).as_double();
     hp_.allow_crab = p("allow_crab", true).as_bool();
+    anchor_start_ = p("anchor_start_heading", true).as_bool();
+    base_frame_ = p("robot_base_frame", std::string("base_footprint")).as_string();
     eval_.risk_kappa = p("risk_kappa", 1.0).as_double();
     const std::string phys_path =
       p("physical_params_file", core::defaultPhysicalParamsPath()).as_string();
@@ -71,9 +75,9 @@ public:
         if (s) {snap_ = s;}
       });
     RCLCPP_INFO(
-      logger_, "HeadingSmoother: %s, %d bins, crab %s (w %.2f), reverse %.2f, turn %.2f",
-      map_topic_.c_str(), hp_.bins, hp_.allow_crab ? "on" : "off", hp_.w_crab, hp_.w_reverse,
-      hp_.w_turn);
+      logger_, "HeadingSmoother: %s, %d bins, crab %s (w %.2f), reverse %.2f, turn %.2f, "
+      "anchor %s", map_topic_.c_str(), hp_.bins, hp_.allow_crab ? "on" : "off", hp_.w_crab,
+      hp_.w_reverse, hp_.w_turn, anchor_start_ ? "on" : "off");
   }
 
   void cleanup() override {sub_.reset();}
@@ -117,7 +121,9 @@ public:
       for (double v : row) {any |= !std::isnan(v);}
       if (!any) {std::fill(row.begin(), row.end(), 0.0);}
     }
-    const auto r = core::assignHeadings(util, travel, hp_);
+    auto hp = hp_;
+    hp.start_yaw = anchor_start_ ? bodyYaw(path.header.frame_id) : NAN;
+    const auto r = core::assignHeadings(util, travel, hp);
     for (size_t i = 0; i < n; ++i) {
       auto & q = path.poses[i].pose.orientation;
       q.x = 0.0; q.y = 0.0; q.z = std::sin(0.5 * r.yaw[i]); q.w = std::cos(0.5 * r.yaw[i]);
@@ -131,7 +137,21 @@ public:
   }
 
 private:
-  std::string name_, map_topic_;
+  // Current body yaw in the path's frame, NaN when TF has no answer (the plan is then free).
+  double bodyYaw(const std::string & frame)
+  {
+    if (!tf_) {return NAN;}
+    try {
+      const auto t = tf_->lookupTransform(frame, base_frame_, tf2::TimePointZero);
+      return tf2::getYaw(t.transform.rotation);
+    } catch (const tf2::TransformException &) {
+      return NAN;
+    }
+  }
+
+  std::string name_, map_topic_, base_frame_;
+  bool anchor_start_{true};
+  std::shared_ptr<tf2_ros::Buffer> tf_;
   double map_timeout_{5.0};
   rclcpp::Logger logger_{rclcpp::get_logger("HeadingSmoother")};
   rclcpp::Clock::SharedPtr clock_;

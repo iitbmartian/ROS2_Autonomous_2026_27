@@ -104,3 +104,31 @@ TEST(HeadingAssignment, EmptyPathIsFeasible)
   EXPECT_TRUE(r.feasible);
   EXPECT_TRUE(r.yaw.empty());
 }
+
+// Sidehill along east where only the two cross-slope headings (bins 4 and 12) are safe: both
+// cost the same, so a replan could flip between them. The current body yaw breaks the tie.
+TEST(HeadingAssignment, StartYawKeepsTheHeadingTheRoverHolds)
+{
+  Grid g(6, std::vector<double>(16, NAN));
+  for (auto & row : g) {row[4] = 0.3; row[12] = 0.3;}
+  const std::vector<double> east(6, 0.0);
+  HeadingParams p;
+  p.start_yaw = -M_PI / 2;
+  auto r = assignHeadings(g, east, p);
+  ASSERT_TRUE(r.feasible);
+  for (int b : r.bin) {EXPECT_EQ(b, 12);}
+  p.start_yaw = M_PI / 2;
+  r = assignHeadings(g, east, p);
+  for (int b : r.bin) {EXPECT_EQ(b, 4);}
+}
+
+// On flat ground the anchor costs only the first turn: a rover facing west on an eastbound
+// path still turns to face travel, since reversing the whole path costs more.
+TEST(HeadingAssignment, StartYawDoesNotForceReversing)
+{
+  HeadingParams p;
+  p.start_yaw = M_PI;
+  auto r = assignHeadings(flat(20, 16), std::vector<double>(20, 0.0), p);
+  ASSERT_TRUE(r.feasible);
+  EXPECT_EQ(r.bin.back(), 0);
+}

@@ -42,7 +42,15 @@ HeadingResult assignHeadings(
   std::vector<double> cur(B), nxt(B);
   std::vector<std::vector<int>> back(n, std::vector<int>(B, 0));
   std::vector<std::vector<char>> ok(n, std::vector<char>(B, 0));
-  for (int b = 0; b < B; ++b) {bool s; cur[b] = node(0, b, s); ok[0][b] = s;}
+  int b0 = -1;
+  if (std::isfinite(p.start_yaw)) {
+    b0 = static_cast<int>(std::lround(p.start_yaw / step)) % B;
+    if (b0 < 0) {b0 += B;}
+  }
+  for (int b = 0; b < B; ++b) {
+    bool s; cur[b] = node(0, b, s); ok[0][b] = s;
+    if (b0 >= 0) {int d = std::abs(b - b0); cur[b] += p.w_turn * std::min(d, B - d);}
+  }
   for (int i = 1; i < n; ++i) {
     for (int b = 0; b < B; ++b) {
       bool s; const double c = node(i, b, s); ok[i][b] = s;

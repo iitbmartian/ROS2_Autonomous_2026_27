@@ -10,6 +10,7 @@
 #ifndef ROVER_TRAVERSABILITY__CORE__HEADING_ASSIGNMENT_HPP_
 #define ROVER_TRAVERSABILITY__CORE__HEADING_ASSIGNMENT_HPP_
 
+#include <cmath>
 #include <vector>
 
 namespace rover_traversability
@@ -25,6 +26,10 @@ struct HeadingParams
   double w_reverse{1.0};   // per unit max(0, -cos(heading - travel)), backwards travel
   double w_turn{0.3};      // per bin of heading change between consecutive poses
   bool allow_crab{true};   // false: only headings within half a bin of travel or its reverse
+  // Body yaw the rover holds now (rad), NaN for none. The first pose then pays w_turn per bin
+  // of change from it, so a replan keeps the heading the rover has instead of flipping to an
+  // equally cheap one, which the controller would chase by spinning in place.
+  double start_yaw{NAN};
 };
 
 struct HeadingResult
