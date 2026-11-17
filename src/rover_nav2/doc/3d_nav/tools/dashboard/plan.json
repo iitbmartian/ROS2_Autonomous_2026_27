@@ -2,16 +2,6 @@
  "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate matches v1.1 on every world and solves lane25. Open choice: the tip margin keeps roll low but costs bar crossings (bars 4/6 without it, 2/12 with it). Margin 0 runs on all worlds tonight decide the v2 config. Swerve stays experimental.",
  "queue": [
   {
-   "log": "exp_ackf06",
-   "tag": "3d_gt_ackf06_d250",
-   "ref": [
-    "tag:3d_gt_ackf6_d250",
-    "tag:3d_gt_ackf_d250"
-   ],
-   "label": "v2 with margin 0 on bars, rock_field, urc_mix, crater_field, marsyard",
-   "minutes": 240
-  },
-  {
    "log": "exp_ackf0r",
    "tag": "3d_gt_ackf0r_d250",
    "ref": [
@@ -30,11 +20,21 @@
    ],
    "label": "v2 with margin 0.05 on bars and slopes, third sample to compare margins",
    "minutes": 140
+  },
+  {
+   "log": "exp_ackfr4",
+   "tag": "3d_gt_ackfr4_d250",
+   "ref": [
+    "tag:3d_gt_ackf6_d250",
+    "tag:3d_gt_ackf06_d250"
+   ],
+   "label": "v2 with margin 0.05 on rock_field and urc_mix, second sample",
+   "minutes": 130
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: v2 margin 0 on the other five worlds (ackf06), margin 0 repeat on slopes and bars (ackf0r), margin 0.05 repeat on bars and slopes (ackfr3)",
+  "Now: margin 0 repeat on slopes and bars (ackf0r), margin 0.05 repeats on bars and slopes (ackfr3) and rock_field and urc_mix (ackfr4)",
   "v2 cut when the margin choice is made on the full runs (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
@@ -48,6 +48,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "18 Nov 00:00",
+   "text": "v2 with margin 0 over all 6 worlds: 51/57, the same as with the margin. Margin 0 wins bars (6/12 vs 2/12) and rock_field ahead_10m (3/3 vs 1/3), the margin wins lane25 (6/6 vs 4/6, two tip cancels at 13.4 deg without it). Repeats of both are running."
+  },
   {
    "when": "17 Nov 22:00",
    "text": "Swerve lane25 bag with the heading anchor: the spinning is gone. Now the controller dithers at the ramp foot (0.09 m/s, reversing 21% of the time) while the speed limit allows 0.37 m/s. Next swerve step is the controller's slope cost, after the v2 cut."
