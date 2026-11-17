@@ -120,7 +120,7 @@
   }
  ],
  "needs_you": [
-  "Push v1.1: ! cd ~/ROS2_Autonomous_2026_27 && git -c credential.helper='!gh auth git-credential' push origin ram/3d_nav-v1.1 3d-nav-v1.1",
+  "Push v2 when it is tagged (about 10:00 18 Nov). v1.1 is not pushed separately, its commits and tag ride along with v2.",
   "Rover data before 22 Nov: odometry source, lidar mount and IMU topics, CG height and mass, wheel offset and step height.",
   "Lab visit with the NUC for the Phase 2 latency check.",
   "Phase 5 time gate: compare against v1.1 Ackermann (recommended) or swerve? Default v1.1 unless you say otherwise.",
