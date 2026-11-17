@@ -2,6 +2,13 @@
  "headline": "v2: mask tip margin brings the heading planner back to v1.1 on slopes (13/15). The last lane25 failure is a mapper stall at the crest, fixed and under test",
  "queue": [
   {
+   "script": "exp_ackm.sh (VARIANT=ackf)",
+   "label": "Heading planner + margin + empty depth cloud fix: slopes, crater_field, marsyard x3 (running)",
+   "stages": [],
+   "deadline": "2026-11-18 10:00",
+   "minutes": 180
+  },
+  {
    "script": "exp_ackw.sh (VARIANT=ackf SUF=6)",
    "label": "ackf on rock_field, urc_mix, bars x3: completes the 6-world check of the v2 candidate",
    "stages": [],
