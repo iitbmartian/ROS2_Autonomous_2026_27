@@ -1,15 +1,6 @@
 {
- "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate (heading-aware planner + tip margin + ramp-crest fix) got 33/33 on slopes, crater_field and marsyard, v1.1 gets 31/33, and lane25 is solved (3/3). Its other three worlds run now. Swerve still trails and stays experimental.",
+ "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). The v2 candidate (heading-aware planner + tip margin + ramp-crest fix) has 51/57 over all 6 worlds, 0 unsafe, and solves lane25. A same-build v1.1 drift check and a repeat run come before the v2 cut. Swerve still trails and stays experimental.",
  "queue": [
-  {
-   "log": "exp_ackf",
-   "tag": "3d_gt_ackf_d250",
-   "ref": [
-    "2026-11-14_3d_gt_ckpt_d250"
-   ],
-   "label": "v2 candidate on slopes, crater_field, marsyard x3",
-   "minutes": 180
-  },
   {
    "log": "exp_ackf6",
    "tag": "3d_gt_ackf6_d250",
@@ -46,11 +37,20 @@
    ],
    "label": "Swerve v7 + heading-plan anchor to the current body yaw: same goals as sw7f",
    "minutes": 170
+  },
+  {
+   "log": "exp_ckm6",
+   "tag": "3d_gt_ckm6_d250",
+   "ref": [
+    "2026-11-14_3d_gt_ckpt_d250"
+   ],
+   "label": "v1.1 + margin on rock_field, urc_mix, bars x3, drift check for the 51 vs 49 claim",
+   "minutes": 300
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: v2 candidate 6-world check (ackf6), swerve crest-fix rerun (sw7f), ackf repeat on slopes and bars, swerve with the heading anchor (sw7a)",
+  "Now: swerve crest-fix rerun (sw7f), ackf repeat on slopes and bars, swerve with the heading anchor (sw7a), v1.1 drift check on rock/urc/bars (ckm6)",
   "v2 cut when those pass (no fixed date): Phase 5 gate on the v2 run, paper and deck updated, tag for Ram to push",
   "Meanwhile: swerve controller-side heading (bag analysis), dynamic tip margin, recoveries",
   "22 Nov: real rover"
@@ -64,6 +64,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "17 Nov 13:55",
+   "text": "v2 candidate on rock_field, urc_mix, bars: 18/24 (v1.1 18/24). Over 6 worlds 51/57 vs v1.1 49/57, 0 unsafe. One loss: bars past_bars_4m 0/3, with the tip margin the planner sees no safe heading near the goal (2/3 without it). v1.1 drift check on those worlds queued."
+  },
   {
    "when": "17 Nov 12:30",
    "text": "Swerve lane25 bag: no tip problem. The rover spins in place at the ramp foot, chasing plan headings that flip ~180 deg between replans (the heading plan ignored the rover's current yaw). Fixed with a start-heading anchor, tested, swerve run sw7a queued."
@@ -176,7 +180,7 @@
   },
   {
    "label": "v2 candidate (ackf)",
-   "note": "heading planner + tip margin + crest fix, 6-world check in progress",
+   "note": "heading planner + tip margin + crest fix, 51/57 over 6 worlds",
    "dirs": [
     "tag:3d_gt_ackf_d250",
     "tag:3d_gt_ackf6_d250"
