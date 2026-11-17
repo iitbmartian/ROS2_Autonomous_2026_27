@@ -2,16 +2,6 @@
  "headline": "v2 is ready to cut (51/57 over 6 worlds, 0 unsafe, 25 deg ramp 8/9 vs 2/6 for v1.1, same time as v1.1). Defaults committed, last repeat and a smoke test of the defaults run tonight, then the tag. v3 work started, target 22 Nov.",
  "queue": [
   {
-   "log": "exp_ackfr4",
-   "tag": "3d_gt_ackfr4_d250",
-   "ref": [
-    "tag:3d_gt_ackf6_d250",
-    "tag:3d_gt_ackf06_d250"
-   ],
-   "label": "v2 with margin 0.05 on rock_field and urc_mix, second sample",
-   "minutes": 130
-  },
-  {
    "log": "exp_ackfr5",
    "tag": "3d_gt_ackfr5_d250",
    "ref": [
@@ -62,6 +52,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "18 Nov 03:55",
+   "text": "v2 repeat on rock_field and urc_mix: 17/18 (first v2 run 16/18, v1.1 rerun 14/18), 0 unsafe."
+  },
   {
    "when": "18 Nov 04:30",
    "text": "v2 made the 3D default (heading planner first, tip margin 0.05). Phase 5 gate met: 0 unsafe over all v2 runs, median time 1.00x v1.1. Paper and deck drafts built. v3 started: on a perfect map the margin does not block the bars, so the live map is recorded next to find what does."
