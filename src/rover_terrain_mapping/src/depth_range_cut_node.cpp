@@ -30,7 +30,12 @@ public:
     sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
       in, rclcpp::SensorDataQoS(),
       [this](sensor_msgs::msg::PointCloud2::ConstSharedPtr m) {
-        pub_->publish(nanopcl::to(rangeCut(nanopcl::from(*m), p_)));
+        // nanopcl::from drops frame and stamp for an empty cloud, and an empty frame makes the
+        // mapper wait its full TF timeout per cloud. Nothing to map, so publish nothing.
+        if (m->width * m->height == 0) {return;}
+        const auto out = rangeCut(nanopcl::from(*m), p_);
+        if (out.empty()) {return;}
+        pub_->publish(nanopcl::to(out, m->header.frame_id, m->header.stamp));
       });
     RCLCPP_INFO(
       get_logger(), "depth_range_cut: %s -> %s, range %.2f to %.2f m, voxel %.3f m",

@@ -3,6 +3,7 @@
 # bag (run_ackhlane_burn8_1116_2337) showed the mask allowing headings 32 to 41 deg off the fall
 # line on the 25 deg ramp: roll under the 16.1 deg limit but past the 13.2 deg abort line.
 # VARIANT ackm: heading planner + margin. VARIANT ckm: v1.1 + margin (mask feeds the costmap).
+# VARIANT ackf: ackm after the empty depth cloud fix (built from the current HEAD).
 # Slopes x3, crater_field and marsyard x3 regression. Args: deadline (epoch), pid to wait for.
 VARIANT=${VARIANT:-ackm}
 E=$HOME/.ros/rover_3d_nav; L=$HOME/rover_3d_nav_results/batch.log; B=$HOME/.ros/rover_benchmark; X=$E/exp
@@ -20,7 +21,7 @@ source install/setup.bash
 source $E/tools/simenv.sh; unset ROVER_COUPLING_K ROVER_COUPLING_D ROVER_COUPLING_MAX
 log "start"
 t=3d_gt_${VARIANT}_d250; O=$B/$(date +%F)_$t
-if [ $VARIANT = ackm ]; then ov=nav2_3d_ack_heading.yaml; pid="--plan-planner-id Heading"; else ov=nav2_3d_reapproach.yaml; pid=""; fi
+if [ $VARIANT = ackm ] || [ $VARIANT = ackf ]; then ov=nav2_3d_ack_heading.yaml; pid="--plan-planner-id Heading"; else ov=nav2_3d_reapproach.yaml; pid=""; fi
 A="--config 3d $pid --launch-args odom_source:=ground_truth suspension:=plugin governor_v_nominal:=0.5 governor_u_free:=0.3 global_fine_step:=true mask_tip_margin:=0.05 nav_extra_overlay:=$X/$ov"
 first=1
 for w in slopes crater_field marsyard; do

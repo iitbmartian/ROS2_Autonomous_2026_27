@@ -279,6 +279,9 @@ private:
   void onScan(size_t k, const sensor_msgs::msg::PointCloud2 & msg)
   {
     const Input & in = inputs_[k];
+    // An empty cloud carries nothing, and an empty frame would hold this callback group for the
+    // whole TF wait, starving the other sensors (stale map, costmap timeout on a ramp crest).
+    if (msg.width * msg.height == 0 || msg.header.frame_id.empty()) {return;}
     auto raw = nanopcl::from(msg);
     if (self_filter_) {
       const auto T = local_.tf->getExtrinsic(raw.frameId());

@@ -1,5 +1,5 @@
 {
- "headline": "v2: heading planner 49/57 over 6 worlds, same as v1.1 (lower slopes, higher bars and urc_mix). Testing the mask tip margin for Ackermann and swerve",
+ "headline": "v2: mask tip margin brings the heading planner back to v1.1 on slopes (13/15). The last lane25 failure is a mapper stall at the crest, fixed and under test",
  "queue": [
   {
    "script": "exp_ackm.sh",
@@ -21,6 +21,13 @@
    "stages": [],
    "deadline": "2026-11-18 06:00",
    "minutes": 150
+  },
+  {
+   "script": "exp_ackm.sh (VARIANT=ackf)",
+   "label": "Heading planner + margin + empty depth cloud fix: slopes, crater_field, marsyard x3",
+   "stages": [],
+   "deadline": "2026-11-18 10:00",
+   "minutes": 90
   }
  ],
  "compare": [
@@ -41,7 +48,7 @@
   "phase4_gate_sw7full_d250.txt"
  ],
  "next_goals": [
-  "Lane25: mask allows 32-41 deg off the fall line (roll under 16.1 limit, over 13.2 abort), mask_tip_margin under test",
+  "Lane25 crest: empty depth cloud (camera sees sky) stalled the mapper, fix under test in exp_ackf",
   "Benchmark timing plan sent an empty planner id (invalid with two planners), fixed with --plan-planner-id",
   "Analyse swerve v7 bags (lane25 dither at the ramp foot, crater far_left)",
   "Swerve stays experimental: v7 gate 4 FAIL, lane35 recoveries 385",
