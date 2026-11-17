@@ -1,5 +1,5 @@
 {
- "headline": "v1.1 Ackermann is done and tagged (49/57, 0 unsafe, 2D gets 36/57). v2 (heading planner + tip margin + crest fix) matches v1.1 everywhere and solves lane25. It keeps the tip margin: without it slopes drops to 25/30 with 7 tip-monitor stops. Bars stays the weak world. Swerve stays experimental.",
+ "headline": "v2 is ready to cut (51/57 over 6 worlds, 0 unsafe, 25 deg ramp 8/9 vs 2/6 for v1.1, same time as v1.1). Defaults committed, last repeat and a smoke test of the defaults run tonight, then the tag. v3 work started, target 22 Nov.",
  "queue": [
   {
    "log": "exp_ackfr4",
@@ -21,20 +21,36 @@
    "minutes": 80
   },
   {
+   "log": "exp_v2smoke",
+   "tag": "3d_gt_v2smoke_d250",
+   "ref": [
+    "tag:3d_gt_ackf_d250"
+   ],
+   "label": "v2 release smoke test: defaults only, lane25, behind_left, past_bars_6m x2",
+   "minutes": 40
+  },
+  {
+   "log": "exp_bag_bars4",
+   "tag": "none",
+   "ref": [],
+   "label": "Recorded v2 run on bars past_bars_4m with the global feature map, why no safe heading",
+   "minutes": 20
+  },
+  {
    "log": "exp_sw7t",
    "tag": "3d_gt_sw7t_d250",
    "ref": [
     "tag:3d_gt_sw7a_d250"
    ],
-   "label": "Swerve without the controller's terrain cost (Ackermann climbs without it): lane25, sidehill, crater far_left plus regression",
+   "label": "Swerve without the controller's terrain cost: lane25, sidehill, crater far_left plus regression",
    "minutes": 170
   }
  ],
  "deadline": "2026-11-22 00:00",
  "plans": [
-  "Now: margin 0 repeat on slopes and bars (ackf0r), margin 0.05 repeats on bars and slopes (ackfr3) and rock_field and urc_mix (ackfr4)",
-  "v2 cut after the last repeats (ackfr3, ackfr4): Phase 5 gate on the v2 runs, paper and deck updated, tag for Ram to push",
-  "Then: roll estimate for short steps (bars), swerve controller slope cost, recoveries",
+  "Now: last v2 repeat (ackfr5), smoke test of the v2 defaults, bars map recording, swerve without the terrain cost (sw7t)",
+  "18 Nov morning: v2 tag for Ram to push, paper and deck final",
+  "v3 by 22 Nov: bars fix, swerve on ramps (only if it reaches Ackermann level), real-rover readiness. v3 full run 21 Nov",
   "22 Nov: real rover"
  ],
  "summary": [
@@ -46,6 +62,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "18 Nov 04:30",
+   "text": "v2 made the 3D default (heading planner first, tip margin 0.05). Phase 5 gate met: 0 unsafe over all v2 runs, median time 1.00x v1.1. Paper and deck drafts built. v3 started: on a perfect map the margin does not block the bars, so the live map is recorded next to find what does."
+  },
   {
    "when": "18 Nov 02:00",
    "text": "v2 third run on slopes and bars: slopes 14/15 (lane25 now 8/9), bars 2/6. Over three runs each, the margin gives slopes 43/45 and bars 4/18, no margin gives slopes 25/30 and bars 10/18."
@@ -154,8 +174,8 @@
   },
   {
    "phase": "5 Speed and safety",
-   "state": "open",
-   "note": "governor and tip monitor in use, gate to record on the v2 full run. Slip layer needs wheel feedback, waits for the rover"
+   "state": "done",
+   "note": "gate met 18 Nov on the v2 runs: 0 unsafe, time 1.00x v1.1. Slip layer waits for wheel feedback on the rover"
   },
   {
    "phase": "6 Global terrain memory",
