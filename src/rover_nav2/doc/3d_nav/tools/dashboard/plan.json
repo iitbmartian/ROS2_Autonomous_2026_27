@@ -2,15 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_v2rel2",
-   "tag": "3d_gt_v2rel2_d250",
-   "ref": [
-    "tag:3d_gt_v2rel_d250"
-   ],
-   "label": "v2 release run repeat, 6 worlds x3, v2 drift baseline before v3",
-   "minutes": 300
-  },
-  {
    "log": "exp_p2rim",
    "tag": "",
    "ref": [],
@@ -59,6 +50,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 03:00",
+   "text": "v2 release repeat: 48/54 (3 runs top-up pending), every goal within one run of the first release run, time 1.00x, 0 unsafe. v2 does not drift. Crater rim test running."
+  },
   {
    "when": "18 Nov 22:15",
    "text": "Phase 2 crater test built and queued right after the v2 repeat: a driver puts the wheels onto each of the 24 wide crater rims and the map check scores whether each was flagged first. Closes Phase 2 except the NUC latency item."
@@ -292,7 +287,7 @@
    "when": "18 Nov night",
    "state": "running",
    "items": [
-    "v2 release repeat (v2 drift check)",
+    "v2 release repeat: 48/54, every goal within one run of v2rel, 0 unsafe, done",
     "Phase 2 crater rim test (about 02:00 to 04:00)",
     "v2 weak goals x5",
     "v3 worktree: planner-probe fix, multi-waypoint runner, urc_mix routes of 100 m or more"
