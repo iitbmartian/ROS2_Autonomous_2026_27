@@ -2,15 +2,6 @@
  "headline": "v2 is cut (tag 3d-nav-v2): 51/57 first full run, 65/78 repeats, 0 unsafe in every v2 run, 25 deg ramp fixed, same time as v1.1. Release run on the defaults queued as the v3 baseline. v3 target 22 Nov: bars live-map block, swerve ramp hesitation, real-rover readiness.",
  "queue": [
   {
-   "log": "exp_sw7u",
-   "tag": "3d_gt_sw7u_d250",
-   "ref": [
-    "tag:3d_gt_sw7t_d250"
-   ],
-   "label": "Swerve, controller terrain cost without the uphill term: lane25, sidehill, crater far_left plus regression",
-   "minutes": 80
-  },
-  {
    "log": "exp_sw7c",
    "tag": "3d_gt_sw7c_d250",
    "ref": [
@@ -27,6 +18,15 @@
    ],
    "label": "v2 release run repeat, 6 worlds x3, v2 drift baseline before v3",
    "minutes": 300
+  },
+  {
+   "log": "exp_sw7ts",
+   "tag": "3d_gt_sw7ts_d250",
+   "ref": [
+    "tag:3d_gt_sw7t_d250"
+   ],
+   "label": "Swerve without the controller terrain cost, repeat: lane25 and sidehill x3, more runs for the v3 decision",
+   "minutes": 60
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -45,6 +45,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "18 Nov 20:00",
+   "text": "Swerve, controller terrain cost without its uphill term: 0/8 on the hard goals, 5/6 regression, 0 unsafe. The uphill term was not the problem, the cost itself stalls swerve at the ramp foot. Lethal-only variant running."
+  },
   {
    "when": "18 Nov 17:45",
    "text": "2D baseline rerun: 36/57 again, same per goal within one run, time 1.00x, crater rim rollover repeats. The v2 against-2D numbers hold on two 2D runs."
