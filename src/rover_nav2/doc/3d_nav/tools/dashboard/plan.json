@@ -2,20 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p2rim",
-   "tag": "",
-   "ref": [],
-   "label": "Phase 2 crater item: drive the footprint onto every crater rim wider than the track, check each was flagged first",
-   "minutes": 120
-  },
-  {
-   "log": "exp_bag_bars5",
-   "tag": "",
-   "ref": [],
-   "label": "Bars stall diagnosis: v2 on past_bars_4m with local and global map samples, input for the v3 bars fix",
-   "minutes": 20
-  },
-  {
    "log": "exp_v2weak",
    "tag": "3d_gt_v2weak_d250",
    "ref": [
@@ -50,6 +36,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 04:00",
+   "text": "Phase 2 crater test: 18 of 22 reached craters flagged before the rover got there. Every crater 1 m or wider passes, the misses are all the smallest 0.6 m craters. Gate not met yet. Bars stall diagnosis recorded for the v3 fix."
+  },
   {
    "when": "19 Nov 03:00",
    "text": "v2 release repeat: 48/54 (3 runs top-up pending), every goal within one run of the first release run, time 1.00x, 0 unsafe. v2 does not drift. Crater rim test running."
@@ -288,7 +278,7 @@
    "state": "running",
    "items": [
     "v2 release repeat: 48/54, every goal within one run of v2rel, 0 unsafe, done",
-    "Phase 2 crater rim test (about 02:00 to 04:00)",
+    "Phase 2 crater rim test: 18/22 flagged first, all 1 m and wider pass, 0.6 m craters 3/7, gate not met",
     "v2 weak goals x5",
     "v3 worktree: planner-probe fix, multi-waypoint runner, urc_mix routes of 100 m or more"
    ]
