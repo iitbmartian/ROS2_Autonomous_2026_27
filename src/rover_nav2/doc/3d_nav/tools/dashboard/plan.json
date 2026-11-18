@@ -2,17 +2,17 @@
  "headline": "v2 is cut (tag 3d-nav-v2): 51/57 first full run, 65/78 repeats, 0 unsafe in every v2 run, 25 deg ramp fixed, same time as v1.1. Release run on the defaults queued as the v3 baseline. v3 target 22 Nov: bars live-map block, swerve ramp hesitation, real-rover readiness.",
  "queue": [
   {
-   "log": "exp_sw7c",
-   "tag": "3d_gt_sw7c_d250",
+   "log": "exp_sw7ts2",
+   "tag": "3d_gt_sw7ts2_d250",
    "ref": [
-    "tag:3d_gt_sw7t_d250"
+    "tag:3d_gt_sw7ts_d250"
    ],
-   "label": "Swerve, controller terrain cost reduced to its lethal filter: same goals",
-   "minutes": 80
+   "label": "Swerve without the controller terrain cost, repeat: lane25 and sidehill x3, more runs for the v3 decision",
+   "minutes": 60
   },
   {
-   "log": "exp_v2rel",
-   "tag": "3d_gt_v2rel_d250",
+   "log": "exp_v2rel2",
+   "tag": "3d_gt_v2rel2_d250",
    "ref": [
     "tag:3d_gt_v2rel_d250"
    ],
@@ -20,13 +20,13 @@
    "minutes": 300
   },
   {
-   "log": "exp_sw7ts",
-   "tag": "3d_gt_sw7ts_d250",
+   "log": "exp_sw7tf",
+   "tag": "3d_gt_sw7tf_d250",
    "ref": [
-    "tag:3d_gt_sw7t_d250"
+    "tag:3d_gt_v2rel_d250"
    ],
-   "label": "Swerve without the controller terrain cost, repeat: lane25 and sidehill x3, more runs for the v3 decision",
-   "minutes": 60
+   "label": "Swerve without the controller terrain cost on all 6 worlds x3, against Ackermann v2",
+   "minutes": 300
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -45,6 +45,10 @@
   "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
  ],
  "updates": [
+  {
+   "when": "18 Nov 21:00",
+   "text": "Swerve, controller terrain cost cut to its lethal filter: 0/6 on the ramps (tip stops within 46 s), 9/9 elsewhere, 0 unsafe. The side-hill tip is a heading tracking problem, not a cost problem. Two queued repeats ran nothing (same-day out dir), requeued under new tags after 10 min idle."
+  },
   {
    "when": "18 Nov 20:00",
    "text": "Swerve, controller terrain cost without its uphill term: 0/8 on the hard goals, 5/6 regression, 0 unsafe. The uphill term was not the problem, the cost itself stalls swerve at the ramp foot. Lethal-only variant running."
