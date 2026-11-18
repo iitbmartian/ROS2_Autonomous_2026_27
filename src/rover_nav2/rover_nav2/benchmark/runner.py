@@ -374,6 +374,9 @@ class Runner:
         self.params_sha = sha256(params_path)
         self.commit = git_commit(args.repo)
         self.log = log
+        # Timing-plan planner: the --plan-planner-id value, else the BT's order on an invalid id.
+        self.planner_id = args.plan_planner_id
+        self.planner_ids = [] if args.plan_planner_id else ['Heading', 'GridBased']
         self.node = None
         self.start_node()
 
@@ -473,13 +476,22 @@ class Runner:
             g = ComputePathToPose.Goal()
             g.goal = self.node.goal_pose(goal)
             g.use_start = False
-            g.planner_id = self.a.plan_planner_id
+            g.planner_id = self.planner_id
             gh = wait_future(self.node.plan.send_goal_async(g), 10)
             if gh is not None and gh.accepted:
                 res = wait_future(gh.get_result_async(), 30)
                 if res is not None and res.status == GoalStatus.STATUS_SUCCEEDED:
                     t = res.result.planning_time
                     return t.sec + t.nanosec * 1e-9
+                # An empty id is valid only with one planner plugin. Since v2 the 3D stack has
+                # two, and the empty id idled every run for plan_timeout (2026-11-18), so try
+                # the BT's planners in its order and keep the first one the server knows.
+                if (res is not None and res.result.error_code
+                        == ComputePathToPose.Result.INVALID_PLANNER and self.planner_ids):
+                    self.planner_id = self.planner_ids.pop(0)
+                    self.log(f'timing plan: planner id {g.planner_id!r} not valid, '
+                             f'trying {self.planner_id!r}')
+                    continue
             time.sleep(3.0)
         return float('nan')
 
@@ -516,8 +528,31 @@ class Runner:
         status = STATUS_NAMES.get(res_f.result().status, f'status_{res_f.result().status}')
         return status, t1 - t0, self.node.recoveries, (t1 - t0) / max(w1 - w0, 1e-6)
 
+    def navigate_route(self, goal, timeout_s):
+        """Phase 6 multi-waypoint goal: NavigateToPose to each waypoint in turn, one sim-time
+        budget for the whole route. Returns navigate()'s tuple plus the waypoints reached."""
+        wps = goal['waypoints']
+        t_used, rec, rtfs, reached = 0.0, 0, [], 0
+        status = 'succeeded'
+        for wp in wps:
+            left = timeout_s - t_used
+            if left <= 0:
+                status = 'timeout'
+                break
+            status, ttg, r, rtf = self.navigate(dict(wp), left)
+            if not math.isnan(ttg):
+                t_used += ttg
+            rec += r
+            if not math.isnan(rtf):
+                rtfs.append(rtf)
+            if status != 'succeeded':
+                break
+            reached += 1
+        rtf = sum(rtfs) / len(rtfs) if rtfs else float('nan')
+        return status, t_used, rec, rtf, reached
+
     def run_one(self, goalset, goal, rep, out_dir, env):
-        if getattr(self.a, 'goal_yaw', 'file') == 'bearing':
+        if getattr(self.a, 'goal_yaw', 'file') == 'bearing' and 'waypoints' not in goal:
             # IRC scores position only. Jazzy's Smac Hybrid always plans into the goal heading,
             # so the heading is set to the straight-line bearing from the spawn.
             sp = goalset['spawn']
@@ -562,14 +597,20 @@ class Runner:
         cpu.start()
         try:
             if note is None:
-                pt = self.planner_time(goal)
+                pt = self.planner_time(goal['waypoints'][0] if 'waypoints' in goal else goal)
                 row['planner_time_s'] = f'{pt:.4f}'
                 if math.isnan(pt):
                     row['note'] = 'planner gave no path within plan_timeout'
                 self.node.take_poses()
                 self.node.take_chain()
                 self.node.recording = True
-                status, ttg, rec, rtf = self.navigate(goal, goalset['timeout_s'])
+                timeout_s = goal.get('timeout_s', goalset['timeout_s'])
+                if 'waypoints' in goal:
+                    status, ttg, rec, rtf, wp_reached = self.navigate_route(goal, timeout_s)
+                    row['note'] = (row['note'] + f"; waypoints {wp_reached}/"
+                                   f"{len(goal['waypoints'])}").lstrip('; ')
+                else:
+                    status, ttg, rec, rtf = self.navigate(goal, timeout_s)
                 self.node.recording = False
                 poses = self.node.take_poses()
                 row['cmd_chain'] = self.node.take_chain()

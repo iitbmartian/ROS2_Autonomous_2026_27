@@ -60,9 +60,16 @@ def test_sim_3d_overlay_swaps_in_the_terrain_layer(tmp_path):
     assert bt['default_nav_to_pose_bt_xml'].endswith('navigate_to_pose_ackermann_3d.xml')
     diff = {k for k in set(bt) | set(base_bt) if bt.get(k) != base_bt.get(k)}
     assert diff <= {'default_nav_to_pose_bt_xml', 'plugin_lib_names'}, diff
+    # planner_server only gains the v2 HeadingAwarePlanner beside the 2D Smac, unchanged.
+    ps, base_ps = merged['planner_server']['ros__parameters'], base['planner_server']['ros__parameters']
+    assert ps['planner_plugins'] == base_ps['planner_plugins'] + ['Heading']
+    assert ps['GridBased'] == base_ps['GridBased']
+    diff = {k for k in set(ps) | set(base_ps) if ps.get(k) != base_ps.get(k)}
+    assert diff <= {'planner_plugins', 'Heading'}, diff
     # Everything else is the 2D tuning, untouched.
     for section in base:
-        if section not in ('local_costmap', 'global_costmap', 'collision_monitor', 'bt_navigator'):
+        if section not in ('local_costmap', 'global_costmap', 'collision_monitor', 'bt_navigator',
+                           'planner_server'):
             assert merged[section] == base[section], section
 
 

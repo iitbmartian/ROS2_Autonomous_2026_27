@@ -1,0 +1,38 @@
+# Phase 6 long multi-waypoint routes on urc_mix.sdf (PHASES.md: runs of at least 100 m with zero
+# unsafe entries). A separate goal set so the 6-world benchmark stays comparable. Each route starts at
+# the spawn, loops back over ground it mapped earlier and ends near the spawn. Straight-line lengths
+# 101 to 108 m, driven paths are longer. Waypoints are at least 1.5 m from every crater rim and 1.2 m
+# from every rock, and off the two ramp lanes and the sidehill (positions rebuilt from
+# make_terrain_worlds.py, seed 20261101). Each waypoint heading is the bearing from the previous one.
+# The route is scored on its last waypoint with the usual 0.5 m ground-truth radius.
+world: urc_mix.sdf
+spawn: {x: 0.0, y: 0.0, z: 0.02, yaw: 0.0}
+timeout_s: 1800
+goals:
+  - id: loop_east   # 101 m straight-line
+    waypoints:
+      - {x: 9.5, y: 4.2, yaw: 0.416}
+      - {x: 22, y: 6, yaw: 0.143}
+      - {x: 37.4, y: 8.6, yaw: 0.167}
+      - {x: 40.5, y: -4.0, yaw: -1.330}
+      - {x: 30, y: -18, yaw: -2.214}
+      - {x: 14.5, y: -7.8, yaw: 2.560}
+      - {x: 2, y: -2, yaw: 2.707}
+  - id: loop_west   # 108 m straight-line
+    waypoints:
+      - {x: 6, y: 16, yaw: 1.212}
+      - {x: 20, y: 18, yaw: 0.142}
+      - {x: 30, y: 20, yaw: 0.197}
+      - {x: 26, y: 2, yaw: -1.789}
+      - {x: 14, y: -6, yaw: -2.554}
+      - {x: 4, y: -18, yaw: -2.266}
+      - {x: 2, y: 0, yaw: 1.681}
+  - id: out_back   # 102 m straight-line
+    waypoints:
+      - {x: 16, y: -4, yaw: -0.245}
+      - {x: 32, y: -3, yaw: 0.062}
+      - {x: 41, y: -6, yaw: -0.322}
+      - {x: 40, y: -17, yaw: -1.661}
+      - {x: 28, y: -21, yaw: -2.820}
+      - {x: 18, y: -2, yaw: 2.055}
+      - {x: 4, y: 3, yaw: 2.799}

@@ -38,6 +38,13 @@ def load_goalset(goals_dir, name):
     with open(os.path.join(goals_dir, f'{name}.yaml')) as f:
         gs = yaml.safe_load(f)
     gs['name'] = name
+    for g in gs['goals']:
+        # A route is scored on its last waypoint, like a single goal.
+        if 'waypoints' in g:
+            last = g['waypoints'][-1]
+            g.setdefault('x', last['x'])
+            g.setdefault('y', last['y'])
+            g.setdefault('yaw', last.get('yaw', 0.0))
     return gs
 
 
@@ -83,7 +90,8 @@ def parse_args(argv):
                    help='wall s for the timing plan to succeed. A goal the planner rejects '
                         '(off the map) would otherwise hold every run this long')
     p.add_argument('--plan-planner-id', default='',
-                   help='planner id for the timing plan. Empty works only with one planner plugin')
+                   help='planner id for the timing plan. Empty: the server default, else Heading, then '
+                        'GridBased when the server reports an invalid planner')
     p.add_argument('--launch-args', nargs='*', default=[], metavar='NAME:=VALUE',
                    help='extra arguments for the launch file, e.g. drive:=swerve governor:=false')
     p.add_argument('--tag', default=None,
