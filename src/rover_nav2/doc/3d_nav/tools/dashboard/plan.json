@@ -181,7 +181,7 @@
   {
    "phase": "2 Terrain mapping",
    "state": "open",
-   "note": "6 of 7 worlds within 5 cm. crater_field (odometry yaw drift) and NUC latency left"
+   "note": "RMSE met on all 7 worlds (crater_field 4.15 cm on ground-truth odometry, 7 Nov). Crater flag item not tested (the stack never drove onto a rim), rim-approach test to build. NUC latency waits for the lab NUC"
   },
   {
    "phase": "3 Traversability",
