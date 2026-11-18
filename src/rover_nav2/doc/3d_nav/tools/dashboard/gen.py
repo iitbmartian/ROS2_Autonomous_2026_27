@@ -190,6 +190,14 @@ status = 'Idle' if not chains else 'Stalled?' if out_age > 900 else 'Running'
 days_left = (dt.datetime.strptime(plan['deadline'], '%Y-%m-%d %H:%M').timestamp() - now) / 86400
 li = lambda xs: ''.join(f'<li>{esc(x)}</li>' for x in xs) or '<li class="muted">none</li>'
 
+# --- timeline, hand-kept in plan.json: when, state (done, running, queued, open), items
+TL = {'done':'done','running':'now','queued':'next','open':'parked'}
+timeline_html = ''.join(
+    f'<li class="{esc(t["state"])}"><span class="when">{esc(t["when"])}</span> '
+    f'<span class="pill {esc(t["state"])}">{TL.get(t["state"], esc(t["state"]))}</span><ul>{li(t.get("items", []))}</ul></li>'
+    for t in plan.get('timeline', [])) or '<li class="muted">none</li>'
+
+
 page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="120">
 <title>Rover 3D Nav</title><style>
@@ -212,7 +220,13 @@ tr.better td.big{{color:var(--ok)}}tr.worse td.big{{color:var(--bad)}}
 .pill.running{{background:var(--runb);color:var(--run)}}.pill.done{{background:var(--okb);color:var(--ok)}}
 .pill.queued{{background:var(--waitb);color:var(--wait)}}.pill.open{{background:var(--badb);color:var(--bad)}}
 .alert{{background:var(--badb);color:var(--bad);border-radius:10px;padding:10px 14px;font-weight:700;margin:10px 0}}
-ul{{margin:0;padding-left:20px}}li{{margin:5px 0}}.upd b{{white-space:nowrap}}</style></head><body><main>
+ul{{margin:0;padding-left:20px}}li{{margin:5px 0}}.upd b{{white-space:nowrap}}
+/* timeline: a left rail, one dot per day, coloured by state */
+.tl{{position:relative;margin:0;padding:0 0 0 22px;list-style:none}}.tl:before{{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line)}}
+.tl>li{{position:relative;margin:0 0 14px}}.tl>li:before{{content:'';position:absolute;left:-21px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--card);border:2px solid var(--mut)}}
+.tl>li.done:before{{background:var(--ok);border-color:var(--ok)}}.tl>li.running:before{{background:var(--run);border-color:var(--run)}}
+.tl>li.queued:before{{border-color:var(--wait)}}.tl>li.open:before{{border-color:var(--bad);border-style:dashed}}
+.tl .when{{font-weight:700}}.tl ul{{margin-top:2px}}.tl li li{{margin:2px 0}}</style></head><body><main>
 <h1>Rover 3D Nav</h1><div class="muted">Updated {clock(now)}, refreshes every 2 min</div>
 {''.join(f'<div class="alert">{esc(a)}</div>' for a in alerts)}
 <div class="grid">
@@ -223,6 +237,8 @@ ul{{margin:0;padding-left:20px}}li{{margin:5px 0}}.upd b{{white-space:nowrap}}</
 <div class="stat"><span>to real-rover tests</span><b>{days_left:.1f} days</b></div></div>
 
 <h2>Where we are</h2><div class="card"><p class="lead" style="margin-top:0">{esc(plan["headline"])}</p><ul>{li(plan.get("summary", []))}</ul></div>
+
+<h2>Timeline to 22 Nov</h2><div class="card"><ul class="tl">{timeline_html}</ul></div>
 
 <h2>Latest findings</h2><div class="card"><ul>{''.join(f'<li class="upd"><b>{esc(u["when"])}</b> {esc(u["text"])}</li>' for u in plan.get("updates", [])[:8])}</ul></div>
 
@@ -237,7 +253,6 @@ ul{{margin:0;padding-left:20px}}li{{margin:5px 0}}.upd b{{white-space:nowrap}}</
 
 <h2>Phases</h2><div class="card"><table>{''.join(f'<tr><td><b>{esc(p["phase"])}</b></td><td><span class="pill {esc(p["state"])}">{esc(p["state"])}</span></td><td>{esc(p["note"])}</td></tr>' for p in plan.get("phases", []))}</table></div>
 
-<h2>Plan to 22 Nov</h2><div class="card"><ul>{li(plan.get("plans", []))}</ul></div>
 
 <h2>Chain log</h2><div class="card">{''.join(f'<div class="mono">{esc(l[:220])}</div>' for l in evals)}</div>
 </main></body></html>'''

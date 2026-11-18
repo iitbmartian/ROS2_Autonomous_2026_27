@@ -1,5 +1,5 @@
 {
- "headline": "v2 is cut (tag 3d-nav-v2): 51/57 first full run, 65/78 repeats, 0 unsafe in every v2 run, 25 deg ramp fixed, same time as v1.1. Release run on the defaults queued as the v3 baseline. v3 target 22 Nov: bars live-map block, swerve ramp hesitation, real-rover readiness.",
+ "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
    "log": "exp_v2rel2",
@@ -37,19 +37,12 @@
   }
  ],
  "deadline": "2026-11-22 00:00",
- "plans": [
-  "Now: last v2 repeat (ackfr5), smoke test of the v2 defaults, bars map recording, swerve without the terrain cost (sw7t)",
-  "18 Nov morning: v2 tag for Ram to push, paper and deck final",
-  "v3 by 22 Nov: bars fix, swerve on ramps (only if it reaches Ackermann level), real-rover readiness. v3 full run 21 Nov",
-  "22 Nov: real rover"
- ],
  "summary": [
-  "Phases 0 to 3 gates met. Phase 3 closed 14 Nov on v1.1 (fine global map step + re-approach tree).",
-  "v1.1 against 2D: 86% vs 63% goals, 0 vs 1 unsafe, about 6x fewer recoveries, same median time. Biggest gains on slopes (13/15 vs 6/15) and bars.",
-  "v2 Ackermann: heading-aware Hybrid-A* planner (only holds headings the terrain allows), safe-heading mask now uses the tip monitor's 13.2 deg abort line, and a ramp-crest mapper stall fixed.",
-  "Swerve (Phase 4): best full run 36/57, always fails lane25, sidehill_uphill and crater far_left. The heading anchor stopped the spinning, now the controller hesitates at the ramp foot. Stays experimental.",
-  "Phase 5 code (governor, tip monitor, collision monitor) is on in every 3D run. Its gate is not formally recorded yet, planned on the v2 full run.",
-  "Real-rover tests from 22 Nov need rover data from Ram (see Needs you)."
+  "Phases 0, 1, 3 and 5 gates met. Phase 2 open on the crater item (test runs tonight) and NUC latency (needs the NUC).",
+  "v2 Ackermann against 2D: 51/57 vs 36/57, 0 vs 1 to 3 unsafe (2D rolls on a crater rim), 4.5x fewer recoveries, same time.",
+  "Swerve (Phase 4) parked: every controller-cost variant tips at the 13.2 deg line on the side hill. Needs heading-tracking code, after 22 Nov.",
+  "Phase 6 (global terrain memory): long routes on ground truth now. Loop-closure alignment needs the EKF, which waits for the package owner.",
+  "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
   {
@@ -267,6 +260,71 @@
    "label": "Swerve v7",
    "dirs": [
     "2026-11-16_3d_gt_sw7full_d250"
+   ]
+  }
+ ],
+ "timeline": [
+  {
+   "when": "18 Nov",
+   "state": "done",
+   "items": [
+    "v2 pushed",
+    "2D baseline rerun 36/57, matches 13 Nov",
+    "Swerve critic ablations: none fixes the side hill, swerve parked",
+    "Status page fixed (was stale since 03:55)"
+   ]
+  },
+  {
+   "when": "18 Nov night",
+   "state": "running",
+   "items": [
+    "v2 release repeat (v2 drift check)",
+    "Phase 2 crater rim test (about 02:00 to 04:00)",
+    "v2 weak goals x5",
+    "v3 worktree: planner-probe fix, multi-waypoint runner, urc_mix routes of 100 m or more"
+   ]
+  },
+  {
+   "when": "19 Nov",
+   "state": "queued",
+   "items": [
+    "Phase 2 crater item result, close it if every reached crater was flagged first",
+    "Smoke test, then Phase 6 long routes on ground truth (3 routes x 3)",
+    "Bars stall fix with gtests: replan or abort when the plan crosses step-lethal poses",
+    "Real-rover config: params and launch for the real sensors"
+   ]
+  },
+  {
+   "when": "20 Nov",
+   "state": "queued",
+   "items": [
+    "v3 full benchmark, 6 worlds x3, against v2 (both drift-checked)",
+    "Phase 6 routes on the v3 build"
+   ]
+  },
+  {
+   "when": "21 Nov",
+   "state": "queued",
+   "items": [
+    "v3 evaluation and cut, paper and deck",
+    "Ram pushes v3"
+   ]
+  },
+  {
+   "when": "22 Nov",
+   "state": "queued",
+   "items": [
+    "Real rover tests start",
+    "Phase 2 NUC latency measured on the rover"
+   ]
+  },
+  {
+   "when": "After 22 Nov",
+   "state": "open",
+   "items": [
+    "EKF and Phase 6 loop-closure alignment (after Ram talks to the package owner)",
+    "Swerve heading tracking (Phase 4)",
+    "Phase 7 hardware gate"
    ]
   }
  ]
