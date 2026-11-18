@@ -18,6 +18,13 @@
    "minutes": 120
   },
   {
+   "log": "exp_bag_bars5",
+   "tag": "",
+   "ref": [],
+   "label": "Bars stall diagnosis: v2 on past_bars_4m with local and global map samples, input for the v3 bars fix",
+   "minutes": 20
+  },
+  {
    "log": "exp_v2weak",
    "tag": "3d_gt_v2weak_d250",
    "ref": [
