@@ -46,6 +46,10 @@
  ],
  "updates": [
   {
+   "when": "18 Nov 13:10",
+   "text": "v2 pushed by Ram: ram/3d_nav, ram/3d_nav-v2, ram/3d_nav-v1.1 and tags 3d-nav-v2, 3d-nav-v1.1 are on GitHub."
+  },
+  {
    "when": "18 Nov 12:05",
    "text": "Swerve without the controller's terrain cost: 5/10 on the hard goals (was 1/9), 6/6 regression, 0 unsafe. It climbs the ramp now but rides the tip abort line on the side hill. Two ablations of the cost queued to keep the climb and the margin."
   },
@@ -143,7 +147,6 @@
   }
  ],
  "needs_you": [
-  "v2 is tagged (3d-nav-v2, branch ram/3d_nav-v2). Push: ! cd ~/ROS2_Autonomous_2026_27 && git -c credential.helper='!gh auth git-credential' push origin ram/3d_nav ram/3d_nav-v2 ram/3d_nav-v1.1 3d-nav-v2 3d-nav-v1.1",
   "Rover data before 22 Nov: odometry source, lidar mount and IMU topics, CG height and mass, wheel offset and step height.",
   "Lab visit with the NUC for the Phase 2 latency check.",
   "Disk is down to 11 GB free (each night uses about 1 GB). Everything clearable inside the project is cleared. Free some space outside it (MRT, Unity, Downloads?) or ok deleting old benchmark result dirs."
