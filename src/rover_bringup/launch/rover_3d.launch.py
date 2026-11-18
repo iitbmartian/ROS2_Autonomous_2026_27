@@ -38,7 +38,14 @@ def _launch(context):
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'terrain_mapping.launch.py')),
             launch_arguments={'sim': 'false', 'depth_range_cut': arg('depth_range_cut'),
                               'base_frame': base, 'sensor_frame': arg('sensor_frame'),
-                              'lowest_beam': arg('lowest_beam')}.items()),
+                              'lowest_beam': arg('lowest_beam'),
+                              # The v1.1 and v2 settings simulation runs with. terrain_mapping's
+                              # own global_fine_step default is false, and until 2026-11-18 this
+                              # launch left it there, so the rover would have planned on the
+                              # coarse global step that failed the bars in simulation.
+                              'global_fine_step': arg('global_fine_step'),
+                              'mask_tip_margin': arg('mask_tip_margin'),
+                              'fill_holes': arg('fill_holes')}.items()),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'navigation_3d.launch.py')),
             launch_arguments={'sim': 'false',
@@ -72,6 +79,12 @@ def generate_launch_description():
         DeclareLaunchArgument('depth_range_cut', default_value='false',
                               description='true only when no Orin runs it'),
         DeclareLaunchArgument('nav_extra_overlay', default_value=''),
+        # Same defaults as pipeline_3d.launch.py, test_launch_parity checks they stay equal.
+        DeclareLaunchArgument('global_fine_step', default_value='true',
+                              description='Global map step from the fine local features'),
+        DeclareLaunchArgument('mask_tip_margin', default_value='0.05',
+                              description='rad, safe-heading mask margin under the tip abort line'),
+        DeclareLaunchArgument('fill_holes', default_value='false'),
         # Slower than simulation's 0.5 for the first hardware runs.
         DeclareLaunchArgument('governor_v_nominal', default_value='0.25'),
         DeclareLaunchArgument('governor_u_free', default_value='0.3'),
