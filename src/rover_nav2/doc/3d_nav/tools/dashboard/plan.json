@@ -2,15 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p6route2d",
-   "tag": "3d_gt_p6route2d_d250",
-   "ref": [
-    "tag:3d_gt_p6route_d250"
-   ],
-   "label": "2D Nav2 baseline on the Phase 6 routes (3 routes x3), ground truth",
-   "minutes": 300
-  },
-  {
    "log": "exp_p26weak",
    "tag": "3d_gt_p26weak_d250",
    "ref": [
@@ -28,6 +19,13 @@
    ],
    "label": "Full 6 worlds x3 with the p26 code fixes but no tip guard, splits the 53/57",
    "minutes": 330
+  },
+  {
+   "log": "exp_p2rimdip3",
+   "tag": "p2rimdip3",
+   "ref": [],
+   "label": "Repeat of the 22/22 crater test, second sample for Phase 2",
+   "minutes": 50
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -39,6 +37,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 19:55",
+   "text": "2D Nav2 on the same long routes: 0 of 9 complete, and it rolled the rover over twice. The 3D stack completes 5 of 9 with no unsafe moment. A second crater test is queued to confirm the 22 of 22."
+  },
   {
    "when": "19 Nov 18:55",
    "text": "Full 6-world check of the new branch: 53 of 57, 0 unsafe, fewer recoveries (v2 got 49 and 51). Every easy goal held at 3 of 3 with the same times. One loss: the steepest slope lane 2 of 3. A run without the tip guard is queued to see which change helps and which hurts."
