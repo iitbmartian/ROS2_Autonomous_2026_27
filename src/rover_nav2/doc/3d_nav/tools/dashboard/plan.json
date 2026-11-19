@@ -2,13 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p6route",
-   "tag": "3d_gt_p6route_d250",
-   "ref": [],
-   "label": "Phase 6 long routes on urc_mix (3 loops of 100 m or more, x3), ground truth, v2 stack with the v3 runner",
-   "minutes": 330
-  },
-  {
    "log": "exp_v2weakm10",
    "tag": "3d_gt_v2weakm10_d250",
    "ref": [
@@ -25,6 +18,15 @@
    ],
    "label": "Phase 6 routes with the wider tip margin (0.10 rad)",
    "minutes": 330
+  },
+  {
+   "log": "exp_p6route2d",
+   "tag": "3d_gt_p6route2d_d250",
+   "ref": [
+    "tag:3d_gt_p6route_d250"
+   ],
+   "label": "2D Nav2 baseline on the Phase 6 routes (3 routes x3), ground truth",
+   "minutes": 300
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -32,10 +34,14 @@
   "Phases 0, 1, 3 and 5 gates met. Phase 2 open on the crater item (test runs tonight) and NUC latency (needs the NUC).",
   "v2 Ackermann against 2D: 51/57 vs 36/57, 0 vs 1 to 3 unsafe (2D rolls on a crater rim), 4.5x fewer recoveries, same time.",
   "Swerve (Phase 4) parked: every controller-cost variant tips at the 13.2 deg line on the side hill. Needs heading-tracking code, after 22 Nov.",
-  "Phase 6 (global terrain memory): long routes on ground truth now. Loop-closure alignment needs the EKF, which waits for the package owner.",
+  "Phase 6 (global terrain memory): gate item 1 met 19 Nov, 5 routes of 104 to 117 m completed with 0 unsafe (loop_east still tip-stops). Item 2, loop-closure alignment, needs the EKF, which waits for the package owner.",
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 09:05",
+   "text": "Phase 6 long routes: 5 of 9 routes of 104 to 117 m completed, 0 unsafe in every run, gate item 1 met. out_back 3/3, loop_west 2/3, loop_east 0/3 (stopped safely by the tip monitor at the same slope each time). Wider tip margin and a 2D route baseline are queued."
+  },
   {
    "when": "19 Nov 07:10",
    "text": "v2 weak goals x5: 28/30, 0 unsafe, only rock ahead_10m loses (3/5). v2 repeat complete at 51/57. Phase 6 routes running: loop_east stopped safely by the tip monitor twice at waypoint 3 of 7. A wider tip margin is queued on the weak goals and the routes."
@@ -292,10 +298,11 @@
    "state": "running",
    "items": [
     "Phase 2 crater item result, close it if every reached crater was flagged first",
-    "Phase 6 long routes on ground truth (3 routes x 3), loop_east tip-stopped at waypoint 3/7",
+    "Phase 6 long routes: 5/9 completed, 0 unsafe, gate item 1 met, loop_east tip-stops",
     "Wider tip margin (0.10 rad) on the weak goals and the routes",
     "Bars stall fix with gtests: replan or abort when the plan crosses step-lethal poses",
-    "Real-rover config: params and launch for the real sensors"
+    "Real-rover config: params and launch for the real sensors",
+    "2D baseline on the Phase 6 routes"
    ]
   },
   {
