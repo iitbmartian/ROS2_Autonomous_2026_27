@@ -2,22 +2,21 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_v2weakm10",
-   "tag": "3d_gt_v2weakm10_d250",
-   "ref": [
-    "tag:3d_gt_v2weak_d250"
-   ],
-   "label": "v2 weak goals x5 with a wider tip margin (0.10 rad), against the tip-monitor stops",
-   "minutes": 155
+   "log": "exp_p2rimdip",
+   "tag": "p2rimdip",
+   "ref": [],
+   "label": "Phase 2 crater test again with the observed-dip detector (ram/3d_nav-p26)",
+   "minutes": 45
   },
   {
-   "log": "exp_p6m10",
-   "tag": "3d_gt_p6m10_d250",
+   "log": "exp_p26easy",
+   "tag": "3d_gt_p26easy_d250",
    "ref": [
-    "tag:3d_gt_p6route_d250"
+    "tag:3d_gt_v2rel_d250",
+    "tag:3d_gt_v2rel2_d250"
    ],
-   "label": "Phase 6 routes with the wider tip margin (0.10 rad)",
-   "minutes": 330
+   "label": "Simple-terrain regression with the dip detector, easy goals x3, must match v2",
+   "minutes": 180
   },
   {
    "log": "exp_p6route2d",
@@ -38,6 +37,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 11:45",
+   "text": "Wider tip margin rejected (22/30 against 28/30 on the weak goals, and loop_east still stops). Phase 2 fix coded: the 0.6 m craters were missed because their floor is visible, so a new detector flags seen dips deeper than a wheel step. Crater test running, then a simple-terrain regression so easy goals do not suffer."
+  },
   {
    "when": "19 Nov 09:05",
    "text": "Phase 6 long routes: 5 of 9 routes of 104 to 117 m completed, 0 unsafe in every run, gate item 1 met. out_back 3/3, loop_west 2/3, loop_east 0/3 (stopped safely by the tip monitor at the same slope each time). Wider tip margin and a 2D route baseline are queued."
@@ -299,10 +302,12 @@
    "items": [
     "Phase 2 crater item result, close it if every reached crater was flagged first",
     "Phase 6 long routes: 5/9 completed, 0 unsafe, gate item 1 met, loop_east tip-stops",
-    "Wider tip margin (0.10 rad) on the weak goals and the routes",
     "Bars stall fix with gtests: replan or abort when the plan crosses step-lethal poses",
     "Real-rover config: params and launch for the real sensors",
-    "2D baseline on the Phase 6 routes"
+    "2D baseline on the Phase 6 routes",
+    "Wider tip margin tested and rejected",
+    "Phase 2 dip detector, crater test, simple-terrain regression",
+    "Phase 6 fixes: per-wheel tip check, start-occupied recovery"
    ]
   },
   {
