@@ -2,16 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p26full",
-   "tag": "3d_gt_p26full_d250",
-   "ref": [
-    "tag:3d_gt_v2rel_d250",
-    "tag:3d_gt_v2rel2_d250"
-   ],
-   "label": "Full 6 worlds x3 with every p26 fix, must hold the easy goals at v2 level",
-   "minutes": 330
-  },
-  {
    "log": "exp_p6route2d",
    "tag": "3d_gt_p6route2d_d250",
    "ref": [
@@ -28,6 +18,16 @@
    ],
    "label": "Weak goals x5 with every p26 fix: does the rock escape win back rock ahead_10m",
    "minutes": 260
+  },
+  {
+   "log": "exp_p26ng",
+   "tag": "3d_gt_p26ng_d250",
+   "ref": [
+    "tag:3d_gt_p26full_d250",
+    "tag:3d_gt_v2rel2_d250"
+   ],
+   "label": "Full 6 worlds x3 with the p26 code fixes but no tip guard, splits the 53/57",
+   "minutes": 330
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -39,6 +39,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 18:55",
+   "text": "Full 6-world check of the new branch: 53 of 57, 0 unsafe, fewer recoveries (v2 got 49 and 51). Every easy goal held at 3 of 3 with the same times. One loss: the steepest slope lane 2 of 3. A run without the tip guard is queued to see which change helps and which hurts."
+  },
   {
    "when": "19 Nov 15:55",
    "text": "Routes with the new fixes: 5 of 9 again, 0 unsafe. The rock start-up failure is gone, but loop_east and one loop_west run still stop safely on a side slope. The tip guard does not keep the roll down, the map predicts less roll than the rover gets. Full 6-world check running, marsyard 9/9 so far."
@@ -195,7 +199,7 @@
  "needs_you": [
   "Rover data before 22 Nov: odometry source, lidar mount and IMU topics, CG height and mass, wheel offset and step height.",
   "Lab visit with the NUC for the Phase 2 latency check.",
-  "Disk is down to 11 GB free (each night uses about 1 GB). Everything clearable inside the project is cleared. Free some space outside it (MRT, Unity, Downloads?) or ok deleting old benchmark result dirs."
+  "Disk is at 9.05 GB, right at the line where runs stop starting. Please run: sudo journalctl --vacuum-size=200M, or ok compressing old pose files (lossless, about 0.7 GB)."
  ],
  "phases": [
   {
@@ -211,7 +215,7 @@
   {
    "phase": "2 Terrain mapping",
    "state": "open",
-   "note": "RMSE met on all 7 worlds (crater_field 4.15 cm on ground-truth odometry, 7 Nov). Crater flag item not tested (the stack never drove onto a rim), rim-approach test to build. NUC latency waits for the lab NUC"
+   "note": "RMSE met on all 7 worlds (7 Nov). Crater item met 19 Nov: 22 of 22 reached craters flagged first with the new dip check, easy goals unchanged (53/57 full run). Only the NUC latency check is left, waits for the lab NUC"
   },
   {
    "phase": "3 Traversability",
@@ -231,7 +235,7 @@
   {
    "phase": "6 Global terrain memory",
    "state": "open",
-   "note": "global feature map in use by the planner, gate not run"
+   "note": "Routes of 100 m or more: 5 of 9 complete, 0 unsafe, item 1 met. loop_east stops safely on a side slope every time. Loop-closure alignment item waits for the EKF"
   },
   {
    "phase": "7 Hardware",
@@ -363,7 +367,7 @@
    "items": [
     "Phase 2 crater test with the dip detector: 22/22 flagged first, item met",
     "Phase 6 routes with tip guard: 5/9 again, guard does not keep roll down",
-    "Full 6-world regression and 2D route baseline queued"
+    "Full 6-world check of the branch: 53/57, easy goals held, no-guard run queued"
    ]
   }
  ]
