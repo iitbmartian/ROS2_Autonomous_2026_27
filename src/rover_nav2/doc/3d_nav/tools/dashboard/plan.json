@@ -2,21 +2,30 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p2rimdip",
-   "tag": "p2rimdip",
+   "log": "exp_p2rimdip2",
+   "tag": "p2rimdip2",
    "ref": [],
-   "label": "Phase 2 crater test again with the observed-dip detector (ram/3d_nav-p26)",
-   "minutes": 45
+   "label": "Phase 2 crater test with every p26 fix (dip detector), longer back-out after each touch",
+   "minutes": 50
   },
   {
-   "log": "exp_p26easy",
-   "tag": "3d_gt_p26easy_d250",
+   "log": "exp_p26route",
+   "tag": "3d_gt_p26route_d250",
+   "ref": [
+    "tag:3d_gt_p6route_d250"
+   ],
+   "label": "Phase 6 routes with the p26 fixes: tip guard in the controller, start-occupied escape",
+   "minutes": 200
+  },
+  {
+   "log": "exp_p26full",
+   "tag": "3d_gt_p26full_d250",
    "ref": [
     "tag:3d_gt_v2rel_d250",
     "tag:3d_gt_v2rel2_d250"
    ],
-   "label": "Simple-terrain regression with the dip detector, easy goals x3, must match v2",
-   "minutes": 180
+   "label": "Full 6 worlds x3 with every p26 fix, must hold the easy goals at v2 level",
+   "minutes": 330
   },
   {
    "log": "exp_p6route2d",
@@ -37,6 +46,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 12:15",
+   "text": "Phase 2 and 6 causes found and fixed on a separate branch. Small craters: their floor is visible, so a new check flags seen dips deeper than a wheel step (first test 6/6 flagged first, no false alarms). Routes: the controller ignored heading on slopes, now a tip-only guard; and a rover next to a rock gave up at once, now it backs out and replans. Crater test, routes, then a full 6-world check that easy goals do not suffer."
+  },
   {
    "when": "19 Nov 11:45",
    "text": "Wider tip margin rejected (22/30 against 28/30 on the weak goals, and loop_east still stops). Phase 2 fix coded: the 0.6 m craters were missed because their floor is visible, so a new detector flags seen dips deeper than a wheel step. Crater test running, then a simple-terrain regression so easy goals do not suffer."

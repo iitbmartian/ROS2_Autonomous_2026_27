@@ -147,7 +147,7 @@ class Driver(Node):
         x0, y0 = self.pose[:2]
         t0 = self.now()
         while rclpy.ok() and math.hypot(self.pose[0] - x0, self.pose[1] - y0) < dist \
-                and self.now() - t0 < 12.0:
+                and self.now() - t0 < 4.0 + dist / 0.3 * 1.5:
             self.drive(-0.3, 0.0)
             self.spin_for(0.1)
         self.stop()
@@ -172,6 +172,9 @@ def main():
     p.add_argument('--standoff', type=float, default=3.5)
     p.add_argument('--nav-timeout', type=float, default=300.0)
     p.add_argument('--tries', type=int, default=3, help='standoff points tried per crater')
+    # The touch leaves the wheels on a flagged rim. Back out far enough that the footprint and the
+    # costmap's lethal buffer around that rim are behind the rover before Nav2 takes over.
+    p.add_argument('--reverse', type=float, default=1.5, help='m driven back after a touch')
     a = p.parse_args()
     phys, _ = physical_params.load()
     craters = [c for c in yaml.safe_load(open(a.craters))['craters'] if c['diameter'] > phys['track']]
@@ -205,7 +208,7 @@ def main():
         if hit is not None:
             reached.add(hit)
         n.log(f'crater {k}: approach {out}, at ({n.pose[0]:.2f}, {n.pose[1]:.2f})')
-        n.reverse()
+        n.reverse(a.reverse)
     n.log(f'done, footprint touched {len(reached)} of {len(craters)}: {sorted(reached)}')
     n.destroy_node()
     rclpy.shutdown()
