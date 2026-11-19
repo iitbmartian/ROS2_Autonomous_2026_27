@@ -2,15 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p26route",
-   "tag": "3d_gt_p26route_d250",
-   "ref": [
-    "tag:3d_gt_p6route_d250"
-   ],
-   "label": "Phase 6 routes with the p26 fixes: tip guard in the controller, start-occupied escape",
-   "minutes": 200
-  },
-  {
    "log": "exp_p26full",
    "tag": "3d_gt_p26full_d250",
    "ref": [
@@ -28,6 +19,15 @@
    ],
    "label": "2D Nav2 baseline on the Phase 6 routes (3 routes x3), ground truth",
    "minutes": 300
+  },
+  {
+   "log": "exp_p26weak",
+   "tag": "3d_gt_p26weak_d250",
+   "ref": [
+    "tag:3d_gt_v2weak_d250"
+   ],
+   "label": "Weak goals x5 with every p26 fix: does the rock escape win back rock ahead_10m",
+   "minutes": 260
   }
  ],
  "deadline": "2026-11-22 00:00",
@@ -39,6 +39,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 15:55",
+   "text": "Routes with the new fixes: 5 of 9 again, 0 unsafe. The rock start-up failure is gone, but loop_east and one loop_west run still stop safely on a side slope. The tip guard does not keep the roll down, the map predicts less roll than the rover gets. Full 6-world check running, marsyard 9/9 so far."
+  },
   {
    "when": "19 Nov 13:55",
    "text": "Phase 2 crater check passed: 22 of 22 reached craters flagged before the rover touched them, every small crater included (18 of 22 before the fix). It ships once the full 6-world run shows easy goals unchanged. Routes: the new tip guard loaded but loop_east still stops at the same slope, the guard turns the tip into a stall. Next: plan the path down the slope before turning."
@@ -358,7 +362,7 @@
    "state": "now",
    "items": [
     "Phase 2 crater test with the dip detector: 22/22 flagged first, item met",
-    "Phase 6 routes with tip guard: loop_east 0/3 again, guard stalls on the slope",
+    "Phase 6 routes with tip guard: 5/9 again, guard does not keep roll down",
     "Full 6-world regression and 2D route baseline queued"
    ]
   }
