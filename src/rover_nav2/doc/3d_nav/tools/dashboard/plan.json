@@ -2,13 +2,6 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_p2rimdip2",
-   "tag": "p2rimdip2",
-   "ref": [],
-   "label": "Phase 2 crater test with every p26 fix (dip detector), longer back-out after each touch",
-   "minutes": 50
-  },
-  {
    "log": "exp_p26route",
    "tag": "3d_gt_p26route_d250",
    "ref": [
@@ -46,6 +39,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 13:55",
+   "text": "Phase 2 crater check passed: 22 of 22 reached craters flagged before the rover touched them, every small crater included (18 of 22 before the fix). It ships once the full 6-world run shows easy goals unchanged. Routes: the new tip guard loaded but loop_east still stops at the same slope, the guard turns the tip into a stall. Next: plan the path down the slope before turning."
+  },
   {
    "when": "19 Nov 12:15",
    "text": "Phase 2 and 6 causes found and fixed on a separate branch. Small craters: their floor is visible, so a new check flags seen dips deeper than a wheel step (first test 6/6 flagged first, no false alarms). Routes: the controller ignored heading on slopes, now a tip-only guard; and a rover next to a rock gave up at once, now it backs out and replans. Crater test, routes, then a full 6-world check that easy goals do not suffer."
@@ -354,6 +351,15 @@
     "EKF and Phase 6 loop-closure alignment (after Ram talks to the package owner)",
     "Swerve heading tracking (Phase 4)",
     "Phase 7 hardware gate"
+   ]
+  },
+  {
+   "when": "19 Nov day",
+   "state": "now",
+   "items": [
+    "Phase 2 crater test with the dip detector: 22/22 flagged first, item met",
+    "Phase 6 routes with tip guard: loop_east 0/3 again, guard stalls on the slope",
+    "Full 6-world regression and 2D route baseline queued"
    ]
   }
  ]
