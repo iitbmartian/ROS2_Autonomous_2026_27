@@ -107,6 +107,26 @@ Grid negativeObstacles(
   const Grid & elevation, double si, double sj, double sensor_z,
   const NegativeObstacleParams & p);
 
+// Observed depressions, the other half of negative obstacles. A shallow crater whose floor the
+// sensor sees leaves no unknown run for the occlusion reasoning, yet it can still be deeper than
+// a wheel climbs. Along each of 4 directions (0, 45, 90, 135 deg) a 1D morphological closing
+// with half-width radius raises a cell to the lower of the highest ground on either side. Since
+// closing fills only a cell with higher ground on both sides, monotone slopes and ramp toes give
+// zero depth. The depth is the smallest of the 4, so a corridor between two rocks, open along
+// its axis, is not a pit. A line whose window reaches unknown or off-grid cells gives depth 0,
+// so only an enclosure the sensor saw counts. A cell is flagged when that depth exceeds
+// depth_min and at least min_neighbours cells of its 3x3 block (itself included) qualify, which
+// drops lone low returns. Returns 0 and 1, NaN where the cell is unknown.
+struct DepressionParams
+{
+  double resolution{0.05};
+  double radius{0.45};          // m, half-width of the closing, about one track width
+  double depth_min{0.10};       // m, the wheel step limit (rover_physical step_max)
+  int min_neighbours{4};
+};
+
+Grid observedDepressions(const Grid & elevation, const DepressionParams & p);
+
 // The rover's own footprint, as support: its wheels stand on that ground, so unknown cells under
 // it are filled with the plane the rover rests on. Only the feature copy is filled, never the
 // elevation map. Without it every pose check near the rover reaches into the sensor's blind
