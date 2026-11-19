@@ -2,28 +2,28 @@
  "headline": "v2 is out (tag 3d-nav-v2, pushed 18 Nov): 49 to 51 of 57 goals, 0 unsafe, against 36 of 57 for 2D (rerun 18 Nov, same). Now: v3 small items and Phase 6 long routes, Phase 2 crater test tonight. Swerve parked, EKF waits for the package owner.",
  "queue": [
   {
-   "log": "exp_v2weak",
-   "tag": "3d_gt_v2weak_d250",
-   "ref": [
-    "tag:3d_gt_v2rel_d250"
-   ],
-   "label": "v2 on every goal it lost at least once, 5 runs each, firmer v3 baseline",
-   "minutes": 170
-  },
-  {
-   "log": "exp_v2rel2top",
-   "tag": "3d_gt_v2rel2_d250",
-   "ref": [
-    "tag:3d_gt_v2rel_d250"
-   ],
-   "label": "v2 release repeat top-up: the 3 slopes past_lanes runs lost at 22:05",
-   "minutes": 20
-  },
-  {
    "log": "exp_p6route",
    "tag": "3d_gt_p6route_d250",
    "ref": [],
    "label": "Phase 6 long routes on urc_mix (3 loops of 100 m or more, x3), ground truth, v2 stack with the v3 runner",
+   "minutes": 330
+  },
+  {
+   "log": "exp_v2weakm10",
+   "tag": "3d_gt_v2weakm10_d250",
+   "ref": [
+    "tag:3d_gt_v2weak_d250"
+   ],
+   "label": "v2 weak goals x5 with a wider tip margin (0.10 rad), against the tip-monitor stops",
+   "minutes": 155
+  },
+  {
+   "log": "exp_p6m10",
+   "tag": "3d_gt_p6m10_d250",
+   "ref": [
+    "tag:3d_gt_p6route_d250"
+   ],
+   "label": "Phase 6 routes with the wider tip margin (0.10 rad)",
    "minutes": 330
   }
  ],
@@ -36,6 +36,10 @@
   "Found 18 Nov: the benchmark's planner-time probe sends an empty planner id, so every v2 run idled 60 s before its goal (results unaffected, sim time). Fixed in v3."
  ],
  "updates": [
+  {
+   "when": "19 Nov 07:10",
+   "text": "v2 weak goals x5: 28/30, 0 unsafe, only rock ahead_10m loses (3/5). v2 repeat complete at 51/57. Phase 6 routes running: loop_east stopped safely by the tip monitor twice at waypoint 3 of 7. A wider tip margin is queued on the weak goals and the routes."
+  },
   {
    "when": "19 Nov 04:00",
    "text": "Phase 2 crater test: 18 of 22 reached craters flagged before the rover got there. Every crater 1 m or wider passes, the misses are all the smallest 0.6 m craters. Gate not met yet. Bars stall diagnosis recorded for the v3 fix."
@@ -275,20 +279,21 @@
   },
   {
    "when": "18 Nov night",
-   "state": "running",
+   "state": "done",
    "items": [
     "v2 release repeat: 48/54, every goal within one run of v2rel, 0 unsafe, done",
     "Phase 2 crater rim test: 18/22 flagged first, all 1 m and wider pass, 0.6 m craters 3/7, gate not met",
-    "v2 weak goals x5",
+    "v2 weak goals x5: 28/30, only rock ahead_10m 3/5",
     "v3 worktree: planner-probe fix, multi-waypoint runner, urc_mix routes of 100 m or more"
    ]
   },
   {
    "when": "19 Nov",
-   "state": "queued",
+   "state": "running",
    "items": [
     "Phase 2 crater item result, close it if every reached crater was flagged first",
-    "Smoke test, then Phase 6 long routes on ground truth (3 routes x 3)",
+    "Phase 6 long routes on ground truth (3 routes x 3), loop_east tip-stopped at waypoint 3/7",
+    "Wider tip margin (0.10 rad) on the weak goals and the routes",
     "Bars stall fix with gtests: replan or abort when the plan crosses step-lethal poses",
     "Real-rover config: params and launch for the real sensors"
    ]
