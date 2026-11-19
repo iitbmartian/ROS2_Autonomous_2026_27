@@ -177,3 +177,37 @@ TEST(TrajectoryCost, ThreadedBatchMatchesOneThread)
   EXPECT_GE(one.maxCoeff(), 1.0e6);
   EXPECT_LT(one.minCoeff(), 1.0e3);
 }
+
+TEST(TrajectoryCost, TipGuardOnlyActsNearTheTipLimit)
+{
+  // The Ackermann tip guard: no soft cost, no redirect or uphill terms, collision above
+  // u_tip 0.80. Across a 13 deg slope (u_tip 0.807, see above) every point collides. Across
+  // 10 deg (u_tip 10 / 13 * 0.807 = 0.62) and on flat ground the rollout costs exactly 0.
+  TrajectoryCostParams c;
+  c.point_step = 1;
+  c.w_terrain = 0.0; c.w_redirect = 0.0; c.w_uphill = 0.0; c.unknown_cost = 0.0;
+  c.u_tip_lethal = 0.80; c.lethal_collision = false;
+  Rollouts x(1, 10), y(1, 10), yaw(1, 10), vx(1, 10), vy(1, 10);
+  line(x, y, yaw, vx, vy, 0, 0.0, 0.2, 0.0);
+  EXPECT_NEAR(trajectoryCosts(slopeY(13.0), rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 1.0e7, 1.0);
+  EXPECT_EQ(trajectoryCosts(slopeY(10.0), rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 0.0f);
+  EXPECT_EQ(trajectoryCosts(slopeY(0.0), rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 0.0f);
+  // Facing up the 13 deg slope it pitches instead of rolling, far from the pitch limit: 0.
+  line(x, y, yaw, vx, vy, 0, M_PI / 2, 0.2, 0.0);
+  EXPECT_EQ(trajectoryCosts(slopeY(13.0), rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 0.0f);
+}
+
+TEST(TrajectoryCost, StepLethalPoseIsLeftToTheCostmapWhenLethalCollisionIsOff)
+{
+  // Flat ground with a 0.2 m step layer everywhere: u_step 2, lethal, u_tip 0.
+  auto g = slopeY(0.0);
+  g.step = Eigen::MatrixXf::Constant(g.rows(), g.cols(), 0.2f);
+  Rollouts x(1, 10), y(1, 10), yaw(1, 10), vx(1, 10), vy(1, 10);
+  line(x, y, yaw, vx, vy, 0, 0.0, 0.2, 0.0);
+  TrajectoryCostParams c;
+  c.point_step = 1;
+  c.w_redirect = 0.0; c.w_uphill = 0.0;
+  EXPECT_NEAR(trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 1.0e7, 1.0);
+  c.lethal_collision = false;
+  EXPECT_EQ(trajectoryCosts(g, rover(), critic(), c, x, y, yaw, vx, vy, 0.05)(0), 0.0f);
+}

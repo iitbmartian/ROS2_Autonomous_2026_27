@@ -27,6 +27,7 @@ void TerrainCritic::initialize()
   getParam(cost_.unknown_cost, "unknown_cost", 1.0);
   getParam(cost_.u_free, "u_free", 0.0);
   getParam(cost_.u_tip_lethal, "u_tip_lethal", 1.0);
+  getParam(cost_.lethal_collision, "lethal_collision", true);
   getParam(cost_.w_redirect, "redirect_weight", 2.0);
   getParam(cost_.w_uphill, "uphill_weight", 5.0);
   getParam(cost_.point_step, "trajectory_point_step", 3);

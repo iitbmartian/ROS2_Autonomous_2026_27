@@ -35,6 +35,10 @@ struct TrajectoryCostParams
   // A pose whose tip utilisation exceeds this is a collision. Below 1 it matches the safety
   // monitor, which aborts within tip_margin of the tip limits, at about u_tip 0.82.
   double u_tip_lethal{1.0};
+  // False: a lethal pose counts as a collision only through u_tip_lethal. Step, clearance and
+  // negative obstacles are left to the costmap critic, so the critic can run as a pure tip guard
+  // (cost_weight 0) that changes nothing on ground the rover cannot tip on.
+  bool lethal_collision{true};
   double w_redirect{2.0};
   double w_uphill{5.0};
   int point_step{3};               // evaluate every n-th point of a rollout
