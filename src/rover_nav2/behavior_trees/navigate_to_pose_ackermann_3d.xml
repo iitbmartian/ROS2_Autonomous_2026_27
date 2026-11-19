@@ -37,6 +37,13 @@
   the controller can come in again along an S-curve. Unlike the 2026-11-08 variant there is no
   pre-goal, so planning is unchanged everywhere else.
 -->
+<!--
+  2026-11-19 (ram/3d_nav-p26), start-occupied escape. Smac's START_OCCUPIED (205) was not an error
+  WouldAPlannerRecoveryHelp lets through (UNKNOWN, NO_VALID_PATH, TIMEOUT only), so a rover led into a
+  rock's lethal halo failed the whole goal at once with no recovery: rock_field ahead_10m (v2weak r5, and 2 more plus
+  marsyard behind_left with mask_tip_margin 0.10) and the Phase 6 loop_west r1 abort. 205 now runs the planner
+  recovery and a back-out of 0.4 m before the usual round robin.
+-->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
    <Sequence>
@@ -65,7 +72,12 @@
               </Fallback>
             </Fallback>
             <Sequence>
-              <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+              <Fallback>
+                <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+                <!-- 205 START_OCCUPIED: the rover stands in a lethal cell (a rock halo it was led
+                     into), recoverable by clearing and backing out, see the escape below. -->
+                <AreErrorCodesPresent error_code="{compute_path_error_code}" error_codes_to_check="205"/>
+              </Fallback>
               <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
             </Sequence>
           </RecoveryNode>
@@ -93,9 +105,17 @@
         <Fallback>
           <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
           <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+          <AreErrorCodesPresent error_code="{compute_path_error_code}" error_codes_to_check="205"/>
         </Fallback>
         <ReactiveFallback name="RecoveryFallback">
           <GoalUpdated/>
+          <!-- Start occupied: back out of the lethal cell first, then replan. If the way back is
+               blocked the BackUp fails and the usual round robin runs. -->
+          <Sequence name="StartOccupiedEscape">
+            <AreErrorCodesPresent error_code="{compute_path_error_code}" error_codes_to_check="205"/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Escape" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <BackUp backup_dist="0.40" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+          </Sequence>
           <RoundRobin name="RecoveryActions">
             <Sequence name="ClearingActions">
               <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>

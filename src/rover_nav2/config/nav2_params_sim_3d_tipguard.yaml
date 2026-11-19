@@ -1,0 +1,37 @@
+# Ackermann tip guard (ram/3d_nav-p26), merged last with nav_extra_overlay. The v2 controller scores
+# rollouts only on the costmap, which keeps one cost per cell (the best heading's), so MPPI can turn
+# across a slope at a heading the planner never accepted. Phase 6 loop_east: from waypoint 3 on the
+# sidehill's 12 to 14 deg east taper, the turn south rolled 13.3 deg and the monitor stopped all three
+# runs (and the margin 0.10 run). This critic scores each rollout pose at its own yaw and makes a pose
+# a collision only when u_tip exceeds 0.80 (about 12.9 deg of pure roll, just inside the monitor's
+# 13.2 deg abort at u_tip 0.82). Everything else is off: no soft cost, no unknown cost, no redirect or
+# uphill term, other lethal poses left to the costmap critic (lethal_collision false). So on ground
+# where no heading comes near the tip line the controller is exactly v2.
+controller_server:
+  ros__parameters:
+    FollowPath:
+      critics:
+        [
+          "ConstraintCritic",
+          "CostCritic",
+          "GoalCritic",
+          "GoalAngleCritic",
+          "PathAlignCritic",
+          "PathFollowCritic",
+          "PathAngleCritic",
+          "PreferForwardCritic",
+          "TerrainCritic",
+        ]
+      TerrainCritic:
+        enabled: true
+        map_topic: /terrain/local_features
+        cost_weight: 0.0
+        collision_cost: 1000000.0
+        unknown_cost: 0.0
+        u_free: 0.0
+        u_tip_lethal: 0.80
+        lethal_collision: false
+        redirect_weight: 0.0
+        uphill_weight: 0.0
+        trajectory_point_step: 3
+        risk_kappa: 1.0

@@ -95,6 +95,12 @@ public:
     fp_.plane_radius = phys.wheelbase / 2.0;
     wheel_radius_ = phys.wheel_radius;
     fp_.step_radius = phys.wheel_radius;
+    // Observed dips: deeper than a wheel steps, about one track width across (features.hpp).
+    dip_enable_ = declare_parameter<bool>("negative.dip_enable", true);
+    dp_.radius = declare_parameter<double>("negative.dip_radius", phys.track);
+    dp_.depth_min = declare_parameter<double>("negative.dip_depth", phys.step_max);
+    dp_.min_neighbours = static_cast<int>(
+      declare_parameter<int>("negative.dip_min_neighbours", dp_.min_neighbours));
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
@@ -112,8 +118,10 @@ public:
     }
     RCLCPP_INFO(
       get_logger(), "terrain_features: %s -> %s, plane radius %.3f m, step radius %.3f m, "
-      "negative obstacles from '%s', mask_tip_margin %.3f rad", in.c_str(), out.c_str(),
-      fp_.plane_radius, fp_.step_radius, sensor_frame_.c_str(), yaw_.tip_margin);
+      "negative obstacles from '%s', mask_tip_margin %.3f rad, observed dips %s (radius %.3f m, "
+      "depth %.3f m)", in.c_str(), out.c_str(), fp_.plane_radius, fp_.step_radius,
+      sensor_frame_.c_str(), yaw_.tip_margin, dip_enable_ ? "on" : "off", dp_.radius,
+      dp_.depth_min);
   }
 
 private:
@@ -198,6 +206,14 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 5000, "no sensor pose, negative obstacles skipped: %s",
         e.what());
+    }
+
+    if (dip_enable_) {
+      dp_.resolution = g.resolution;
+      const Eigen::MatrixXf dip = observedDepressions(z_obs, dp_);
+      for (Eigen::Index k = 0; k < neg.size(); ++k) {
+        if (dip(k) > 0.5f) {neg(k) = 1.0f;} else if (!std::isfinite(neg(k))) {neg(k) = dip(k);}
+      }
     }
 
     grid_map_msgs::msg::GridMap out;
@@ -301,6 +317,8 @@ private:
   bool evaluate_yaws_{true};
   double wheel_radius_{0.15};
   NegativeObstacleParams np_;
+  DepressionParams dp_;
+  bool dip_enable_{true};
   std::string sensor_frame_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;

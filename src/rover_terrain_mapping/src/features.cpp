@@ -314,6 +314,74 @@ Grid negativeObstacles(
   return out;
 }
 
+Grid observedDepressions(const Grid & z, const DepressionParams & p)
+{
+  const int rows = static_cast<int>(z.rows());
+  const int cols = static_cast<int>(z.cols());
+  const float inf = std::numeric_limits<float>::infinity();
+  Grid depth = Grid::Constant(rows, cols, inf);
+  const int dirs[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+  for (const auto & dv : dirs) {
+    const int di = dv[0], dj = dv[1];
+    const double len = std::hypot(di, dj) * p.resolution;
+    const int k = std::max(1, static_cast<int>(std::lround(p.radius / len)));
+    // Dilation: highest observed ground within k steps along the line.
+    Grid dil = Grid::Constant(rows, cols, kNaN);
+    for (int i = 0; i < rows; ++i) {
+      for (int j = 0; j < cols; ++j) {
+        float m = -inf;
+        for (int t = -k; t <= k; ++t) {
+          const int a = i + t * di, b = j + t * dj;
+          if (a < 0 || b < 0 || a >= rows || b >= cols) {continue;}
+          const float v = z(a, b);
+          if (std::isfinite(v) && v > m) {m = v;}
+        }
+        if (m > -inf) {dil(i, j) = m;}
+      }
+    }
+    // Erosion of the dilation. A window that leaves the grid or holds no dilation has an unseen
+    // side, so the cell is not called enclosed along this line.
+    for (int i = 0; i < rows; ++i) {
+      for (int j = 0; j < cols; ++j) {
+        if (!std::isfinite(z(i, j))) {continue;}
+        float m = inf;
+        bool full = true;
+        for (int t = -k; t <= k && full; ++t) {
+          const int a = i + t * di, b = j + t * dj;
+          if (a < 0 || b < 0 || a >= rows || b >= cols || !std::isfinite(dil(a, b))) {
+            full = false;
+          } else {
+            m = std::min(m, dil(a, b));
+          }
+        }
+        depth(i, j) = std::min(depth(i, j), full ? m - z(i, j) : 0.0f);
+      }
+    }
+  }
+  Grid deep = Grid::Zero(rows, cols);
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (std::isfinite(z(i, j)) && depth(i, j) > p.depth_min) {deep(i, j) = 1.0f;}
+    }
+  }
+  Grid out = Grid::Constant(rows, cols, kNaN);
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (!std::isfinite(z(i, j))) {continue;}
+      int n = 0;
+      if (deep(i, j) > 0.5f) {
+        for (int a = std::max(0, i - 1); a <= std::min(rows - 1, i + 1); ++a) {
+          for (int b = std::max(0, j - 1); b <= std::min(cols - 1, j + 1); ++b) {
+            n += deep(a, b) > 0.5f;
+          }
+        }
+      }
+      out(i, j) = n >= p.min_neighbours ? 1.0f : 0.0f;
+    }
+  }
+  return out;
+}
+
 int fillFootprint(
   Grid & elevation, Grid & variance, const std::vector<double> & row_x,
   const std::vector<double> & col_y, const FootprintPlane & fp, float fill_variance)

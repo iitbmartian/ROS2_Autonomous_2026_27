@@ -49,10 +49,11 @@ Eigen::VectorXf trajectoryCosts(
           cost += c.unknown_cost;
           continue;
         }
-        if (r.status == PoseStatus::kLethal || r.u_tip > c.u_tip_lethal) {
+        if (r.u_tip > c.u_tip_lethal || (c.lethal_collision && r.status == PoseStatus::kLethal)) {
           cost += c.collision_cost;
           continue;
         }
+        if (r.status == PoseStatus::kLethal) {continue;}   // left to the costmap critic
         const double excess = c.u_free > 0.0 ?
           std::max(0.0, r.u - c.u_free) / (1.0 - c.u_free) : r.u;
         cost += c.w_terrain * excess * excess;

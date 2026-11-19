@@ -483,3 +483,97 @@ TEST(FillSmallHoles, DiagonalCellsAreSeparatePatches)
   EXPECT_NEAR(z(2, 2), 0.2f, 1e-6);
   EXPECT_NEAR(z(3, 3), 0.2f, 1e-6);
 }
+
+namespace
+{
+
+constexpr int kD = 61;           // 3 m square
+
+rover_terrain_mapping::DepressionParams dipParams()
+{
+  rover_terrain_mapping::DepressionParams p;
+  p.resolution = kRes;
+  p.radius = 0.436;              // track: 9 cells along an axis, 6 diagonal steps
+  p.depth_min = 0.10;            // step_max
+  return p;
+}
+
+int flagged(const Grid & g)
+{
+  int n = 0;
+  for (Eigen::Index k = 0; k < g.size(); ++k) {n += g(k) == 1.0f;}
+  return n;
+}
+
+}  // namespace
+
+TEST(ObservedDepressions, SmallCraterSeenToTheFloorIsFlagged)
+{
+  // 0.6 m square pit, 0.15 m deep, on flat ground: every pit cell is within 9 cells of flat
+  // ground on both sides of every line, so the closing is 0 and the depth 0.15 > 0.10.
+  Grid z = Grid::Zero(kD, kD);
+  z.block(24, 24, 12, 12).setConstant(-0.15f);
+  const Grid d = rover_terrain_mapping::observedDepressions(z, dipParams());
+  EXPECT_EQ(d(29, 29), 1.0f);
+  EXPECT_EQ(d(24, 24), 1.0f);    // corner: itself, 2 edge and 1 diagonal neighbour qualify
+  EXPECT_EQ(d(23, 29), 0.0f);    // flat ground at the rim
+  EXPECT_EQ(flagged(d), 144);
+}
+
+TEST(ObservedDepressions, DipShallowerThanAStepIsNotFlagged)
+{
+  Grid z = Grid::Zero(kD, kD);
+  z.block(24, 24, 12, 12).setConstant(-0.05f);
+  EXPECT_EQ(flagged(rover_terrain_mapping::observedDepressions(z, dipParams())), 0);
+}
+
+TEST(ObservedDepressions, TiltedPlaneIsNotFlagged)
+{
+  // 20 deg plane: a closing of a linear surface is the surface itself, depth 0.
+  Grid z(kD, kD);
+  for (int i = 0; i < kD; ++i) {
+    for (int j = 0; j < kD; ++j) {z(i, j) = static_cast<float>(std::tan(0.349) * kRes * (i + j));}
+  }
+  EXPECT_EQ(flagged(rover_terrain_mapping::observedDepressions(z, dipParams())), 0);
+}
+
+TEST(ObservedDepressions, RampToeIsNotFlagged)
+{
+  // Flat ground meeting a 25 deg ramp: concave but monotone, no higher ground on both sides.
+  Grid z = Grid::Zero(kD, kD);
+  for (int i = 30; i < kD; ++i) {z.row(i).setConstant(static_cast<float>(0.466 * kRes * (i - 30)));}
+  EXPECT_EQ(flagged(rover_terrain_mapping::observedDepressions(z, dipParams())), 0);
+}
+
+TEST(ObservedDepressions, CorridorBetweenRocksIsNotFlagged)
+{
+  // Two 0.4 m walls 0.6 m apart. Across the corridor the closing fills it, along it the line
+  // sees only ground, and the depth is the smallest of the 4 lines.
+  Grid z = Grid::Zero(kD, kD);
+  z.block(20, 0, 6, kD).setConstant(0.4f);
+  z.block(38, 0, 6, kD).setConstant(0.4f);
+  const Grid d = rover_terrain_mapping::observedDepressions(z, dipParams());
+  EXPECT_EQ(d(31, 30), 0.0f);
+  EXPECT_EQ(flagged(d), 0);
+}
+
+TEST(ObservedDepressions, LoneLowReturnIsNotFlagged)
+{
+  Grid z = Grid::Zero(kD, kD);
+  z(30, 30) = -0.3f;
+  z(30, 31) = -0.3f;             // two cells: 2 of 9 in the block, below 4
+  EXPECT_EQ(flagged(rover_terrain_mapping::observedDepressions(z, dipParams())), 0);
+}
+
+TEST(ObservedDepressions, UnknownStaysUnknownAndAnUnseenSideIsNotEnclosed)
+{
+  // The same pit, but everything beyond its right wall is unknown: along the row the window
+  // reaches unknown cells with no dilation, so the pit is not called enclosed there.
+  Grid z = Grid::Zero(kD, kD);
+  z.block(24, 24, 12, 12).setConstant(-0.15f);
+  z.block(0, 36, kD, kD - 36).setConstant(kNaN);
+  const Grid d = rover_terrain_mapping::observedDepressions(z, dipParams());
+  EXPECT_TRUE(std::isnan(d(29, 40)));
+  EXPECT_EQ(d(29, 30), 0.0f);
+  EXPECT_EQ(d(10, 10), 0.0f);
+}
